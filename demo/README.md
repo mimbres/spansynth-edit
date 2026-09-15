@@ -62,4 +62,4 @@ This is reference-assisted level matching for listening. No limiter, crossfade, 
 
 ## Publication
 
-GitHub Pages has not yet been enabled. The intended public path is `/spansynth-edit/demo/` on the existing account’s Pages site. The local review URL is separate from public deployment.
+The public demo is hosted at [mimbres.github.io/spansynth-edit/demo/](https://mimbres.github.io/spansynth-edit/demo/) with GitHub Pages, using the root of the `main` branch as its publishing source.
