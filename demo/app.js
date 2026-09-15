@@ -11,6 +11,7 @@ let players = [];
 let active = null;
 let frame = null;
 let keepPosition = true;
+let midiPositions = [];
 const svgNS = "http://www.w3.org/2000/svg";
 const escapeHTML = value => String(value).replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 const timeLabel = n => `${Math.floor(Math.max(0,n)/60)}:${String(Math.floor(Math.max(0,n)%60)).padStart(2,"0")}`;
@@ -49,6 +50,7 @@ function drawMidi(instrument = "all") {
   const x = t => left+t/current.duration*plotWidth;
   const y = pitch => top+(high-pitch)/(high-low+1)*plotHeight;
   document.querySelectorAll(".piano-scroll").forEach((container,index)=>{
+    const scrollLeft=container.scrollLeft;
     container.replaceChildren();
     const midi=arrays[index];
     const changes=arrays.length>1?changedNotes(midi.notes,arrays[1-index].notes):midi.notes.map(()=>false);
@@ -64,16 +66,30 @@ function drawMidi(instrument = "all") {
       parts.forEach(([a,b,changed])=>{if(b<=a)return;const note=svgElement("rect",{x:x(a),y:y(n.pitch),width:Math.max(1.2,x(b)-x(a)),height:Math.max(2,plotHeight/(high-low+1)-.5),rx:.7,fill:changed?"var(--coral-note)":"var(--teal-note)",stroke:changed?"var(--coral)":"var(--teal)","stroke-width":.7});note.append(svgElement("title",{},`${n.instrument} · MIDI ${n.pitch} · ${decimal(n.start)}–${decimal(n.end)} s${changed?" · changed":""}`));svg.append(note);});
     });
     [current.start,current.end].forEach(t=>svg.append(svgElement("line",{x1:x(t),x2:x(t),y1:top,y2:height-bottom,class:"region-edge"})));
-    svg.append(svgElement("line",{x1:left,x2:left,y1:top,y2:height-bottom,class:"playhead"}));
+    svg.append(svgElement("line",{x1:left,x2:left,y1:top,y2:height-bottom,class:`playhead ${arrays.length>1?(index?"edited":"before"):""}`}));
     container.append(svg);
+    container.scrollLeft=scrollLeft;
+    updatePlayhead(midiPositions[index]||0,index,false);
   });
-  updatePlayhead(active?active.position:0);
 }
-function updatePlayhead(t){document.querySelectorAll(".playhead").forEach(line=>{const x=38+Math.min(current.duration,t)/current.duration*672;line.setAttribute("x1",x);line.setAttribute("x2",x);});}
-function tick(){if(!active||active.audio.paused)return;active.render();updatePlayhead(active.audio.currentTime);frame=requestAnimationFrame(tick);}
+function updatePlayhead(t,index,follow=true){
+  midiPositions[index]=Math.max(0,Math.min(current.duration,t));
+  const roll=demo.querySelectorAll(".piano-scroll")[index];
+  const line=roll?.querySelector(".playhead");
+  if(!line)return;
+  const x=38+midiPositions[index]/current.duration*672;
+  line.setAttribute("x1",x);line.setAttribute("x2",x);
+  if(follow){
+    const pixel=x*roll.querySelector("svg").getBoundingClientRect().width/720;
+    if(pixel<roll.scrollLeft+18||pixel>roll.scrollLeft+roll.clientWidth-18){
+      roll.scrollLeft=Math.max(0,Math.min(roll.scrollWidth-roll.clientWidth,pixel-roll.clientWidth*.65));
+    }
+  }
+}
+function tick(){if(!active||active.audio.paused)return;active.render();updatePlayhead(active.position,active.midiIndex);frame=requestAnimationFrame(tick);}
 function stopPlayers(){cancelAnimationFrame(frame);players.forEach(p=>{p.audio.pause();p.audio.removeAttribute("src");p.audio.load();});players=[];active=null;}
 
-function mountPlayer(container, item) {
+function mountPlayer(container, item, midiIndex) {
   const label=`${current.title}: ${item.label}`;
   container.innerHTML=`<button class="play" type="button" aria-label="Play ${escapeHTML(label)}">▶</button><div class="timeline"><div class="rail"><span class="target-span"></span><span class="cursor"></span></div><input class="seek" type="range" min="0" max="${current.duration}" step="0.01" value="0" aria-label="Seek ${escapeHTML(label)}"><span class="target-label">TARGET ${decimal(current.start)}–${decimal(current.end)} s</span></div><span class="time">0:00 / ${timeLabel(current.duration)}</span><span class="audio-error" role="status" hidden></span>`;
   container.style.setProperty("--start",`${current.start/current.duration*100}%`);
@@ -81,7 +97,7 @@ function mountPlayer(container, item) {
   const audio=document.createElement("audio");audio.preload="none";audio.src=item.src;audio.setAttribute("aria-label",label);audio.hidden=true;container.append(audio);
   const button=container.querySelector(".play"),seek=container.querySelector(".seek"),display=container.querySelector(".time"),error=container.querySelector(".audio-error");
   let pending=null, loading=false, manuallySought=false;
-  const state={audio,seek,get position(){return pending??audio.currentTime;},render(){const t=pending??audio.currentTime;seek.value=t;seek.setAttribute("aria-valuetext",`${decimal(t)} of ${decimal(current.duration)} seconds`);container.style.setProperty("--progress",`${Math.min(100,t/current.duration*100)}%`);display.textContent=`${timeLabel(t)} / ${timeLabel(current.duration)}`;},setTime(t){const v=Math.max(0,Math.min(current.duration,t));if(audio.readyState){audio.currentTime=v;pending=null;}else{pending=v;if(!loading){loading=true;audio.load();}}state.render();}};
+  const state={audio,seek,midiIndex,get position(){return pending??audio.currentTime;},render(){const t=pending??audio.currentTime;seek.value=t;seek.setAttribute("aria-valuetext",`${decimal(t)} of ${decimal(current.duration)} seconds`);container.style.setProperty("--progress",`${Math.min(100,t/current.duration*100)}%`);display.textContent=`${timeLabel(t)} / ${timeLabel(current.duration)}`;},setTime(t){const v=Math.max(0,Math.min(current.duration,t));if(audio.readyState){audio.currentTime=v;pending=null;}else{pending=v;if(!loading){loading=true;audio.load();}}state.render();}};
   const showError=()=>{error.hidden=false;error.textContent="Audio could not be loaded. Try playing it again.";button.textContent="▶";button.setAttribute("aria-label",`Play ${label}`);};
   button.addEventListener("click",()=>{
     if(!audio.paused){audio.pause();return;}
@@ -95,11 +111,11 @@ function mountPlayer(container, item) {
     if(audio.ended||audio.currentTime>=current.duration-.02)state.setTime(0);
     audio.play().catch(e=>{if(e.name!=="AbortError")showError();});
   });
-  seek.addEventListener("input",()=>{manuallySought=true;state.setTime(Number(seek.value));updatePlayhead(Number(seek.value));});
+  seek.addEventListener("input",()=>{manuallySought=true;state.setTime(Number(seek.value));updatePlayhead(state.position,midiIndex);});
   audio.addEventListener("loadedmetadata",()=>{loading=false;if(pending!==null){audio.currentTime=Math.min(pending,audio.duration);pending=null;}state.render();});
   audio.addEventListener("play",()=>{players.forEach(p=>{if(p!==state)p.audio.pause();});active=state;button.textContent="Ⅱ";button.setAttribute("aria-label",`Pause ${label}`);cancelAnimationFrame(frame);tick();});
   audio.addEventListener("pause",()=>{button.textContent="▶";button.setAttribute("aria-label",`Play ${label}`);if(active===state)cancelAnimationFrame(frame);state.render();});
-  audio.addEventListener("timeupdate",()=>{state.render();if(active===state)updatePlayhead(audio.currentTime);});
+  audio.addEventListener("timeupdate",()=>{state.render();if(active===state)updatePlayhead(state.position,midiIndex);});
   audio.addEventListener("ended",()=>{button.textContent="▶";button.setAttribute("aria-label",`Play ${label}`);state.render();});
   audio.addEventListener("error",showError);players.push(state);state.render();
 }
@@ -108,19 +124,18 @@ function showExample(id, updateURL=true){
   stopPlayers();current=examples.find(e=>e.id===id);
   if(!current){demo.innerHTML='<p class="empty">The exact audio and model conditions for these examples are being checked.</p>';return;}
   const e=current;
+  midiPositions=e.midi.map(()=>0);
   crop.value=e.id;
   if(updateURL)history.replaceState(null,"",`#${e.id}`);
   const instruments=new Map();e.midi.flatMap(m=>m.notes).forEach(n=>instruments.set(String(n.program)+(n.drum?"d":""),n.instrument));
-  const referenceHTML=e.references.map((r,i)=>`<section class="reference-audio ${r.emphasis?"emphasis":""} ${e.task==="Synthesis"?"synthesis":""}"><p class="audio-title">${escapeHTML(r.label)}</p><p class="audio-detail">${escapeHTML(r.detail||"")}</p><div class="player" data-reference="${i}"></div></section>`).join("");
-  demo.innerHTML=`<div class="example-heading"><div><h3>${escapeHTML(e.title)}</h3><p class="meta">Source ${decimal(e.sourceStart)}–${decimal(e.sourceStart+e.duration)} s · ${decimal(e.duration)} s excerpt</p></div><span class="task">${escapeHTML(e.task)}</span></div><p class="instruction">${escapeHTML(e.instruction)}</p><div class="workspace ${e.task==="Synthesis"?"synthesis":""}"><div class="reference-panel"><div class="midi-panel"><h3 class="panel-heading">MIDI ${e.midi.length>1?"edit":"instruction"}</h3><div class="midi-tools"><div class="legend"><span class="preserved">${e.midi.length>1?"Preserved notes":"MIDI notes"}</span>${e.midi.length>1?'<span class="changed">Changed notes</span>':''}<span class="target">Target</span></div>${instruments.size>1?`<label>Instrument <select id="instrument"><option value="all">All instruments</option>${[...instruments].map(([k,v])=>`<option value="${k}">${escapeHTML(v)}</option>`).join("")}</select></label>`:""}</div>${e.midi.map((m,i)=>`<figure><figcaption class="piano-label ${i?"edited":""}">${escapeHTML(m.label)}</figcaption><div class="piano-scroll" tabindex="0" role="region" aria-label="${escapeHTML(m.label)} piano roll"></div></figure>`).join("")}<p class="midi-caption">${e.midi.length>1?"Coral notes mark changes. Teal notes are preserved. The two views share time and pitch axes.":"The highlighted interval is synthesized from this MIDI and the surrounding reference audio."}</p><p class="mobile-hint">Swipe the MIDI horizontally to see the full excerpt.</p><div class="midi-links">${e.midi.map(m=>`<a href="${escapeHTML(m.src)}" download>${escapeHTML(m.label)} (.mid) ↓</a>`).join("")}</div></div>${referenceHTML}<div class="transport"><button type="button" id="target-jump">Jump to target</button><label><input type="checkbox" id="keep-position" ${keepPosition?"checked":""}>Keep position when switching audio</label></div>${e.referenceNote?`<p class="availability">${escapeHTML(e.referenceNote)}</p>`:""}</div><section class="output-panel" aria-label="Model outputs"><h3 class="panel-heading">Model outputs</h3><div class="model-list">${e.models.map((m,i)=>`<article class="model ${m.ours?"ours":""}"><div class="model-heading"><h3 class="audio-title">${escapeHTML(m.label)}</h3>${m.ours?'<span class="ours-tag">OURS</span>':""}</div><p class="audio-detail">${escapeHTML(m.detail||"")}</p><div class="player" data-model="${i}"></div></article>`).join("")}</div>${e.availability?`<p class="availability">${escapeHTML(e.availability)}</p>`:""}</section></div>`;
-  demo.querySelectorAll("[data-reference]").forEach(el=>mountPlayer(el,e.references[Number(el.dataset.reference)]));
-  demo.querySelectorAll("[data-model]").forEach(el=>mountPlayer(el,e.models[Number(el.dataset.model)]));
+  const referenceHTML=e.references.map((r,i)=>`<section class="reference-audio ${r.emphasis?"emphasis":""} ${e.midi.length>1?(i?"edited":"before"):"synthesis"}"><p class="audio-title">${escapeHTML(r.label)}</p><p class="audio-detail">${escapeHTML(r.detail||"")}</p><div class="player" data-reference="${i}"></div></section>`).join("");
+  demo.innerHTML=`<div class="example-heading"><div><h3>${escapeHTML(e.title)}</h3><p class="meta">Source ${decimal(e.sourceStart)}–${decimal(e.sourceStart+e.duration)} s · ${decimal(e.duration)} s excerpt</p></div><span class="task">${escapeHTML(e.task)}</span></div><p class="instruction">${escapeHTML(e.instruction)}</p><div class="workspace ${e.task==="Synthesis"?"synthesis":""}"><div class="reference-panel"><div class="midi-panel"><h3 class="panel-heading">MIDI ${e.midi.length>1?"edit":"instruction"}</h3><div class="midi-tools"><div class="legend"><span class="preserved">${e.midi.length>1?"Preserved notes":"MIDI notes"}</span>${e.midi.length>1?'<span class="changed">Changed notes</span>':''}<span class="target">Target</span></div>${instruments.size>1?`<label>Instrument <select id="instrument"><option value="all">All instruments</option>${[...instruments].map(([k,v])=>`<option value="${k}">${escapeHTML(v)}</option>`).join("")}</select></label>`:""}</div>${e.midi.map((m,i)=>`<figure><figcaption class="piano-label ${e.midi.length>1?(i?"edited":"before"):""}">${escapeHTML(m.label)}</figcaption><div class="piano-scroll" tabindex="0" role="region" aria-label="${escapeHTML(m.label)} piano roll"></div></figure>`).join("")}<p class="midi-caption">${e.midi.length>1?"Coral notes mark changes. Teal notes are preserved. The two views share time and pitch axes. Original audio follows the before-edit view. Edited audio and model outputs follow the after-edit view.":"The highlighted interval is synthesized from this MIDI and the surrounding reference audio."}</p><p class="mobile-hint">Swipe the MIDI horizontally to see the full excerpt.</p><div class="midi-links">${e.midi.map(m=>`<a href="${escapeHTML(m.src)}" download>${escapeHTML(m.label)} (.mid) ↓</a>`).join("")}</div></div>${referenceHTML}<div class="transport"><button type="button" id="target-jump">Jump to target</button><label><input type="checkbox" id="keep-position" ${keepPosition?"checked":""}>Keep position when switching audio</label></div>${e.referenceNote?`<p class="availability">${escapeHTML(e.referenceNote)}</p>`:""}</div><section class="output-panel" aria-label="Model outputs"><h3 class="panel-heading">Model outputs</h3><div class="model-list">${e.models.map((m,i)=>`<article class="model ${m.ours?"ours":""}"><div class="model-heading"><h3 class="audio-title">${escapeHTML(m.label)}</h3>${m.ours?'<span class="ours-tag">OURS</span>':""}</div><p class="audio-detail">${escapeHTML(m.detail||"")}</p><div class="player" data-model="${i}"></div></article>`).join("")}</div>${e.availability?`<p class="availability">${escapeHTML(e.availability)}</p>`:""}</section></div>`;
+  demo.querySelectorAll("[data-reference]").forEach(el=>{const i=Number(el.dataset.reference);mountPlayer(el,e.references[i],Math.min(i,e.midi.length-1));});
+  demo.querySelectorAll("[data-model]").forEach(el=>mountPlayer(el,e.models[Number(el.dataset.model)],e.midi.length-1));
   drawMidi();
-  const rolls=[...demo.querySelectorAll(".piano-scroll")];
-  rolls.forEach(roll=>roll.addEventListener("scroll",()=>{rolls.forEach(other=>{if(other!==roll&&other.scrollLeft!==roll.scrollLeft)other.scrollLeft=roll.scrollLeft;});},{passive:true}));
   demo.querySelector("#instrument")?.addEventListener("change",event=>drawMidi(event.target.value));
   demo.querySelector("#keep-position").addEventListener("change",event=>keepPosition=event.target.checked);
-  demo.querySelector("#target-jump").addEventListener("click",()=>{players.forEach(p=>p.setTime(e.start));updatePlayhead(e.start);});
+  demo.querySelector("#target-jump").addEventListener("click",()=>{players.forEach(p=>p.setTime(e.start));e.midi.forEach((_,i)=>updatePlayhead(e.start,i));});
   const choices=examples.filter(x=>x.section===section);document.getElementById("previous").disabled=choices[0]?.id===e.id;document.getElementById("next").disabled=choices.at(-1)?.id===e.id;
 }
 function selectSection(key,id,updateURL=true){

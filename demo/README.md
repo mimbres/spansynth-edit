@@ -6,7 +6,7 @@ A static project page with the paper abstract, model overview, MIDI visualizatio
 
 Serve the repository with a static HTTP server that supports HTTP byte-range requests, then open `/`. Byte-range support is needed for reliable audio seeking. GitHub Pages supports this delivery shape. The old `/demo/` URL redirects to the project page and preserves example links.
 
-The page provides example selection, one-at-a-time playback, target interval markings, linked MIDI playheads, instrument selection, and system/light/dark appearance. On small screens, both MIDI views scroll horizontally together. The default playback option keeps the current time when switching between recordings.
+The page provides example selection, one-at-a-time playback, target interval markings, linked MIDI playheads, instrument selection, and system/light/dark appearance. For editing, original before-edit audio controls only the before-edit MIDI playhead, while edited ground truth and model outputs control the after-edit playhead. The views keep independent playback positions and horizontal scroll offsets, including when the instrument filter changes. On small screens, each view follows its own playhead and can be scrolled independently. Before-edit labels and original audio use green, while after-edit labels use coral. The default playback option keeps the current time when switching between recordings; Jump to target moves all players and MIDI views to the target start.
 
 ## Early demo
 
