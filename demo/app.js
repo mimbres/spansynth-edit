@@ -145,7 +145,13 @@ function selectSection(key,id,updateURL=true){
   document.getElementById("section-title").textContent=key==="ai-assisted-edit"?"AI-assisted edit":key==="comparison"?"Model comparison":key==="early-editing"?"Editing":"Synthesis";
   document.getElementById("ai-edit-intro").hidden=key!=="ai-assisted-edit";
   const choices=examples.filter(e=>e.section===key);
-  crop.replaceChildren(...choices.map(e=>{const o=document.createElement("option");o.value=e.id;o.textContent=`${key==="comparison"?e.task+" · ":""}${e.title}`;return o;}));
+  crop.replaceChildren();
+  let group=null;
+  for(const e of choices){
+    if(key==="comparison"&&group?.label!==e.task){group=document.createElement("optgroup");group.label=e.task;crop.append(group);}
+    const option=document.createElement("option");option.value=e.id;option.textContent=e.title;
+    (key==="comparison"?group:crop).append(option);
+  }
   showExample(id||choices[0]?.id,updateURL);
 }
 document.querySelectorAll("[data-section]").forEach(b=>b.addEventListener("click",()=>selectSection(b.dataset.section)));

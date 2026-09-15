@@ -29,12 +29,20 @@ The exact crop definitions and chromatic changes come from the existing research
 
 ## Model comparison
 
-The current review selection contains two synthesis examples and two examples of each of track insertion, track deletion, note insertion, and note deletion. POP909 Modulator edits appear in the separate AI-assisted edit tab.
+The selection contains two synthesis examples and ten Slakh songs, each with track insertion, track deletion, note insertion, and note deletion: 40 editing examples in total. The example selector groups the comparisons by task. POP909 Modulator edits appear in the separate AI-assisted edit tab.
 
 | Examples | Task | Source excerpt (s) | Target in excerpt (s) |
 | --- | --- | --- | --- |
 | MusicNet · 2382 | Synthesis, violin/viola/cello ensemble | 10.24–30.72 | 5.76–14.76 |
 | MusicNet · 2556 | Synthesis, solo piano | 0–20.48 | 3.08–13.72 |
+| Slakh · Track01888 | Each of the four editing tasks | 43.5–63.98 | 6.92–13.08 |
+| Slakh · Track01896 | Each of the four editing tasks | 180.5–200.98 | 0.32–14.68 |
+| Slakh · Track01897 | Each of the four editing tasks | 116.5–136.98 | 11.60–17.76 |
+| Slakh · Track01916 | Each of the four editing tasks | 81–101.48 | 11.52–17.72 |
+| Slakh · Track01920 | Each of the four editing tasks | 192.5–212.98 | 2.20–12.48 |
+| Slakh · Track01952 | Each of the four editing tasks | 54–74.48 | 2.64–8.80 |
+| Slakh · Track01990 | Each of the four editing tasks | 111.5–131.98 | 9.04–19.32 |
+| Slakh · Track02036 | Each of the four editing tasks | 46.5–66.98 | 3.56–17.96 |
 | Slakh · Track02045 | Each of the four editing tasks | 109–129.48 | 6.48–16.76 |
 | Slakh · Track02083 | Each of the four editing tasks | 133–153.48 | 3.36–17.72 |
 
@@ -46,7 +54,7 @@ Source records are in the existing research directory `runs/listening-survey-can
 
 ## AI-assisted edit
 
-The author-selected POP909 crops are 017, 019, 024, and 025. Modulator, an external symbolic music generation model, inpaints a piano passage in each MIDI sequence. The audio models then render the revised MIDI. This task tests the transition from externally generated symbolic edits to audio while retaining the surrounding audio context.
+The ten POP909 crops are 017, 019, 024, 025, 175, 178, 328, 330, 443, and 816. The original four author-selected crops remain included. Modulator, an external symbolic music generation model, inpaints a piano passage in each MIDI sequence. The audio models then render the revised MIDI. This task tests the transition from externally generated symbolic edits to audio while retaining the surrounding audio context.
 
 Model reference: K. Bhandari, M. Bizzarri, G. A. Wiggins, and S. Colton, “Change is Key: A generative framework for controllable musical modulations,” Hugging Face model repository, 2026. [Modulator](https://huggingface.co/keshavbhandari/modulator).
 
@@ -56,12 +64,18 @@ Model reference: K. Bhandari, M. Bizzarri, G. A. Wiggins, and S. Colton, “Chan
 | 019 | 154.771–175.251 | 5 | 6.12–11.16 |
 | 024 | 7.299–27.779 | 10 | 2.00–12.04 |
 | 025 | 293.474–313.954 | 10 | 1.96–12.00 |
+| 175 | 133.422–153.902 | 5 | 14.00–19.04 |
+| 178 | 190.544–211.024 | 5 | 7.68–12.72 |
+| 328 | 213.791–234.271 | 5 | 4.04–9.08 |
+| 330 | 65.078–85.558 | 10 | 2.96–13.00 |
+| 443 | 189.026–209.506 | 10 | 10.16–20.20 |
+| 816 | 144.987–165.467 | 7 | 5.36–12.40 |
 
 These are the existing dry-piano crops from the same regenerated record set described above. Before/after reference audio was rendered with FluidSynth and Salamander Grand Piano. The after-edit reference is a rendering of Modulator's edited MIDI, rather than a recorded performance. MIDI inpainting boundaries retain their original timing, while the audio generation intervals shown in the players follow the existing 25 Hz latent-frame boundaries.
 
 Each crop includes Base SQ CFG 2, Base SQ CFG 2 FlowEdit, CTD, Spectrogram Diffusion, U-MUST, TokenSynth, and MIDI-VALLE. The Base SQ and FlowEdit files use the current step-127,750 model with CFG 2 and 64 steps. Existing reference audio, edited MIDI, crop positions, and generated waveforms are reused. Only the listening copies receive the level preparation described below.
 
-The four records are selected by their original `record_id` in `records.jsonl`. Audio output paths are looked up in `outputs/<condition>/outputs.jsonl`, with `edit-base-sq`, `edit-base-sq-flowedit`, `ctd`, `specdiff`, `umust`, `tokensynth`, and `midi-valle` as the conditions. The downloadable MIDI files copy each record's `before_midi` and `after_midi`. Their parsed crop-relative notes are stored in the existing page data. The public files use `ai-pop909-017-`, `ai-pop909-019-`, `ai-pop909-024-`, and `ai-pop909-025-` prefixes in `demo/assets/`.
+The ten records are selected by their original `record_id` in `records.jsonl`. Audio output paths are looked up in `outputs/<condition>/outputs.jsonl`, with `edit-base-sq`, `edit-base-sq-flowedit`, `ctd`, `specdiff`, `umust`, `tokensynth`, and `midi-valle` as the conditions. The downloadable MIDI files copy each record's `before_midi` and `after_midi`. Their parsed crop-relative notes are stored in the existing page data. The public files use `ai-pop909-` followed by the three-digit song number and its audio condition or MIDI role in `demo/assets/`.
 
 ## Comparison listening levels
 
