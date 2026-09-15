@@ -29,7 +29,7 @@ The exact crop definitions and chromatic changes come from the existing research
 
 ## Model comparison
 
-The current review selection contains two synthesis examples and two examples of each of track insertion, track deletion, note insertion, and note deletion. Final listening selection remains subject to author review. POP909 is not included in this selection.
+The current review selection contains two synthesis examples and two examples of each of track insertion, track deletion, note insertion, and note deletion. POP909 Modulator edits appear in the separate AI-assisted edit tab.
 
 | Examples | Task | Source excerpt (s) | Target in excerpt (s) |
 | --- | --- | --- | --- |
@@ -44,13 +44,32 @@ Base SQ, CTD, Spectrogram Diffusion, and U-MUST are available for both synthesis
 
 Source records are in the existing research directory `runs/listening-survey-candidates/regenerated/records.jsonl`. The original, edited reference, and MIDI paths are taken from each selected record. Model files are joined by the exact `record_id` in `outputs/<condition>/outputs.jsonl`, using its `full_audio_path`. The selected conditions are `syn-base-sq`, `edit-base-sq`, `edit-base-sq-flowedit`, `ctd`, `specdiff`, `umust`, `tokensynth-musicnet-solo`, and `midi-valle-musicnet-piano` as applicable.
 
+## AI-assisted edit
+
+The author-selected POP909 crops are 017, 019, 024, and 025. Modulator, an external symbolic music generation model, inpaints a piano passage in each MIDI sequence. The audio models then render the revised MIDI. This task tests the transition from externally generated symbolic edits to audio while retaining the surrounding audio context.
+
+Model reference: K. Bhandari, M. Bizzarri, G. A. Wiggins, and S. Colton, “Change is Key: A generative framework for controllable musical modulations,” Hugging Face model repository, 2026. [Modulator](https://huggingface.co/keshavbhandari/modulator).
+
+| POP909 song | Source excerpt (s) | MIDI inpainting length (s) | Audio generation interval in excerpt (s) |
+| --- | --- | ---: | --- |
+| 017 | 76.023–96.503 | 5 | 11.72–16.76 |
+| 019 | 154.771–175.251 | 5 | 6.12–11.16 |
+| 024 | 7.299–27.779 | 10 | 2.00–12.04 |
+| 025 | 293.474–313.954 | 10 | 1.96–12.00 |
+
+These are the existing dry-piano crops from the same regenerated record set described above. Before/after reference audio was rendered with FluidSynth and Salamander Grand Piano. The after-edit reference is a rendering of Modulator's edited MIDI, rather than a recorded performance. MIDI inpainting boundaries retain their original timing, while the audio generation intervals shown in the players follow the existing 25 Hz latent-frame boundaries.
+
+Each crop includes Base SQ CFG 2, Base SQ CFG 2 FlowEdit, CTD, Spectrogram Diffusion, U-MUST, TokenSynth, and MIDI-VALLE. The Base SQ and FlowEdit files use the current step-127,750 model with CFG 2 and 64 steps. Existing reference audio, edited MIDI, crop positions, and generated waveforms are reused. Only the listening copies receive the level preparation described below.
+
+The four records are selected by their original `record_id` in `records.jsonl`. Audio output paths are looked up in `outputs/<condition>/outputs.jsonl`, with `edit-base-sq`, `edit-base-sq-flowedit`, `ctd`, `specdiff`, `umust`, `tokensynth`, and `midi-valle` as the conditions. The downloadable MIDI files copy each record's `before_midi` and `after_midi`. Their parsed crop-relative notes are stored in the existing page data. The public files use `ai-pop909-017-`, `ai-pop909-019-`, `ai-pop909-024-`, and `ai-pop909-025-` prefixes in `demo/assets/`.
+
 ## Comparison listening levels
 
-The comparison audio follows the established procedure in `docs/spansynth-listening-survey.md` and `_survey_listening_gain` in `scripts/demo/generate_spansynth_v3_gallery.py`.
+Model comparison and AI-assisted edit audio follow the established procedure in `docs/spansynth-listening-survey.md` and `_survey_listening_gain` in `scripts/demo/generate_spansynth_v3_gallery.py`.
 
-The original crop is peak-normalized to 0.95 once. Each Base SQ and FlowEdit output receives one constant gain based on its source-active context RMS. Other systems retain the normalized original context and receive one target gain matched to the ground-truth target. The after-edit reference uses the before-edit recording’s gain. All players in a crop receive the same final attenuation when needed to keep decoded MP3 peaks within 0.98. The copies are mono, 48 kHz, 192 kbps MP3.
+The original crop is peak-normalized to 0.95 once. Each Base SQ and FlowEdit output receives one constant gain based on its source-active context RMS. Other systems retain the normalized original context and receive one target gain matched to the ground-truth target. The after-edit reference uses the before-edit audio’s gain. All players in a crop receive the same final attenuation when needed to keep decoded MP3 peaks within 0.98. The copies are mono, 48 kHz, 192 kbps MP3.
 
-This is reference-assisted level matching for listening. No limiter, crossfade, time stretching, or generated note editing is applied. The original research files remain unchanged. These level adjustments are used only for Model comparison, while Early demo preserves the original published audio.
+This is reference-assisted level matching for listening. No limiter, crossfade, time stretching, or generated note editing is applied. The original research files remain unchanged. These level adjustments are used for Model comparison and AI-assisted edit, while Early demo preserves the original published audio.
 
 ## Files
 

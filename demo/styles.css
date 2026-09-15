@@ -8,6 +8,8 @@
 @media(prefers-reduced-motion:reduce){*{scroll-behavior:auto!important}}
 
 /* Paper introduction and project resources. */
+.task-context{margin-top:20px;padding:18px 20px;border:1px solid var(--line);border-radius:8px;background:var(--sky);font-size:.9375rem;line-height:1.75}
+.task-context .model-reference{margin-top:12px;color:var(--muted);font-size:.8125rem}
 .page-header{padding-top:44px;padding-bottom:28px}
 .resource-links{display:flex;align-items:center;gap:12px;flex-wrap:wrap;padding-bottom:30px}
 .resource-link{display:flex;align-items:center;justify-content:space-between;gap:24px;min-height:49px;padding:11px 17px;border:1px solid var(--line);border-radius:8px;text-decoration:none;font-size:.9375rem;font-weight:650}

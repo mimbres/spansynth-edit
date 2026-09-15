@@ -141,8 +141,9 @@ function showExample(id, updateURL=true){
 function selectSection(key,id,updateURL=true){
   section=key;
   document.querySelectorAll("[data-section]").forEach(b=>b.setAttribute("aria-pressed",String(b.dataset.section===key)));
-  document.getElementById("section-kicker").textContent=key==="comparison"?"SAME-CROP COMPARISONS":"EARLY DEMO";
-  document.getElementById("section-title").textContent=key==="comparison"?"Model comparison":key==="early-editing"?"Editing":"Synthesis";
+  document.getElementById("section-kicker").textContent=key==="ai-assisted-edit"?"POP909 · MODULATOR":key==="comparison"?"SAME-CROP COMPARISONS":"EARLY DEMO";
+  document.getElementById("section-title").textContent=key==="ai-assisted-edit"?"AI-assisted edit":key==="comparison"?"Model comparison":key==="early-editing"?"Editing":"Synthesis";
+  document.getElementById("ai-edit-intro").hidden=key!=="ai-assisted-edit";
   const choices=examples.filter(e=>e.section===key);
   crop.replaceChildren(...choices.map(e=>{const o=document.createElement("option");o.value=e.id;o.textContent=`${key==="comparison"?e.task+" · ":""}${e.title}`;return o;}));
   showExample(id||choices[0]?.id,updateURL);
