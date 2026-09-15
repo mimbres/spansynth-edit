@@ -123,18 +123,19 @@ function showExample(id, updateURL=true){
   demo.querySelector("#target-jump").addEventListener("click",()=>{players.forEach(p=>p.setTime(e.start));updatePlayhead(e.start);});
   const choices=examples.filter(x=>x.section===section);document.getElementById("previous").disabled=choices[0]?.id===e.id;document.getElementById("next").disabled=choices.at(-1)?.id===e.id;
 }
-function selectSection(key,id){
+function selectSection(key,id,updateURL=true){
   section=key;
   document.querySelectorAll("[data-section]").forEach(b=>b.setAttribute("aria-pressed",String(b.dataset.section===key)));
   document.getElementById("section-kicker").textContent=key==="comparison"?"SAME-CROP COMPARISONS":"EARLY DEMO";
   document.getElementById("section-title").textContent=key==="comparison"?"Model comparison":key==="early-editing"?"Editing":"Synthesis";
   const choices=examples.filter(e=>e.section===key);
   crop.replaceChildren(...choices.map(e=>{const o=document.createElement("option");o.value=e.id;o.textContent=`${key==="comparison"?e.task+" · ":""}${e.title}`;return o;}));
-  showExample(id||choices[0]?.id);
+  showExample(id||choices[0]?.id,updateURL);
 }
 document.querySelectorAll("[data-section]").forEach(b=>b.addEventListener("click",()=>selectSection(b.dataset.section)));
 crop.addEventListener("change",()=>showExample(crop.value));
 for(const [id,direction] of [["previous",-1],["next",1]])document.getElementById(id).addEventListener("click",()=>{const choices=examples.filter(e=>e.section===section);const position=choices.findIndex(e=>e.id===current?.id);const next=choices[position+direction];if(next)showExample(next.id);});
 window.addEventListener("hashchange",()=>{const e=examples.find(x=>x.id===decodeURIComponent(location.hash.slice(1)));if(e)selectSection(e.section,e.id);});
 const initial=examples.find(e=>e.id===decodeURIComponent(location.hash.slice(1)))||examples[0];
-selectSection(initial?.section||section,initial?.id);
+selectSection(initial?.section||section,initial?.id,false);
+if(examples.some(e=>`#${e.id}`===location.hash))requestAnimationFrame(()=>document.getElementById("examples").scrollIntoView());

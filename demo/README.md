@@ -1,10 +1,10 @@
-# SpanSynth-Edit audio demos
+# SpanSynth-Edit project page and audio demos
 
-A static paper demo with MIDI visualizations and audio players. There is no build step, package installation, or survey response collection.
+A static project page with the paper abstract, model overview, MIDI visualizations, and audio players. There is no build step, package installation, or survey response collection. The Dataset reference and Data banners remain inactive until their public destinations are ready.
 
 ## Local review
 
-Serve the repository with a static HTTP server that supports HTTP byte-range requests, then open `/demo/`. Byte-range support is needed for reliable audio seeking. GitHub Pages supports this delivery shape.
+Serve the repository with a static HTTP server that supports HTTP byte-range requests, then open `/`. Byte-range support is needed for reliable audio seeking. GitHub Pages supports this delivery shape. The old `/demo/` URL redirects to the project page and preserves example links.
 
 The page provides example selection, one-at-a-time playback, target interval markings, linked MIDI playheads, instrument selection, and system/light/dark appearance. On small screens, both MIDI views scroll horizontally together. The default playback option keeps the current time when switching between recordings.
 
@@ -54,12 +54,13 @@ This is reference-assisted level matching for listening. No limiter, crossfade, 
 
 ## Files
 
-- `index.html`: page content and the selected examples, including the exact MIDI note data used by the page.
-- `styles.css`: responsive light and dark appearance.
-- `app.js`: audio controls, example navigation, and MIDI rendering.
-- `assets/`: selected MP3 and MIDI files only. Each filename identifies the example and its audio condition or MIDI role.
-- `README.md`: running instructions and the sources and conditions needed to maintain the demo.
+- Root `index.html`: the abstract, project resources, model overview, and selected examples, including the exact MIDI note data used by the page.
+- `demo/index.html`: redirect for previously shared demo URLs.
+- `demo/styles.css`: responsive light and dark appearance.
+- `demo/app.js`: audio controls, example navigation, and MIDI rendering.
+- `demo/assets/`: selected MP3 and MIDI files plus the author-provided model overview SVG. Each audio or MIDI filename identifies the example and its condition or role.
+- `demo/README.md`: running instructions and the sources and conditions needed to maintain the demo.
 
 ## Publication
 
-The public demo is hosted at [mimbres.github.io/spansynth-edit/demo/](https://mimbres.github.io/spansynth-edit/demo/) with GitHub Pages, using the root of the `main` branch as its publishing source.
+The public project page is hosted at [mimbres.github.io/spansynth-edit/](https://mimbres.github.io/spansynth-edit/) with GitHub Pages, using the root of the `main` branch as its publishing source. Visiting this address keeps the short URL and selects the Kraisler Early editing example by default. Selecting another example adds its identifier to the URL for sharing.

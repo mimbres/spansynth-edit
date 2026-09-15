@@ -6,3 +6,42 @@
 @media(max-width:950px){.page-header{padding-top:26px;align-items:flex-start}.header-tools{gap:14px}.workspace{grid-template-columns:1fr}.reference-panel{position:static}.selection-title{min-width:155px}.model-list{display:grid;grid-template-columns:1fr 1fr;gap:12px}.model{margin:0}.output-panel{position:static;margin-top:3px}.player{grid-template-columns:42px minmax(0,1fr) 88px}.midi-panel{max-width:none}}
 @media(max-width:640px){.mobile-hint{display:block;padding:0 14px 6px;font-size:.75rem;color:var(--muted)}.page-header,main,footer{padding-left:16px;padding-right:16px}.page-header{display:block;padding-bottom:20px}.eyebrow{font-size:.65rem;letter-spacing:.09em}.intro{font-size:.875rem}.header-tools{margin-top:15px;justify-content:space-between}.header-tools label{display:flex;align-items:center;gap:8px}.sections{gap:3px;overflow-x:auto;padding-bottom:10px}.sections button{font-size:.8125rem;padding:9px 10px;white-space:nowrap}.sections button span{display:block;margin-left:0}.selection{flex-wrap:wrap;padding:20px 0 16px;gap:8px}.selection-title{width:100%}.selection-title h2{font-size:1.35rem}.crop-select{margin:0;flex:1}.crop-select select{font-size:.875rem;padding-left:9px}.step-buttons{gap:4px}.step-buttons button{width:34px}.example-heading{display:block}.example-heading h3{font-size:1.2rem}.task{display:inline-block;margin-top:9px;white-space:normal}.instruction{font-size:.875rem;padding:10px 12px}.workspace{gap:20px}.model-list{display:block}.model{margin-bottom:12px;padding:12px}.reference-audio{padding:12px}.player{grid-template-columns:38px minmax(0,1fr);gap:8px}.play{width:36px;height:36px}.time{grid-column:2;text-align:left;margin-top:-5px}.target-label{font-size:.75rem}.midi-tools{padding:9px 12px}.midi-tools select{max-width:185px}.piano-scroll svg{min-width:560px}.audio-title{font-size:.875rem}.model-heading{flex-wrap:wrap}.transport{gap:8px}.reference-panel .midi-caption{font-size:.6875rem}footer{margin-top:24px}}
 @media(prefers-reduced-motion:reduce){*{scroll-behavior:auto!important}}
+
+/* Paper introduction and project resources. */
+.page-header{padding-top:44px;padding-bottom:28px}
+.resource-links{display:flex;align-items:center;gap:12px;flex-wrap:wrap;padding-bottom:30px}
+.resource-link{display:flex;align-items:center;justify-content:space-between;gap:24px;min-height:49px;padding:11px 17px;border:1px solid var(--line);border-radius:8px;text-decoration:none;font-size:.9375rem;font-weight:650}
+.repo-link{background:var(--mint);color:var(--teal);border-color:var(--teal)}
+.repo-link:hover{outline:2px solid var(--teal);outline-offset:2px}
+.dataset-link{background:var(--lilac);color:var(--lilac-ink)}
+.data-link{background:var(--sky);color:var(--text)}
+.resource-link[aria-disabled=true]{cursor:default}
+.resource-status{font-size:.6875rem;font-weight:500;opacity:.8}
+.listen-link{margin-left:auto;font-size:.875rem;font-weight:650;white-space:nowrap}
+.listen-link span{margin-left:8px}
+.abstract{display:grid;grid-template-columns:155px minmax(0,1fr);gap:32px;padding:28px 0 34px;border-top:1px solid var(--line)}
+.abstract h2,.section-heading h2{font-size:1.3rem;letter-spacing:-.025em}
+.abstract p{max-width:1060px;font-size:1rem;line-height:1.85}
+.overview{padding-bottom:38px}
+.section-heading{display:flex;align-items:baseline;justify-content:space-between;gap:16px;margin-bottom:16px}
+.section-heading>a,.section-heading>p{font-size:.8125rem;color:var(--muted)}
+.overview-image{display:block;padding:18px;border:1px solid var(--line);border-radius:10px;background:#fff}
+.overview-image img{display:block;width:100%;height:auto}
+.audio-examples{border-top:1px solid var(--line);padding-top:28px;scroll-margin-top:22px}
+@media(max-width:950px){.abstract{grid-template-columns:120px minmax(0,1fr);gap:24px}.resource-link{gap:18px}.listen-link{margin-left:0}}
+@media(max-width:640px){
+  .page-header{padding-top:28px;padding-bottom:22px}
+  .resource-links{display:grid;grid-template-columns:1fr 1fr;gap:9px;padding-bottom:24px}
+  .resource-link{min-width:0;min-height:47px;padding:10px 12px;gap:6px;font-size:.8125rem}
+  .dataset-link{grid-column:1/-1;grid-row:2}
+  .resource-status{font-size:.625rem}
+  .listen-link{grid-column:1/-1;margin-top:7px;font-size:.8125rem}
+  .abstract{display:block;padding:24px 0 28px}
+  .abstract h2{margin-bottom:12px}
+  .abstract p{font-size:.9375rem;line-height:1.8}
+  .section-heading{flex-wrap:wrap;gap:4px;margin-bottom:12px}
+  .section-heading>a,.section-heading>p{font-size:.75rem}
+  .overview{padding-bottom:28px}
+  .overview-image{padding:8px;border-radius:7px}
+  .audio-examples{padding-top:24px}
+}
