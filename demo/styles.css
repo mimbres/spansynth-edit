@@ -57,3 +57,6 @@
 .paper-reference p{margin-top:8px;line-height:1.6}
 .paper-reference a{white-space:nowrap}
 @media(max-width:640px){.sections{flex-wrap:nowrap}}
+
+.ablation-control{display:flex;align-items:center;flex-wrap:wrap;gap:8px 12px;margin:0 0 14px;font-size:.8125rem;font-weight:650;color:var(--muted)}
+.ablation-control select{min-width:0;max-width:100%;font-size:.8125rem;font-weight:400}

@@ -10,22 +10,37 @@ The page provides example selection, one-at-a-time playback, target interval mar
 
 ## Early demo
 
-The six original Early demo selections are retained. Their nine SpanSynth-Edit outputs have been regenerated with the same V3 SQ V8 checkpoint at step 127,750 used in the comparison tabs, using the Base SQ decoder, CFG 2, and 64 steps. FlowEdit starts at step 0. These sections contain no external comparison systems.
+The ten Early selections use the same V3 SQ V8 checkpoint at step 127,750 used in the comparison tabs, with the Base SQ decoder and CFG 2. The default is 64 Euler steps. Both ordinary generation and FlowEdit are available for editing; FlowEdit starts at step 0. These sections contain no external comparison systems. The six original selections and their nine default outputs are retained.
 
 | Task | Example | Source excerpt (s) | Target in excerpt (s) |
 | --- | --- | --- | --- |
 | Chromatic MIDI editing | Kraisler · track 01 | 20.48–40.96 | 6.40–14.08 |
 | Chromatic MIDI editing | Slakh · Track00006 | 209.92–230.40 | 6.40–14.08 |
 | Chromatic MIDI editing | MusicNet · 2244 | 117.76–138.24 | 6.40–14.08 |
+| Chromatic MIDI editing | FiloBass · 000000 | 168.96–189.44 | 6.40–14.08 |
+| Chromatic MIDI editing | Chorale Bricks · 000000 | 15.36–35.84 | 6.40–14.08 |
 | Synthesis | MAESTRO test · 2004 Competition, Track 12 | 66.676125–87.156125 | 6.40–14.08 |
 | Synthesis | BSED · Symphony No. 1, I · Blomstedt 1976 | 4.911–25.391 | 6.40–14.08 |
 | Synthesis | GOAT · item 89 · distortion | 20.48–40.96 | 6.40–14.08 |
+| Synthesis | URMP · Chorale 43 | 10.24–30.72 | 6.40–14.08 |
+| Synthesis | PianoVAM · 000000 | 353.28–373.76 | 6.40–14.08 |
 
-The three chromatic edits have no recorded after-edit ground truth. Their reference is the original recording, and the requested pitches are shown by the after-edit MIDI. Kraisler uses six descending violin notes (68–63), Slakh ten ascending trumpet notes (79–88), and MusicNet twelve ascending violin notes (67–78). All other note fields are preserved.
+The five chromatic edits have no recorded after-edit ground truth. Their reference is the original recording, and the requested pitches are shown by the after-edit MIDI. Kraisler uses six descending violin notes (68–63), Slakh ten ascending trumpet notes (79–88), and MusicNet twelve ascending violin notes (67–78). FiloBass retains the historical eleven descending bass notes (44–34). Chorale Bricks changes all four musical parts to ascending chromatic lines, starting at each part’s first complete target note and retaining each instrument’s register. Notes crossing the target boundaries are preserved. Timing, duration, velocity and instrument labels remain unchanged.
 
-The nine full generated WAVs are saved locally in `anysynth_full_flowedit/runs/listening-survey-candidates/early-step127750/`. The corresponding directory in the Jupiter research checkout also holds the source audio, exact before/after MIDI, generated codes, target WAVs, and generation settings. The production V3 SQ inference command generates the same 6.40–14.08 s interval, retaining two seconds of codec history before the excerpt. Source crops and every displayed MIDI note were checked against the original selections before generation.
+Chorale Bricks voice identities come from the per-track annotations in [ChoraleBricks, Balke, Berndt and Müller (2025)](https://zenodo.org/records/15081741), licensed CC BY 4.0. Its combined MIDI merges some instruments and voices. Source annotations recover the soprano, alto, tenor and bass assignments; split fragments of the same performed note share the same edited pitch. Simultaneous same-pitch notes use separate MIDI channels where necessary to preserve their note-off times. The published MIDI is a modified excerpt.
+
+The 65 full generated WAVs are saved locally in `anysynth_full_flowedit/runs/listening-survey-candidates/early-step127750/`. The corresponding directory in the Jupiter research checkout also holds the source audio, exact before/after MIDI, generated codes, target WAVs, and generation settings. The production V3 SQ inference command generates the same 6.40–14.08 s interval, retaining two seconds of codec history before the excerpt. Source crops and every displayed MIDI note were checked against the original selections before generation.
 
 The exact crop definitions and chromatic changes come from the existing research scripts `scripts/demo/generate_spansynth_v3_gallery.py` and `scripts/demo/generate_spansynth_flowedit_gallery.py`. MIDI visualization uses the same corrected note arrays, 16 kHz note-time conversion, and verified original note selections. Downloadable MIDI files contain those crop-relative note events. Notes crossing the excerpt edges are clipped only at export/display boundaries.
+
+### Ablations
+
+One dropdown selects the condition while retaining the original player, MIDI views, instrument filter and playback positions. Switching conditions pauses the model output so the next comparison starts at the retained position.
+
+- **Early editing:** 64 steps (default), 32, 16, 8 and 4, for both ordinary generation and FlowEdit. No synthesis step ablations are included.
+- **Early synthesis:** the normal 64-step condition, context clean audio dropout, or context MIDI dropout. Audio dropout zeros only the static clean-reference projection input, preserving observed SQ states and all MIDI. MIDI dropout removes reference MIDI while retaining target MIDI and contextual audio. Each dropout is applied separately.
+
+Every new generation uses fresh random noise. These listening examples do not hold the noise draw fixed between conditions. The extension adds six default outputs, forty editing step outputs and ten synthesis dropout outputs. A single four-GPU Jupiter job uses four independent processes, one per GPU, including SQ decoding.
 
 ## Model comparison — Synthesis (Table 1)
 
@@ -76,7 +91,7 @@ The Bonus tab contains four GOAT synthesis crops: clean electric guitar 103, fol
 
 ## Model and source conditions
 
-All comparisons use the same crop within an example. Current Base SQ and FlowEdit outputs use the V3 SQ V8 checkpoint at step 127,750, CFG 2, and 64 steps. No GAN decoder output is used. Each external model card has an expandable paper reference with a direct link.
+All comparisons use the same crop within an example. Current Base SQ and FlowEdit outputs use the V3 SQ V8 checkpoint at step 127,750, CFG 2, and 64 steps by default; the Early editing dropdown exposes the stated step ablations. No GAN decoder output is used. Each external model card has an expandable paper reference with a direct link.
 
 Most sources are in the existing research directory `runs/listening-survey-candidates/regenerated/records.jsonl`. Model files are joined by exact `record_id` in `outputs/<condition>/outputs.jsonl`, using `full_audio_path`. The selected conditions are `syn-base-sq`, `edit-base-sq`, `edit-base-sq-flowedit`, `ctd`, `specdiff`, `umust`, `tokensynth`, and `tokensynth-musicnet-solo` as applicable. Synthesis references and MIDI come from `inference_context.source_crop_audio` and `source_crop_midi`. Editing downloads copy the selected before/after MIDI, and the same parsed crop-relative notes are included in the page data.
 
@@ -93,7 +108,7 @@ Model comparison, AI-assisted edit, and Bonus audio follow the established proce
 
 The original crop is peak-normalized to 0.95 once. Slakh drum variants are prepared against their respective original mixes, then share the same final attenuation across all players in the example. Each Base SQ and FlowEdit output receives one constant gain based on its source-active context RMS. Other systems retain the normalized original context and receive one target gain matched to the ground-truth target. The after-edit reference uses the before-edit audio’s gain. All players in a crop receive the same final attenuation when needed to keep decoded MP3 peaks within 0.98. The copies are mono, 48 kHz, 192 kbps MP3.
 
-This is reference-assisted level matching for listening. No limiter, crossfade, time stretching, or generated note editing is applied. The original research files remain unchanged. Refreshed Early demo outputs use the same source-active context RMS method, with gains matched to the existing published original recordings. The GOAT original and generated output share an additional gain of 0.871249 to preserve headroom. That original is re-encoded from its source WAV at the matched listening level. The other five Early originals are unchanged.
+This is reference-assisted level matching for listening. No limiter, crossfade, time stretching, or generated note editing is applied. The original research files remain unchanged. Early demo outputs use the same source-active context RMS method. All conditions for an example are prepared together against one original recording and share any final headroom attenuation. Existing original listening levels are retained before that common attenuation. Originals needing re-encoding are read from the source WAV, avoiding a second lossy encoding of the published MP3. No generated target is independently level-matched to its reference. The raw research WAVs retain their generated levels.
 
 ## Files
 

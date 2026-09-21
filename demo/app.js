@@ -12,6 +12,7 @@ let active = null;
 let frame = null;
 let keepPosition = true;
 let midiPositions = [];
+const ablationSelections = {};
 const modelPapers = {
   "CTD": {url:"https://arxiv.org/abs/2408.00196", citation:"N. Demerlé, P. Esling, G. Doras, and D. Genova. Combining Audio Control and Style Transfer Using Latent Diffusion. ISMIR, 2024."},
   "Spectrogram Diffusion": {url:"https://arxiv.org/abs/2206.05408", citation:"C. Hawthorne et al. Multi-Instrument Music Synthesis with Spectrogram Diffusion. ISMIR, 2022."},
@@ -25,7 +26,7 @@ const timeLabel = n => `${Math.floor(Math.max(0,n)/60)}:${String(Math.floor(Math
 const decimal = n => Number(n.toFixed(3)).toString();
 
 function formatInstruction(instruction) {
-  return escapeHTML(instruction).replace(/Rewrite \d+ \w+ notes|(?:ascending|descending) chromatic line \([\d–-]+\)|Synthesize the highlighted section|(?:Insert|Remove) the (?:missing|indicated) instrument track|(?:Insert|Remove) the coral notes|Render the \d+ s piano passage inpainted by Modulator|(?:before|after)-edit MIDI|\bMIDI\b|surrounding recording/g, "<strong>$&</strong>");
+  return escapeHTML(instruction).replace(/Rewrite \d+ \w+ notes|every voice|(?:ascending|descending) chromatic line \([\d–-]+\)|ascending chromatic line|Synthesize the highlighted section|(?:Insert|Remove) the (?:missing|indicated) instrument track|(?:Insert|Remove) the coral notes|Render the \d+ s piano passage inpainted by Modulator|(?:before|after)-edit MIDI|\bMIDI\b|surrounding recording/g, "<strong>$&</strong>");
 }
 
 function modelReference(model) {
@@ -135,6 +136,49 @@ function mountPlayer(container, item, midiIndex) {
   audio.addEventListener("timeupdate",()=>{state.render();if(active===state)updatePlayhead(state.position,midiIndex);});
   audio.addEventListener("ended",()=>{button.textContent="▶";button.setAttribute("aria-label",`Play ${label}`);state.render();});
   audio.addEventListener("error",showError);players.push(state);state.render();
+  return state;
+}
+
+function ablationOptions(example) {
+  if(!example.models.some(m=>m.ablations))return [];
+  return example.section==="early-editing" ? [
+    ["default","Euler 64 steps (default)"],
+    ...[32,16,8,4].map(n=>[String(n),`Euler ${n} steps`])
+  ] : [
+    ["default","Default (64 steps)"],
+    ["context-clean-audio-dropout","Context clean audio dropout"],
+    ["context-midi-dropout","Context MIDI dropout"]
+  ];
+}
+
+function selectedModels(example) {
+  const key=ablationSelections[example.section]||"default";
+  return example.models.map(m=>({...m,...m.ablations?.[key]}));
+}
+
+function modelCards(models) {
+  return models.map((m,i)=>`<article class="model ${m.ours?"ours":""}"><div class="model-heading"><h3 class="audio-title">${escapeHTML(m.label)}</h3>${m.ours?'<span class="ours-tag">(ours)</span>':""}</div><p class="audio-detail">${escapeHTML(m.detail||"")}</p>${modelReference(m)}<div class="player" data-model="${i}"></div></article>`).join("");
+}
+
+function changeAblation(key) {
+  ablationSelections[current.section]=key;
+  const previous=[];
+  players=players.filter(p=>{
+    const container=p.audio.closest("[data-model]");
+    if(!container)return true;
+    previous[Number(container.dataset.model)]={position:p.position,active:active===p};
+    p.audio.pause();p.audio.removeAttribute("src");p.audio.load();
+    if(active===p)active=null;
+    return false;
+  });
+  const models=selectedModels(current);
+  demo.querySelector(".model-list").innerHTML=modelCards(models);
+  demo.querySelectorAll("[data-model]").forEach(el=>{
+    const i=Number(el.dataset.model),model=models[i];
+    const player=mountPlayer(el,model,model.midiIndex??current.midi.length-1);
+    if(previous[i]?.position)player.setTime(previous[i].position);
+    if(previous[i]?.active)active=player;
+  });
 }
 
 function showExample(id, updateURL=true){
@@ -147,10 +191,11 @@ function showExample(id, updateURL=true){
   if(updateURL)history.replaceState(null,"",`#${e.id}`);
   const instruments=new Map();e.midi.flatMap(m=>m.notes).forEach(n=>instruments.set(String(n.program)+(n.drum?"d":""),n.instrument));
   const referenceHTML=e.references.map((r,i)=>`<section class="reference-audio ${r.emphasis?"emphasis":""} ${editing?(i?"edited":"before"):"synthesis"}"><p class="audio-title">${escapeHTML(r.label)}</p><p class="audio-detail">${escapeHTML(r.detail||"")}</p><div class="player" data-reference="${i}"></div></section>`).join("");
-  demo.innerHTML=`<div class="example-heading"><div><h3>${escapeHTML(e.title)}</h3><p class="meta">Source ${decimal(e.sourceStart)}–${decimal(e.sourceStart+e.duration)} s · ${decimal(e.duration)} s excerpt</p></div><span class="task">${escapeHTML(e.task)}</span></div><p class="instruction"><strong>Task:</strong> ${formatInstruction(e.instruction)}</p><div class="workspace ${e.task==="Synthesis"?"synthesis":""}"><div class="reference-panel"><div class="midi-panel"><h3 class="panel-heading">MIDI ${editing?"edit":"instruction"}</h3><div class="midi-tools"><div class="legend"><span class="preserved">${editing?"Preserved notes":"MIDI notes"}</span>${editing?'<span class="changed">Changed notes</span>':''}<span class="target">Target</span></div>${instruments.size>1?`<label>Instrument <select id="instrument"><option value="all">All instruments</option>${[...instruments].map(([k,v])=>`<option value="${k}">${escapeHTML(v)}</option>`).join("")}</select></label>`:""}</div>${e.midi.map((m,i)=>`<figure><figcaption class="piano-label ${editing?(i?"edited":"before"):""}">${escapeHTML(m.label)}</figcaption><div class="piano-scroll" tabindex="0" role="region" aria-label="${escapeHTML(m.label)} piano roll"></div></figure>`).join("")}<p class="midi-caption">${editing?"Coral notes mark changes. Teal notes are preserved. The two views share time and pitch axes. Original audio follows the before-edit view. Edited audio and model outputs follow the after-edit view.":e.midi.length>1?"The two MIDI views show the same excerpt with and without drums. Each audio player follows its matching MIDI view. External models use the version without drums.":"The highlighted interval is synthesized from this MIDI and the surrounding reference audio."}</p><p class="mobile-hint">Swipe the MIDI horizontally to see the full excerpt.</p><div class="midi-links">${e.midi.map(m=>`<a href="${escapeHTML(m.src)}" download>${escapeHTML(m.label)} (.mid) ↓</a>`).join("")}</div></div>${referenceHTML}<div class="transport"><button type="button" id="target-jump">Jump to target</button><label><input type="checkbox" id="keep-position" ${keepPosition?"checked":""}>Keep position when switching audio</label></div>${e.referenceNote?`<p class="availability">${escapeHTML(e.referenceNote)}</p>`:""}</div><section class="output-panel" aria-label="Model outputs"><h3 class="panel-heading">Model outputs</h3><div class="model-list">${e.models.map((m,i)=>`<article class="model ${m.ours?"ours":""}"><div class="model-heading"><h3 class="audio-title">${escapeHTML(m.label)}</h3>${m.ours?'<span class="ours-tag">(ours)</span>':""}</div><p class="audio-detail">${escapeHTML(m.detail||"")}</p>${modelReference(m)}<div class="player" data-model="${i}"></div></article>`).join("")}</div>${e.availability?`<p class="availability">${escapeHTML(e.availability)}</p>`:""}</section></div>`;
+  demo.innerHTML=`<div class="example-heading"><div><h3>${escapeHTML(e.title)}</h3><p class="meta">Source ${decimal(e.sourceStart)}–${decimal(e.sourceStart+e.duration)} s · ${decimal(e.duration)} s excerpt</p></div><span class="task">${escapeHTML(e.task)}</span></div><p class="instruction"><strong>Task:</strong> ${formatInstruction(e.instruction)}</p><div class="workspace ${e.task==="Synthesis"?"synthesis":""}"><div class="reference-panel"><div class="midi-panel"><h3 class="panel-heading">MIDI ${editing?"edit":"instruction"}</h3><div class="midi-tools"><div class="legend"><span class="preserved">${editing?"Preserved notes":"MIDI notes"}</span>${editing?'<span class="changed">Changed notes</span>':''}<span class="target">Target</span></div>${instruments.size>1?`<label>Instrument <select id="instrument"><option value="all">All instruments</option>${[...instruments].map(([k,v])=>`<option value="${k}">${escapeHTML(v)}</option>`).join("")}</select></label>`:""}</div>${e.midi.map((m,i)=>`<figure><figcaption class="piano-label ${editing?(i?"edited":"before"):""}">${escapeHTML(m.label)}</figcaption><div class="piano-scroll" tabindex="0" role="region" aria-label="${escapeHTML(m.label)} piano roll"></div></figure>`).join("")}<p class="midi-caption">${editing?"Coral notes mark changes. Teal notes are preserved. The two views share time and pitch axes. Original audio follows the before-edit view. Edited audio and model outputs follow the after-edit view.":e.midi.length>1?"The two MIDI views show the same excerpt with and without drums. Each audio player follows its matching MIDI view. External models use the version without drums.":"The highlighted interval is synthesized from this MIDI and the surrounding reference audio."}</p><p class="mobile-hint">Swipe the MIDI horizontally to see the full excerpt.</p><div class="midi-links">${e.midi.map(m=>`<a href="${escapeHTML(m.src)}" download>${escapeHTML(m.label)} (.mid) ↓</a>`).join("")}</div></div>${referenceHTML}<div class="transport"><button type="button" id="target-jump">Jump to target</button><label><input type="checkbox" id="keep-position" ${keepPosition?"checked":""}>Keep position when switching audio</label></div>${e.referenceNote?`<p class="availability">${escapeHTML(e.referenceNote)}</p>`:""}</div><section class="output-panel" aria-label="Model outputs"><h3 class="panel-heading">Model outputs</h3>${ablationOptions(e).length?`<label class="ablation-control">Ablation <select id="ablation" aria-label="Ablation">${ablationOptions(e).map(([value,label])=>`<option value="${value}" ${value===(ablationSelections[e.section]||"default")?"selected":""}>${label}</option>`).join("")}</select></label>`:""}<div class="model-list">${modelCards(selectedModels(e))}</div>${e.availability?`<p class="availability">${escapeHTML(e.availability)}</p>`:""}</section></div>`;
   demo.querySelectorAll("[data-reference]").forEach(el=>{const i=Number(el.dataset.reference);mountPlayer(el,e.references[i],e.references[i].midiIndex??Math.min(i,e.midi.length-1));});
-  demo.querySelectorAll("[data-model]").forEach(el=>{const model=e.models[Number(el.dataset.model)];mountPlayer(el,model,model.midiIndex??e.midi.length-1);});
+  demo.querySelectorAll("[data-model]").forEach(el=>{const model=selectedModels(e)[Number(el.dataset.model)];mountPlayer(el,model,model.midiIndex??e.midi.length-1);});
   drawMidi();
+  demo.querySelector("#ablation")?.addEventListener("change",event=>changeAblation(event.target.value));
   demo.querySelector("#instrument")?.addEventListener("change",event=>drawMidi(event.target.value));
   demo.querySelector("#keep-position").addEventListener("change",event=>keepPosition=event.target.checked);
   demo.querySelector("#target-jump").addEventListener("click",()=>{players.forEach(p=>p.setTime(e.start));e.midi.forEach((_,i)=>updatePlayhead(e.start,i));});
