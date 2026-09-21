@@ -60,3 +60,8 @@
 
 .ablation-control{display:flex;align-items:center;flex-wrap:wrap;gap:8px 12px;margin:0 0 14px;font-size:.8125rem;font-weight:650;color:var(--muted)}
 .ablation-control select{min-width:0;max-width:100%;font-size:.8125rem;font-weight:400}
+
+.generation-time{margin:0 0 10px;font-size:.75rem;color:var(--muted)}
+.generation-note{margin:14px 0;font-size:.75rem;color:var(--muted);line-height:1.6}
+.generation-note summary{cursor:pointer;width:max-content;max-width:100%;color:var(--teal)}
+.generation-note p{margin:8px 0 0}

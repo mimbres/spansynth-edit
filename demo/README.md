@@ -29,7 +29,7 @@ The five chromatic edits have no recorded after-edit ground truth. Their referen
 
 Chorale Bricks voice identities come from the per-track annotations in [ChoraleBricks, Balke, Berndt and Müller (2025)](https://zenodo.org/records/15081741), licensed CC BY 4.0. Its combined MIDI merges some instruments and voices. Source annotations recover the soprano, alto, tenor and bass assignments; split fragments of the same performed note share the same edited pitch. Simultaneous same-pitch notes use separate MIDI channels where necessary to preserve their note-off times. The published MIDI is a modified excerpt.
 
-The 65 full generated WAVs are saved locally in `anysynth_full_flowedit/runs/listening-survey-candidates/early-step127750/`. The corresponding directory in the Jupiter research checkout also holds the source audio, exact before/after MIDI, generated codes, target WAVs, and generation settings. The production V3 SQ inference command generates the same 6.40–14.08 s interval, retaining two seconds of codec history before the excerpt. Source crops and every displayed MIDI note were checked against the original selections before generation.
+The 85 full generated WAVs are saved locally in `anysynth_full_flowedit/runs/listening-survey-candidates/early-step127750/`. The corresponding directory in the Jupiter research checkout also holds the source audio, exact before/after MIDI, generated codes, target WAVs, and generation settings. The production V3 SQ inference command generates the same 6.40–14.08 s interval, retaining two seconds of codec history before the excerpt. Source crops and every displayed MIDI note were checked against the original selections before generation.
 
 The exact crop definitions and chromatic changes come from the existing research scripts `scripts/demo/generate_spansynth_v3_gallery.py` and `scripts/demo/generate_spansynth_flowedit_gallery.py`. MIDI visualization uses the same corrected note arrays, 16 kHz note-time conversion, and verified original note selections. Downloadable MIDI files contain those crop-relative note events. Notes crossing the excerpt edges are clipped only at export/display boundaries.
 
@@ -37,10 +37,40 @@ The exact crop definitions and chromatic changes come from the existing research
 
 One dropdown selects the condition while retaining the original player, MIDI views, instrument filter and playback positions. Switching conditions pauses the model output so the next comparison starts at the retained position.
 
-- **Early editing:** 64 steps (default), 32, 16, 8 and 4, for both ordinary generation and FlowEdit. No synthesis step ablations are included.
+- **Early editing:** 64 steps (default), 32, 16, 8, 4, 2 and 1, for both ordinary generation and FlowEdit. No synthesis step ablations are included.
 - **Early synthesis:** the normal 64-step condition, context clean audio dropout, or context MIDI dropout. Audio dropout zeros only the static clean-reference projection input, preserving observed SQ states and all MIDI. MIDI dropout removes reference MIDI while retaining target MIDI and contextual audio. Each dropout is applied separately.
 
-Every new generation uses fresh random noise. These listening examples do not hold the noise draw fixed between conditions. The extension adds six default outputs, forty editing step outputs and ten synthesis dropout outputs. A single four-GPU Jupiter job uses four independent processes, one per GPU, including SQ decoding.
+Every new generation uses fresh random noise. These listening examples do not hold the noise draw fixed between conditions. The extension adds six default outputs, forty editing step outputs and ten synthesis dropout outputs. The subsequent 1/2-step extension adds twenty editing outputs. Each Jupiter job uses four independent processes on one four-GPU node, one process per GPU, including SQ decoding.
+
+### Approximate generation times
+
+Each Early editing model card shows a shared estimate for its selected Euler
+step count. These are rounded medians of existing generation timings, not
+per-example benchmarks.
+
+| Euler steps | Ordinary generation (s) | FlowEdit (s) |
+| ---: | ---: | ---: |
+| 64 | 3.4 | 3.3 |
+| 32 | 1.4 | 1.8 |
+| 16 | 0.8 | 1.1 |
+| 8 | 0.7 | 0.6 |
+| 4 | 0.4 | 0.5 |
+| 2 | 0.4 | 0.5 |
+| 1 | 0.3 | 0.4 |
+
+The measurements use one NVIDIA GH200 GPU, batch size 1, CFG 2 and the same
+7.68-second target within a 20.48-second excerpt. The production command's
+timer includes input preparation, source encoding, Euler sampling, decoding,
+CPU transfer and output-file writing. Model and codec loading are excluded.
+The first generation on each worker is excluded because it includes initial
+GPU preparation. The 64-step estimate has one remaining example per method;
+other estimates have four or five. Input differences and timing variability
+can outweigh the small difference between low step counts.
+
+The 1/2-step job (1937923) completed all twenty outputs in 2m48s, including
+worker startup and model loading. Its first generation per worker took about
+8 seconds after loading. This startup cost is separate from the estimates
+shown beside the players.
 
 ## Model comparison — Synthesis (Table 1)
 

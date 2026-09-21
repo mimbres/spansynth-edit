@@ -8,8 +8,8 @@
   <title>SpanSynth-Edit · MIDI-guided synthesis and editing</title>
   <link rel="canonical" href="https://mimbres.github.io/spansynth-edit/">
   <link rel="icon" href="data:,">
-  <link rel="stylesheet" href="demo/styles.css?v=early-ablations">
-  <script src="demo/app.js?v=early-ablations" defer></script>
+  <link rel="stylesheet" href="demo/styles.css?v=early-low-steps">
+  <script src="demo/app.js?v=early-low-steps" defer></script>
 </head>
 <body>
   <a class="skip" href="#examples">Skip to audio examples</a>
@@ -327,55 +327,85 @@
         {"start": 20.040000000000003, "end": 20.499999999999996, "pitch": 61, "velocity": 39, "program": 0, "drum": false, "instrument": "Acoustic Piano"}
       ]}
     ],
-    "references": [{"label": "Original before-edit audio", "detail": "Reference recording before the chromatic edit.", "src": "demo/assets/early-kraisler-track01-original.mp3?v=early-ablations", "emphasis": true}],
+    "references": [{"label": "Original before-edit audio", "detail": "Reference recording before the chromatic edit.", "src": "demo/assets/early-kraisler-track01-original.mp3?v=early-low-steps", "emphasis": true}],
     "models": [
       {
         "label": "SpanSynth-Edit, Base SQ CFG 2",
         "detail": "Step 127,750 · 64 steps · CFG 2",
         "ours": true,
-        "src": "demo/assets/early-kraisler-track01-base-sq.mp3?v=early-ablations",
+        "src": "demo/assets/early-kraisler-track01-base-sq.mp3?v=early-low-steps",
         "ablations": {
           "32": {
-            "src": "demo/assets/early-kraisler-track01-base-sq-steps32.mp3?v=early-ablations",
-            "detail": "Step 127,750 · 32 steps · CFG 2"
+            "src": "demo/assets/early-kraisler-track01-base-sq-steps32.mp3?v=early-low-steps",
+            "detail": "Step 127,750 · 32 steps · CFG 2",
+            "generationSeconds": 1.4
           },
           "16": {
-            "src": "demo/assets/early-kraisler-track01-base-sq-steps16.mp3?v=early-ablations",
-            "detail": "Step 127,750 · 16 steps · CFG 2"
+            "src": "demo/assets/early-kraisler-track01-base-sq-steps16.mp3?v=early-low-steps",
+            "detail": "Step 127,750 · 16 steps · CFG 2",
+            "generationSeconds": 0.8
           },
           "8": {
-            "src": "demo/assets/early-kraisler-track01-base-sq-steps8.mp3?v=early-ablations",
-            "detail": "Step 127,750 · 8 steps · CFG 2"
+            "src": "demo/assets/early-kraisler-track01-base-sq-steps8.mp3?v=early-low-steps",
+            "detail": "Step 127,750 · 8 steps · CFG 2",
+            "generationSeconds": 0.7
           },
           "4": {
-            "src": "demo/assets/early-kraisler-track01-base-sq-steps4.mp3?v=early-ablations",
-            "detail": "Step 127,750 · 4 steps · CFG 2"
+            "src": "demo/assets/early-kraisler-track01-base-sq-steps4.mp3?v=early-low-steps",
+            "detail": "Step 127,750 · 4 steps · CFG 2",
+            "generationSeconds": 0.4
+          },
+          "2": {
+            "src": "demo/assets/early-kraisler-track01-base-sq-steps2.mp3?v=early-low-steps",
+            "detail": "Step 127,750 · 2 steps · CFG 2",
+            "generationSeconds": 0.4
+          },
+          "1": {
+            "src": "demo/assets/early-kraisler-track01-base-sq-steps1.mp3?v=early-low-steps",
+            "detail": "Step 127,750 · 1 step · CFG 2",
+            "generationSeconds": 0.3
           }
-        }
+        },
+        "generationSeconds": 3.4
       },
       {
         "label": "SpanSynth-Edit, Base SQ CFG 2 FlowEdit",
         "detail": "Step 127,750 · 64 steps · CFG 2 · Start step 0",
         "ours": true,
-        "src": "demo/assets/early-kraisler-track01-base-sq-flowedit.mp3?v=early-ablations",
+        "src": "demo/assets/early-kraisler-track01-base-sq-flowedit.mp3?v=early-low-steps",
         "ablations": {
           "32": {
-            "src": "demo/assets/early-kraisler-track01-base-sq-flowedit-steps32.mp3?v=early-ablations",
-            "detail": "Step 127,750 · 32 steps · CFG 2 · Start step 0"
+            "src": "demo/assets/early-kraisler-track01-base-sq-flowedit-steps32.mp3?v=early-low-steps",
+            "detail": "Step 127,750 · 32 steps · CFG 2 · Start step 0",
+            "generationSeconds": 1.8
           },
           "16": {
-            "src": "demo/assets/early-kraisler-track01-base-sq-flowedit-steps16.mp3?v=early-ablations",
-            "detail": "Step 127,750 · 16 steps · CFG 2 · Start step 0"
+            "src": "demo/assets/early-kraisler-track01-base-sq-flowedit-steps16.mp3?v=early-low-steps",
+            "detail": "Step 127,750 · 16 steps · CFG 2 · Start step 0",
+            "generationSeconds": 1.1
           },
           "8": {
-            "src": "demo/assets/early-kraisler-track01-base-sq-flowedit-steps8.mp3?v=early-ablations",
-            "detail": "Step 127,750 · 8 steps · CFG 2 · Start step 0"
+            "src": "demo/assets/early-kraisler-track01-base-sq-flowedit-steps8.mp3?v=early-low-steps",
+            "detail": "Step 127,750 · 8 steps · CFG 2 · Start step 0",
+            "generationSeconds": 0.6
           },
           "4": {
-            "src": "demo/assets/early-kraisler-track01-base-sq-flowedit-steps4.mp3?v=early-ablations",
-            "detail": "Step 127,750 · 4 steps · CFG 2 · Start step 0"
+            "src": "demo/assets/early-kraisler-track01-base-sq-flowedit-steps4.mp3?v=early-low-steps",
+            "detail": "Step 127,750 · 4 steps · CFG 2 · Start step 0",
+            "generationSeconds": 0.5
+          },
+          "2": {
+            "src": "demo/assets/early-kraisler-track01-base-sq-flowedit-steps2.mp3?v=early-low-steps",
+            "detail": "Step 127,750 · 2 steps · CFG 2 · Start step 0",
+            "generationSeconds": 0.5
+          },
+          "1": {
+            "src": "demo/assets/early-kraisler-track01-base-sq-flowedit-steps1.mp3?v=early-low-steps",
+            "detail": "Step 127,750 · 1 step · CFG 2 · Start step 0",
+            "generationSeconds": 0.4
           }
-        }
+        },
+        "generationSeconds": 3.3
       }
     ],
     "referenceNote": "No recorded ground truth is available for this chromatic edit. Compare the outputs with the after-edit MIDI and the original recording."
@@ -864,55 +894,85 @@
         {"start": 19.940000000000026, "end": 20.880000000000024, "pitch": 72, "velocity": 127, "program": 56, "drum": false, "instrument": "Trumpet"}
       ]}
     ],
-    "references": [{"label": "Original before-edit audio", "detail": "Reference recording before the chromatic edit.", "src": "demo/assets/early-slakh-track00006-original.mp3?v=early-ablations", "emphasis": true}],
+    "references": [{"label": "Original before-edit audio", "detail": "Reference recording before the chromatic edit.", "src": "demo/assets/early-slakh-track00006-original.mp3?v=early-low-steps", "emphasis": true}],
     "models": [
       {
         "label": "SpanSynth-Edit, Base SQ CFG 2",
         "detail": "Step 127,750 · 64 steps · CFG 2",
         "ours": true,
-        "src": "demo/assets/early-slakh-track00006-base-sq.mp3?v=early-ablations",
+        "src": "demo/assets/early-slakh-track00006-base-sq.mp3?v=early-low-steps",
         "ablations": {
           "32": {
-            "src": "demo/assets/early-slakh-track00006-base-sq-steps32.mp3?v=early-ablations",
-            "detail": "Step 127,750 · 32 steps · CFG 2"
+            "src": "demo/assets/early-slakh-track00006-base-sq-steps32.mp3?v=early-low-steps",
+            "detail": "Step 127,750 · 32 steps · CFG 2",
+            "generationSeconds": 1.4
           },
           "16": {
-            "src": "demo/assets/early-slakh-track00006-base-sq-steps16.mp3?v=early-ablations",
-            "detail": "Step 127,750 · 16 steps · CFG 2"
+            "src": "demo/assets/early-slakh-track00006-base-sq-steps16.mp3?v=early-low-steps",
+            "detail": "Step 127,750 · 16 steps · CFG 2",
+            "generationSeconds": 0.8
           },
           "8": {
-            "src": "demo/assets/early-slakh-track00006-base-sq-steps8.mp3?v=early-ablations",
-            "detail": "Step 127,750 · 8 steps · CFG 2"
+            "src": "demo/assets/early-slakh-track00006-base-sq-steps8.mp3?v=early-low-steps",
+            "detail": "Step 127,750 · 8 steps · CFG 2",
+            "generationSeconds": 0.7
           },
           "4": {
-            "src": "demo/assets/early-slakh-track00006-base-sq-steps4.mp3?v=early-ablations",
-            "detail": "Step 127,750 · 4 steps · CFG 2"
+            "src": "demo/assets/early-slakh-track00006-base-sq-steps4.mp3?v=early-low-steps",
+            "detail": "Step 127,750 · 4 steps · CFG 2",
+            "generationSeconds": 0.4
+          },
+          "2": {
+            "src": "demo/assets/early-slakh-track00006-base-sq-steps2.mp3?v=early-low-steps",
+            "detail": "Step 127,750 · 2 steps · CFG 2",
+            "generationSeconds": 0.4
+          },
+          "1": {
+            "src": "demo/assets/early-slakh-track00006-base-sq-steps1.mp3?v=early-low-steps",
+            "detail": "Step 127,750 · 1 step · CFG 2",
+            "generationSeconds": 0.3
           }
-        }
+        },
+        "generationSeconds": 3.4
       },
       {
         "label": "SpanSynth-Edit, Base SQ CFG 2 FlowEdit",
         "detail": "Step 127,750 · 64 steps · CFG 2 · Start step 0",
         "ours": true,
-        "src": "demo/assets/early-slakh-track00006-base-sq-flowedit.mp3?v=early-ablations",
+        "src": "demo/assets/early-slakh-track00006-base-sq-flowedit.mp3?v=early-low-steps",
         "ablations": {
           "32": {
-            "src": "demo/assets/early-slakh-track00006-base-sq-flowedit-steps32.mp3?v=early-ablations",
-            "detail": "Step 127,750 · 32 steps · CFG 2 · Start step 0"
+            "src": "demo/assets/early-slakh-track00006-base-sq-flowedit-steps32.mp3?v=early-low-steps",
+            "detail": "Step 127,750 · 32 steps · CFG 2 · Start step 0",
+            "generationSeconds": 1.8
           },
           "16": {
-            "src": "demo/assets/early-slakh-track00006-base-sq-flowedit-steps16.mp3?v=early-ablations",
-            "detail": "Step 127,750 · 16 steps · CFG 2 · Start step 0"
+            "src": "demo/assets/early-slakh-track00006-base-sq-flowedit-steps16.mp3?v=early-low-steps",
+            "detail": "Step 127,750 · 16 steps · CFG 2 · Start step 0",
+            "generationSeconds": 1.1
           },
           "8": {
-            "src": "demo/assets/early-slakh-track00006-base-sq-flowedit-steps8.mp3?v=early-ablations",
-            "detail": "Step 127,750 · 8 steps · CFG 2 · Start step 0"
+            "src": "demo/assets/early-slakh-track00006-base-sq-flowedit-steps8.mp3?v=early-low-steps",
+            "detail": "Step 127,750 · 8 steps · CFG 2 · Start step 0",
+            "generationSeconds": 0.6
           },
           "4": {
-            "src": "demo/assets/early-slakh-track00006-base-sq-flowedit-steps4.mp3?v=early-ablations",
-            "detail": "Step 127,750 · 4 steps · CFG 2 · Start step 0"
+            "src": "demo/assets/early-slakh-track00006-base-sq-flowedit-steps4.mp3?v=early-low-steps",
+            "detail": "Step 127,750 · 4 steps · CFG 2 · Start step 0",
+            "generationSeconds": 0.5
+          },
+          "2": {
+            "src": "demo/assets/early-slakh-track00006-base-sq-flowedit-steps2.mp3?v=early-low-steps",
+            "detail": "Step 127,750 · 2 steps · CFG 2 · Start step 0",
+            "generationSeconds": 0.5
+          },
+          "1": {
+            "src": "demo/assets/early-slakh-track00006-base-sq-flowedit-steps1.mp3?v=early-low-steps",
+            "detail": "Step 127,750 · 1 step · CFG 2 · Start step 0",
+            "generationSeconds": 0.4
           }
-        }
+        },
+        "generationSeconds": 3.3
       }
     ],
     "referenceNote": "No recorded ground truth is available for this chromatic edit. Compare the outputs with the after-edit MIDI and the original recording."
@@ -1261,55 +1321,85 @@
         {"start": 20.37999999999998, "end": 20.480000000000004, "pitch": 72, "velocity": 127, "program": 40, "drum": false, "instrument": "Violin"}
       ]}
     ],
-    "references": [{"label": "Original before-edit audio", "detail": "Reference recording before the chromatic edit.", "src": "demo/assets/early-musicnet-2244-original.mp3?v=early-ablations", "emphasis": true}],
+    "references": [{"label": "Original before-edit audio", "detail": "Reference recording before the chromatic edit.", "src": "demo/assets/early-musicnet-2244-original.mp3?v=early-low-steps", "emphasis": true}],
     "models": [
       {
         "label": "SpanSynth-Edit, Base SQ CFG 2",
         "detail": "Step 127,750 · 64 steps · CFG 2",
         "ours": true,
-        "src": "demo/assets/early-musicnet-2244-base-sq.mp3?v=early-ablations",
+        "src": "demo/assets/early-musicnet-2244-base-sq.mp3?v=early-low-steps",
         "ablations": {
           "32": {
-            "src": "demo/assets/early-musicnet-2244-base-sq-steps32.mp3?v=early-ablations",
-            "detail": "Step 127,750 · 32 steps · CFG 2"
+            "src": "demo/assets/early-musicnet-2244-base-sq-steps32.mp3?v=early-low-steps",
+            "detail": "Step 127,750 · 32 steps · CFG 2",
+            "generationSeconds": 1.4
           },
           "16": {
-            "src": "demo/assets/early-musicnet-2244-base-sq-steps16.mp3?v=early-ablations",
-            "detail": "Step 127,750 · 16 steps · CFG 2"
+            "src": "demo/assets/early-musicnet-2244-base-sq-steps16.mp3?v=early-low-steps",
+            "detail": "Step 127,750 · 16 steps · CFG 2",
+            "generationSeconds": 0.8
           },
           "8": {
-            "src": "demo/assets/early-musicnet-2244-base-sq-steps8.mp3?v=early-ablations",
-            "detail": "Step 127,750 · 8 steps · CFG 2"
+            "src": "demo/assets/early-musicnet-2244-base-sq-steps8.mp3?v=early-low-steps",
+            "detail": "Step 127,750 · 8 steps · CFG 2",
+            "generationSeconds": 0.7
           },
           "4": {
-            "src": "demo/assets/early-musicnet-2244-base-sq-steps4.mp3?v=early-ablations",
-            "detail": "Step 127,750 · 4 steps · CFG 2"
+            "src": "demo/assets/early-musicnet-2244-base-sq-steps4.mp3?v=early-low-steps",
+            "detail": "Step 127,750 · 4 steps · CFG 2",
+            "generationSeconds": 0.4
+          },
+          "2": {
+            "src": "demo/assets/early-musicnet-2244-base-sq-steps2.mp3?v=early-low-steps",
+            "detail": "Step 127,750 · 2 steps · CFG 2",
+            "generationSeconds": 0.4
+          },
+          "1": {
+            "src": "demo/assets/early-musicnet-2244-base-sq-steps1.mp3?v=early-low-steps",
+            "detail": "Step 127,750 · 1 step · CFG 2",
+            "generationSeconds": 0.3
           }
-        }
+        },
+        "generationSeconds": 3.4
       },
       {
         "label": "SpanSynth-Edit, Base SQ CFG 2 FlowEdit",
         "detail": "Step 127,750 · 64 steps · CFG 2 · Start step 0",
         "ours": true,
-        "src": "demo/assets/early-musicnet-2244-base-sq-flowedit.mp3?v=early-ablations",
+        "src": "demo/assets/early-musicnet-2244-base-sq-flowedit.mp3?v=early-low-steps",
         "ablations": {
           "32": {
-            "src": "demo/assets/early-musicnet-2244-base-sq-flowedit-steps32.mp3?v=early-ablations",
-            "detail": "Step 127,750 · 32 steps · CFG 2 · Start step 0"
+            "src": "demo/assets/early-musicnet-2244-base-sq-flowedit-steps32.mp3?v=early-low-steps",
+            "detail": "Step 127,750 · 32 steps · CFG 2 · Start step 0",
+            "generationSeconds": 1.8
           },
           "16": {
-            "src": "demo/assets/early-musicnet-2244-base-sq-flowedit-steps16.mp3?v=early-ablations",
-            "detail": "Step 127,750 · 16 steps · CFG 2 · Start step 0"
+            "src": "demo/assets/early-musicnet-2244-base-sq-flowedit-steps16.mp3?v=early-low-steps",
+            "detail": "Step 127,750 · 16 steps · CFG 2 · Start step 0",
+            "generationSeconds": 1.1
           },
           "8": {
-            "src": "demo/assets/early-musicnet-2244-base-sq-flowedit-steps8.mp3?v=early-ablations",
-            "detail": "Step 127,750 · 8 steps · CFG 2 · Start step 0"
+            "src": "demo/assets/early-musicnet-2244-base-sq-flowedit-steps8.mp3?v=early-low-steps",
+            "detail": "Step 127,750 · 8 steps · CFG 2 · Start step 0",
+            "generationSeconds": 0.6
           },
           "4": {
-            "src": "demo/assets/early-musicnet-2244-base-sq-flowedit-steps4.mp3?v=early-ablations",
-            "detail": "Step 127,750 · 4 steps · CFG 2 · Start step 0"
+            "src": "demo/assets/early-musicnet-2244-base-sq-flowedit-steps4.mp3?v=early-low-steps",
+            "detail": "Step 127,750 · 4 steps · CFG 2 · Start step 0",
+            "generationSeconds": 0.5
+          },
+          "2": {
+            "src": "demo/assets/early-musicnet-2244-base-sq-flowedit-steps2.mp3?v=early-low-steps",
+            "detail": "Step 127,750 · 2 steps · CFG 2 · Start step 0",
+            "generationSeconds": 0.5
+          },
+          "1": {
+            "src": "demo/assets/early-musicnet-2244-base-sq-flowedit-steps1.mp3?v=early-low-steps",
+            "detail": "Step 127,750 · 1 step · CFG 2 · Start step 0",
+            "generationSeconds": 0.4
           }
-        }
+        },
+        "generationSeconds": 3.3
       }
     ],
     "referenceNote": "No recorded ground truth is available for this chromatic edit. Compare the outputs with the after-edit MIDI and the original recording."
@@ -1456,7 +1546,7 @@
       {
         "label": "Original before-edit audio",
         "detail": "Reference recording before the chromatic edit.",
-        "src": "demo/assets/early-filobass-000000-original.mp3?v=early-ablations",
+        "src": "demo/assets/early-filobass-000000-original.mp3?v=early-low-steps",
         "emphasis": true
       }
     ],
@@ -1465,49 +1555,79 @@
         "label": "SpanSynth-Edit, Base SQ CFG 2",
         "detail": "Step 127,750 · 64 steps · CFG 2",
         "ours": true,
-        "src": "demo/assets/early-filobass-000000-base-sq.mp3?v=early-ablations",
+        "src": "demo/assets/early-filobass-000000-base-sq.mp3?v=early-low-steps",
         "ablations": {
           "32": {
-            "src": "demo/assets/early-filobass-000000-base-sq-steps32.mp3?v=early-ablations",
-            "detail": "Step 127,750 · 32 steps · CFG 2"
+            "src": "demo/assets/early-filobass-000000-base-sq-steps32.mp3?v=early-low-steps",
+            "detail": "Step 127,750 · 32 steps · CFG 2",
+            "generationSeconds": 1.4
           },
           "16": {
-            "src": "demo/assets/early-filobass-000000-base-sq-steps16.mp3?v=early-ablations",
-            "detail": "Step 127,750 · 16 steps · CFG 2"
+            "src": "demo/assets/early-filobass-000000-base-sq-steps16.mp3?v=early-low-steps",
+            "detail": "Step 127,750 · 16 steps · CFG 2",
+            "generationSeconds": 0.8
           },
           "8": {
-            "src": "demo/assets/early-filobass-000000-base-sq-steps8.mp3?v=early-ablations",
-            "detail": "Step 127,750 · 8 steps · CFG 2"
+            "src": "demo/assets/early-filobass-000000-base-sq-steps8.mp3?v=early-low-steps",
+            "detail": "Step 127,750 · 8 steps · CFG 2",
+            "generationSeconds": 0.7
           },
           "4": {
-            "src": "demo/assets/early-filobass-000000-base-sq-steps4.mp3?v=early-ablations",
-            "detail": "Step 127,750 · 4 steps · CFG 2"
+            "src": "demo/assets/early-filobass-000000-base-sq-steps4.mp3?v=early-low-steps",
+            "detail": "Step 127,750 · 4 steps · CFG 2",
+            "generationSeconds": 0.4
+          },
+          "2": {
+            "src": "demo/assets/early-filobass-000000-base-sq-steps2.mp3?v=early-low-steps",
+            "detail": "Step 127,750 · 2 steps · CFG 2",
+            "generationSeconds": 0.4
+          },
+          "1": {
+            "src": "demo/assets/early-filobass-000000-base-sq-steps1.mp3?v=early-low-steps",
+            "detail": "Step 127,750 · 1 step · CFG 2",
+            "generationSeconds": 0.3
           }
-        }
+        },
+        "generationSeconds": 3.4
       },
       {
         "label": "SpanSynth-Edit, Base SQ CFG 2 FlowEdit",
         "detail": "Step 127,750 · 64 steps · CFG 2 · Start step 0",
         "ours": true,
-        "src": "demo/assets/early-filobass-000000-base-sq-flowedit.mp3?v=early-ablations",
+        "src": "demo/assets/early-filobass-000000-base-sq-flowedit.mp3?v=early-low-steps",
         "ablations": {
           "32": {
-            "src": "demo/assets/early-filobass-000000-base-sq-flowedit-steps32.mp3?v=early-ablations",
-            "detail": "Step 127,750 · 32 steps · CFG 2 · Start step 0"
+            "src": "demo/assets/early-filobass-000000-base-sq-flowedit-steps32.mp3?v=early-low-steps",
+            "detail": "Step 127,750 · 32 steps · CFG 2 · Start step 0",
+            "generationSeconds": 1.8
           },
           "16": {
-            "src": "demo/assets/early-filobass-000000-base-sq-flowedit-steps16.mp3?v=early-ablations",
-            "detail": "Step 127,750 · 16 steps · CFG 2 · Start step 0"
+            "src": "demo/assets/early-filobass-000000-base-sq-flowedit-steps16.mp3?v=early-low-steps",
+            "detail": "Step 127,750 · 16 steps · CFG 2 · Start step 0",
+            "generationSeconds": 1.1
           },
           "8": {
-            "src": "demo/assets/early-filobass-000000-base-sq-flowedit-steps8.mp3?v=early-ablations",
-            "detail": "Step 127,750 · 8 steps · CFG 2 · Start step 0"
+            "src": "demo/assets/early-filobass-000000-base-sq-flowedit-steps8.mp3?v=early-low-steps",
+            "detail": "Step 127,750 · 8 steps · CFG 2 · Start step 0",
+            "generationSeconds": 0.6
           },
           "4": {
-            "src": "demo/assets/early-filobass-000000-base-sq-flowedit-steps4.mp3?v=early-ablations",
-            "detail": "Step 127,750 · 4 steps · CFG 2 · Start step 0"
+            "src": "demo/assets/early-filobass-000000-base-sq-flowedit-steps4.mp3?v=early-low-steps",
+            "detail": "Step 127,750 · 4 steps · CFG 2 · Start step 0",
+            "generationSeconds": 0.5
+          },
+          "2": {
+            "src": "demo/assets/early-filobass-000000-base-sq-flowedit-steps2.mp3?v=early-low-steps",
+            "detail": "Step 127,750 · 2 steps · CFG 2 · Start step 0",
+            "generationSeconds": 0.5
+          },
+          "1": {
+            "src": "demo/assets/early-filobass-000000-base-sq-flowedit-steps1.mp3?v=early-low-steps",
+            "detail": "Step 127,750 · 1 step · CFG 2 · Start step 0",
+            "generationSeconds": 0.4
           }
-        }
+        },
+        "generationSeconds": 3.3
       }
     ],
     "referenceNote": "No recorded ground truth is available for this chromatic edit. Compare the outputs with the after-edit MIDI and the original recording."
@@ -2488,7 +2608,7 @@
       {
         "label": "Original before-edit audio",
         "detail": "Reference recording before the chromatic edit.",
-        "src": "demo/assets/early-chorale-bricks-000000-original.mp3?v=early-ablations",
+        "src": "demo/assets/early-chorale-bricks-000000-original.mp3?v=early-low-steps",
         "emphasis": true
       }
     ],
@@ -2497,49 +2617,79 @@
         "label": "SpanSynth-Edit, Base SQ CFG 2",
         "detail": "Step 127,750 · 64 steps · CFG 2",
         "ours": true,
-        "src": "demo/assets/early-chorale-bricks-000000-base-sq.mp3?v=early-ablations",
+        "src": "demo/assets/early-chorale-bricks-000000-base-sq.mp3?v=early-low-steps",
         "ablations": {
           "32": {
-            "src": "demo/assets/early-chorale-bricks-000000-base-sq-steps32.mp3?v=early-ablations",
-            "detail": "Step 127,750 · 32 steps · CFG 2"
+            "src": "demo/assets/early-chorale-bricks-000000-base-sq-steps32.mp3?v=early-low-steps",
+            "detail": "Step 127,750 · 32 steps · CFG 2",
+            "generationSeconds": 1.4
           },
           "16": {
-            "src": "demo/assets/early-chorale-bricks-000000-base-sq-steps16.mp3?v=early-ablations",
-            "detail": "Step 127,750 · 16 steps · CFG 2"
+            "src": "demo/assets/early-chorale-bricks-000000-base-sq-steps16.mp3?v=early-low-steps",
+            "detail": "Step 127,750 · 16 steps · CFG 2",
+            "generationSeconds": 0.8
           },
           "8": {
-            "src": "demo/assets/early-chorale-bricks-000000-base-sq-steps8.mp3?v=early-ablations",
-            "detail": "Step 127,750 · 8 steps · CFG 2"
+            "src": "demo/assets/early-chorale-bricks-000000-base-sq-steps8.mp3?v=early-low-steps",
+            "detail": "Step 127,750 · 8 steps · CFG 2",
+            "generationSeconds": 0.7
           },
           "4": {
-            "src": "demo/assets/early-chorale-bricks-000000-base-sq-steps4.mp3?v=early-ablations",
-            "detail": "Step 127,750 · 4 steps · CFG 2"
+            "src": "demo/assets/early-chorale-bricks-000000-base-sq-steps4.mp3?v=early-low-steps",
+            "detail": "Step 127,750 · 4 steps · CFG 2",
+            "generationSeconds": 0.4
+          },
+          "2": {
+            "src": "demo/assets/early-chorale-bricks-000000-base-sq-steps2.mp3?v=early-low-steps",
+            "detail": "Step 127,750 · 2 steps · CFG 2",
+            "generationSeconds": 0.4
+          },
+          "1": {
+            "src": "demo/assets/early-chorale-bricks-000000-base-sq-steps1.mp3?v=early-low-steps",
+            "detail": "Step 127,750 · 1 step · CFG 2",
+            "generationSeconds": 0.3
           }
-        }
+        },
+        "generationSeconds": 3.4
       },
       {
         "label": "SpanSynth-Edit, Base SQ CFG 2 FlowEdit",
         "detail": "Step 127,750 · 64 steps · CFG 2 · Start step 0",
         "ours": true,
-        "src": "demo/assets/early-chorale-bricks-000000-base-sq-flowedit.mp3?v=early-ablations",
+        "src": "demo/assets/early-chorale-bricks-000000-base-sq-flowedit.mp3?v=early-low-steps",
         "ablations": {
           "32": {
-            "src": "demo/assets/early-chorale-bricks-000000-base-sq-flowedit-steps32.mp3?v=early-ablations",
-            "detail": "Step 127,750 · 32 steps · CFG 2 · Start step 0"
+            "src": "demo/assets/early-chorale-bricks-000000-base-sq-flowedit-steps32.mp3?v=early-low-steps",
+            "detail": "Step 127,750 · 32 steps · CFG 2 · Start step 0",
+            "generationSeconds": 1.8
           },
           "16": {
-            "src": "demo/assets/early-chorale-bricks-000000-base-sq-flowedit-steps16.mp3?v=early-ablations",
-            "detail": "Step 127,750 · 16 steps · CFG 2 · Start step 0"
+            "src": "demo/assets/early-chorale-bricks-000000-base-sq-flowedit-steps16.mp3?v=early-low-steps",
+            "detail": "Step 127,750 · 16 steps · CFG 2 · Start step 0",
+            "generationSeconds": 1.1
           },
           "8": {
-            "src": "demo/assets/early-chorale-bricks-000000-base-sq-flowedit-steps8.mp3?v=early-ablations",
-            "detail": "Step 127,750 · 8 steps · CFG 2 · Start step 0"
+            "src": "demo/assets/early-chorale-bricks-000000-base-sq-flowedit-steps8.mp3?v=early-low-steps",
+            "detail": "Step 127,750 · 8 steps · CFG 2 · Start step 0",
+            "generationSeconds": 0.6
           },
           "4": {
-            "src": "demo/assets/early-chorale-bricks-000000-base-sq-flowedit-steps4.mp3?v=early-ablations",
-            "detail": "Step 127,750 · 4 steps · CFG 2 · Start step 0"
+            "src": "demo/assets/early-chorale-bricks-000000-base-sq-flowedit-steps4.mp3?v=early-low-steps",
+            "detail": "Step 127,750 · 4 steps · CFG 2 · Start step 0",
+            "generationSeconds": 0.5
+          },
+          "2": {
+            "src": "demo/assets/early-chorale-bricks-000000-base-sq-flowedit-steps2.mp3?v=early-low-steps",
+            "detail": "Step 127,750 · 2 steps · CFG 2 · Start step 0",
+            "generationSeconds": 0.5
+          },
+          "1": {
+            "src": "demo/assets/early-chorale-bricks-000000-base-sq-flowedit-steps1.mp3?v=early-low-steps",
+            "detail": "Step 127,750 · 1 step · CFG 2 · Start step 0",
+            "generationSeconds": 0.4
           }
-        }
+        },
+        "generationSeconds": 3.3
       }
     ],
     "referenceNote": "No recorded ground truth is available for this chromatic edit. Compare the outputs with the after-edit MIDI and the original recording."
