@@ -50,3 +50,10 @@
   .overview-image{padding:8px;border-radius:7px}
   .audio-examples{padding-top:24px}
 }
+
+.sections{flex-wrap:wrap}
+.paper-reference{font-size:.75rem;color:var(--muted);margin:2px 0 9px}
+.paper-reference summary{cursor:pointer;width:max-content;color:var(--teal);text-decoration:underline;text-underline-offset:3px}
+.paper-reference p{margin-top:8px;line-height:1.6}
+.paper-reference a{white-space:nowrap}
+@media(max-width:640px){.sections{flex-wrap:nowrap}}
