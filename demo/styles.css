@@ -8,6 +8,16 @@
 @media(prefers-reduced-motion:reduce){*{scroll-behavior:auto!important}}
 
 .instruction strong{color:var(--gold);font-weight:750}
+.instruction{background:linear-gradient(110deg,var(--cream),var(--surface));line-height:2}
+.task-keyword{display:inline-block;max-width:100%;padding:1px 7px;margin:2px 0;border:1px solid color-mix(in srgb,var(--gold) 55%,var(--line));border-radius:4px;background:var(--surface);color:var(--gold);font-weight:400;line-height:1.55;vertical-align:baseline}
+.crop-select{color:var(--teal);font-weight:650}
+.crop-select select{border:2px solid var(--teal);box-shadow:0 0 0 3px color-mix(in srgb,var(--teal) 10%,transparent);font-weight:500}
+.crop-select select:hover{box-shadow:0 0 0 3px color-mix(in srgb,var(--teal) 20%,transparent)}
+.sections .featured-tab{--tab-accent:var(--lilac-ink);--tab-tint:var(--lilac);border:1px solid color-mix(in srgb,var(--tab-accent) 40%,var(--line));border-radius:12px 12px 12px 4px;background:linear-gradient(125deg,var(--tab-tint),var(--surface) 90%);color:var(--tab-accent)}
+.sections .featured-tab[data-section=bonus]{--tab-accent:var(--gold);--tab-tint:var(--cream)}
+.sections .featured-tab:hover,.sections .featured-tab[aria-pressed=true]{border-color:var(--tab-accent)}
+.sections .featured-tab[aria-pressed=true]{background:linear-gradient(125deg,var(--tab-tint),var(--surface) 150%);color:var(--tab-accent);box-shadow:inset 0 -3px 0 var(--tab-accent)}
+.sections button .tab-icon{display:inline-block;margin:0 7px 0 0;font-size:1em}
 .ours-tag{white-space:nowrap;flex-shrink:0}
 
 /* Paper introduction and project resources. */
@@ -56,7 +66,7 @@
 .paper-reference summary{cursor:pointer;width:max-content;color:var(--teal);text-decoration:underline;text-underline-offset:3px}
 .paper-reference p{margin-top:8px;line-height:1.6}
 .paper-reference a{white-space:nowrap}
-@media(max-width:640px){.sections{flex-wrap:nowrap}}
+@media(max-width:640px){.sections{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px;overflow:visible}.sections button{min-width:0;white-space:normal}}
 
 .ablation-control{display:flex;align-items:center;flex-wrap:wrap;gap:8px 12px;margin:0 0 14px;font-size:.8125rem;font-weight:650;color:var(--muted)}
 .ablation-control select{min-width:0;max-width:100%;font-size:.8125rem;font-weight:400}

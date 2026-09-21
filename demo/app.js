@@ -26,7 +26,7 @@ const timeLabel = n => `${Math.floor(Math.max(0,n)/60)}:${String(Math.floor(Math
 const decimal = n => Number(n.toFixed(3)).toString();
 
 function formatInstruction(instruction) {
-  return escapeHTML(instruction).replace(/Rewrite \d+ \w+ notes|every voice|(?:ascending|descending) chromatic line \([\d–-]+\)|ascending chromatic line|Synthesize the highlighted section|(?:Insert|Remove) the (?:missing|indicated) instrument track|(?:Insert|Remove) the coral notes|Render the \d+ s piano passage inpainted by Modulator|(?:before|after)-edit MIDI|\bMIDI\b|surrounding recording/g, "<strong>$&</strong>");
+  return escapeHTML(instruction).replace(/Rewrite \d+ \w+ notes|every voice|(?:ascending|descending) chromatic line(?: \([\d–-]+\))?|highlighted section|(?:Insert|Remove) the (?:missing|indicated) instrument track|(?:Insert|Remove) the coral notes|\d+ s piano passage|Modulator|(?:before|after)-edit MIDI|\bMIDI\b|surrounding recording/g, '<span class="task-keyword">$&</span>');
 }
 
 function modelReference(model) {

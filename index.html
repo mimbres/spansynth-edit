@@ -8,8 +8,8 @@
   <title>SpanSynth-Edit · MIDI-guided synthesis and editing</title>
   <link rel="canonical" href="https://mimbres.github.io/spansynth-edit/">
   <link rel="icon" href="data:,">
-  <link rel="stylesheet" href="demo/styles.css?v=early-low-steps">
-  <script src="demo/app.js?v=early-low-steps" defer></script>
+  <link rel="stylesheet" href="demo/styles.css?v=demo-navigation">
+  <script src="demo/app.js?v=demo-navigation" defer></script>
 </head>
 <body>
   <a class="skip" href="#examples">Skip to audio examples</a>
@@ -42,10 +42,10 @@
     <nav class="sections" aria-label="Demo sections">
       <button type="button" data-section="early-editing" aria-pressed="true">Early demo <span>Editing</span></button>
       <button type="button" data-section="early-synthesis" aria-pressed="false">Early demo <span>Synthesis</span></button>
-      <button type="button" data-section="comparison-synthesis" aria-pressed="false">Comparison <span>Synthesis</span></button>
       <button type="button" data-section="comparison-edit" aria-pressed="false">Comparison <span>Edit</span></button>
-      <button type="button" data-section="ai-assisted-edit" aria-pressed="false">AI-assisted edit</button>
-      <button type="button" data-section="bonus" aria-pressed="false">Bonus</button>
+      <button type="button" data-section="comparison-synthesis" aria-pressed="false">Comparison <span>Synthesis</span></button>
+      <button type="button" class="featured-tab" data-section="ai-assisted-edit" aria-pressed="false"><span class="tab-icon" aria-hidden="true">✨</span>AI-assisted edit</button>
+      <button type="button" class="featured-tab" data-section="bonus" aria-pressed="false"><span class="tab-icon" aria-hidden="true">🎸</span>Bonus</button>
     </nav>
     <section id="ai-edit-intro" class="task-context" aria-label="AI-assisted edit task" hidden>
       <p>In this POP909 task, <a href="https://huggingface.co/keshavbhandari/modulator" target="_blank" rel="noopener">Modulator</a>, an external symbolic music generation model, inpaints the MIDI notes in a selected piano passage. These examples test whether audio models can render the inpainted MIDI notes while preserving the surrounding audio. Compare the before/after MIDI and the generated audio below.</p>
@@ -53,7 +53,7 @@
     </section>
     <section class="selection" aria-label="Example selection">
       <div class="selection-title"><p class="eyebrow" id="section-kicker">EARLY DEMO</p><h2 id="section-title">Editing</h2></div>
-      <label class="crop-select">Example <select id="crop"></select></label>
+      <label class="crop-select">Select example <select id="crop" aria-label="Select example"></select></label>
       <div class="step-buttons"><button id="previous" aria-label="Previous example" type="button">←</button><button id="next" aria-label="Next example" type="button">→</button></div>
     </section>
     <div id="demo"></div>
