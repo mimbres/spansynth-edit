@@ -10,7 +10,7 @@ The page provides example selection, one-at-a-time playback, target interval mar
 
 ## Early demo
 
-These examples reuse the original published audio files from the earlier V3 SQ model at step 40,250. They do not use the current survey checkpoint or external comparison systems. Base SQ CFG 2 uses 64 steps. The FlowEdit results use 32 steps, start step 0, and CFG 2.
+The six original Early demo selections are retained. Their nine SpanSynth-Edit outputs have been regenerated with the same V3 SQ V8 checkpoint at step 127,750 used in the comparison tabs, using the Base SQ decoder, CFG 2, and 64 steps. FlowEdit starts at step 0. These sections contain no external comparison systems.
 
 | Task | Example | Source excerpt (s) | Target in excerpt (s) |
 | --- | --- | --- | --- |
@@ -23,7 +23,7 @@ These examples reuse the original published audio files from the earlier V3 SQ m
 
 The three chromatic edits have no recorded after-edit ground truth. Their reference is the original recording, and the requested pitches are shown by the after-edit MIDI. Kraisler uses six descending violin notes (68–63), Slakh ten ascending trumpet notes (79–88), and MusicNet twelve ascending violin notes (67–78). All other note fields are preserved.
 
-Audio is copied without further encoding or normalization from the established `anysynth_full_flowedit/assets/` files beginning with `spansynth-v3-step40250-`. Direct editing files include `directedit-`, and FlowEdit files include `flowedit-`. The historical files already contain their original peak normalization.
+The nine full generated WAVs are saved locally in `anysynth_full_flowedit/runs/listening-survey-candidates/early-step127750/`. The corresponding directory in the Jupiter research checkout also holds the source audio, exact before/after MIDI, generated codes, target WAVs, and generation settings. The production V3 SQ inference command generates the same 6.40–14.08 s interval, retaining two seconds of codec history before the excerpt. Source crops and every displayed MIDI note were checked against the original selections before generation.
 
 The exact crop definitions and chromatic changes come from the existing research scripts `scripts/demo/generate_spansynth_v3_gallery.py` and `scripts/demo/generate_spansynth_flowedit_gallery.py`. MIDI visualization uses the same corrected note arrays, 16 kHz note-time conversion, and verified original note selections. Downloadable MIDI files contain those crop-relative note events. Notes crossing the excerpt edges are clipped only at export/display boundaries.
 
@@ -93,7 +93,7 @@ Model comparison, AI-assisted edit, and Bonus audio follow the established proce
 
 The original crop is peak-normalized to 0.95 once. Slakh drum variants are prepared against their respective original mixes, then share the same final attenuation across all players in the example. Each Base SQ and FlowEdit output receives one constant gain based on its source-active context RMS. Other systems retain the normalized original context and receive one target gain matched to the ground-truth target. The after-edit reference uses the before-edit audio’s gain. All players in a crop receive the same final attenuation when needed to keep decoded MP3 peaks within 0.98. The copies are mono, 48 kHz, 192 kbps MP3.
 
-This is reference-assisted level matching for listening. No limiter, crossfade, time stretching, or generated note editing is applied. The original research files remain unchanged. These level adjustments are used for Model comparison, AI-assisted edit, and Bonus, while Early demo preserves the original published audio.
+This is reference-assisted level matching for listening. No limiter, crossfade, time stretching, or generated note editing is applied. The original research files remain unchanged. Refreshed Early demo outputs use the same source-active context RMS method, with gains matched to the existing published original recordings. The GOAT original and generated output share an additional gain of 0.871249 to preserve headroom. That original is re-encoded from its source WAV at the matched listening level. The other five Early originals are unchanged.
 
 ## Files
 

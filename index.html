@@ -60,7 +60,7 @@
     <noscript><p>Please enable JavaScript to view the MIDI and use the audio players.</p></noscript>
     </section>
   </main>
-  <footer><details><summary>Listening conditions</summary><p>Early demos reuse the original audio files from the earlier model, with their original listening levels. Model comparison, AI-assisted edit, and Bonus use the current Base SQ model. Those comparisons use one gain per SpanSynth output, estimated from its surrounding audio, while other systems’ generated sections are matched to the reference level. All players within a comparison share any final attenuation needed for headroom.</p><p>No limiter, crossfade, or time stretching is applied. MIDI shows the input instructions, not a transcription of generated audio.</p></details></footer>
+  <footer><details><summary>Listening conditions</summary><p>Early demo selections have been regenerated with the current Base SQ checkpoint at step 127,750. All SpanSynth-Edit outputs use CFG 2 and 64 steps, with one constant gain per output estimated from its surrounding audio. Other systems’ generated sections are matched to the reference level. All players within an example share any final attenuation needed for headroom.</p><p>No limiter, crossfade, or time stretching is applied. MIDI shows the input instructions, not a transcription of generated audio.</p></details></footer>
   <script type="application/json" id="demo-data">
 [
   {
@@ -328,7 +328,7 @@
       ]}
     ],
     "references": [{"label": "Original before-edit audio", "detail": "Reference recording before the chromatic edit.", "src": "demo/assets/early-kraisler-track01-original.mp3", "emphasis": true}],
-    "models": [{"label": "SpanSynth-Edit, Base SQ CFG 2", "detail": "Early model · 64 steps · CFG 2", "ours": true, "src": "demo/assets/early-kraisler-track01-base-sq.mp3"}, {"label": "SpanSynth-Edit, Base SQ CFG 2 FlowEdit", "detail": "Early model · 32 steps · CFG 2 · Start step 0", "ours": true, "src": "demo/assets/early-kraisler-track01-base-sq-flowedit.mp3"}],
+    "models": [{"label": "SpanSynth-Edit, Base SQ CFG 2", "detail": "Step 127,750 · 64 steps · CFG 2", "ours": true, "src": "demo/assets/early-kraisler-track01-base-sq.mp3?v=early-step127750"}, {"label": "SpanSynth-Edit, Base SQ CFG 2 FlowEdit", "detail": "Step 127,750 · 64 steps · CFG 2 · Start step 0", "ours": true, "src": "demo/assets/early-kraisler-track01-base-sq-flowedit.mp3?v=early-step127750"}],
     "referenceNote": "No recorded ground truth is available for this chromatic edit. Compare the outputs with the after-edit MIDI and the original recording."
   },
   {
@@ -816,7 +816,7 @@
       ]}
     ],
     "references": [{"label": "Original before-edit audio", "detail": "Reference recording before the chromatic edit.", "src": "demo/assets/early-slakh-track00006-original.mp3", "emphasis": true}],
-    "models": [{"label": "SpanSynth-Edit, Base SQ CFG 2", "detail": "Early model · 64 steps · CFG 2", "ours": true, "src": "demo/assets/early-slakh-track00006-base-sq.mp3"}, {"label": "SpanSynth-Edit, Base SQ CFG 2 FlowEdit", "detail": "Early model · 32 steps · CFG 2 · Start step 0", "ours": true, "src": "demo/assets/early-slakh-track00006-base-sq-flowedit.mp3"}],
+    "models": [{"label": "SpanSynth-Edit, Base SQ CFG 2", "detail": "Step 127,750 · 64 steps · CFG 2", "ours": true, "src": "demo/assets/early-slakh-track00006-base-sq.mp3?v=early-step127750"}, {"label": "SpanSynth-Edit, Base SQ CFG 2 FlowEdit", "detail": "Step 127,750 · 64 steps · CFG 2 · Start step 0", "ours": true, "src": "demo/assets/early-slakh-track00006-base-sq-flowedit.mp3?v=early-step127750"}],
     "referenceNote": "No recorded ground truth is available for this chromatic edit. Compare the outputs with the after-edit MIDI and the original recording."
   },
   {
@@ -1164,7 +1164,7 @@
       ]}
     ],
     "references": [{"label": "Original before-edit audio", "detail": "Reference recording before the chromatic edit.", "src": "demo/assets/early-musicnet-2244-original.mp3", "emphasis": true}],
-    "models": [{"label": "SpanSynth-Edit, Base SQ CFG 2", "detail": "Early model · 64 steps · CFG 2", "ours": true, "src": "demo/assets/early-musicnet-2244-base-sq.mp3"}, {"label": "SpanSynth-Edit, Base SQ CFG 2 FlowEdit", "detail": "Early model · 32 steps · CFG 2 · Start step 0", "ours": true, "src": "demo/assets/early-musicnet-2244-base-sq-flowedit.mp3"}],
+    "models": [{"label": "SpanSynth-Edit, Base SQ CFG 2", "detail": "Step 127,750 · 64 steps · CFG 2", "ours": true, "src": "demo/assets/early-musicnet-2244-base-sq.mp3?v=early-step127750"}, {"label": "SpanSynth-Edit, Base SQ CFG 2 FlowEdit", "detail": "Step 127,750 · 64 steps · CFG 2 · Start step 0", "ours": true, "src": "demo/assets/early-musicnet-2244-base-sq-flowedit.mp3?v=early-step127750"}],
     "referenceNote": "No recorded ground truth is available for this chromatic edit. Compare the outputs with the after-edit MIDI and the original recording."
   },
   {
@@ -1565,7 +1565,7 @@
       ]}
     ],
     "references": [{"label": "Original recording · Ground Truth", "detail": "Reference recording for the synthesized section.", "src": "demo/assets/early-maestro-test-2004-track12-original.mp3", "emphasis": true}],
-    "models": [{"label": "SpanSynth-Edit, Base SQ CFG 2", "detail": "Early model · 64 steps · CFG 2", "ours": true, "src": "demo/assets/early-maestro-test-2004-track12-base-sq.mp3"}]
+    "models": [{"label": "SpanSynth-Edit, Base SQ CFG 2", "detail": "Step 127,750 · 64 steps · CFG 2", "ours": true, "src": "demo/assets/early-maestro-test-2004-track12-base-sq.mp3?v=early-step127750"}]
   },
   {
     "id": "early-bsed-symphony1-i-blomstedt1976",
@@ -1698,7 +1698,7 @@
       ]}
     ],
     "references": [{"label": "Original recording · Ground Truth", "detail": "Reference recording for the synthesized section.", "src": "demo/assets/early-bsed-symphony1-i-blomstedt1976-original.mp3", "emphasis": true}],
-    "models": [{"label": "SpanSynth-Edit, Base SQ CFG 2", "detail": "Early model · 64 steps · CFG 2", "ours": true, "src": "demo/assets/early-bsed-symphony1-i-blomstedt1976-base-sq.mp3"}]
+    "models": [{"label": "SpanSynth-Edit, Base SQ CFG 2", "detail": "Step 127,750 · 64 steps · CFG 2", "ours": true, "src": "demo/assets/early-bsed-symphony1-i-blomstedt1976-base-sq.mp3?v=early-step127750"}]
   },
   {
     "id": "early-goat-item89-distortion",
@@ -1936,8 +1936,8 @@
         {"start": 20.266250000000003, "end": 20.714000000000002, "pitch": 69, "velocity": 76, "program": 30, "drum": false, "instrument": "Distorted Electric Guitar"}
       ]}
     ],
-    "references": [{"label": "Original recording · Ground Truth", "detail": "Reference recording for the synthesized section.", "src": "demo/assets/early-goat-item89-distortion-original.mp3", "emphasis": true}],
-    "models": [{"label": "SpanSynth-Edit, Base SQ CFG 2", "detail": "Early model · 64 steps · CFG 2", "ours": true, "src": "demo/assets/early-goat-item89-distortion-base-sq.mp3"}]
+    "references": [{"label": "Original recording · Ground Truth", "detail": "Reference recording for the synthesized section.", "src": "demo/assets/early-goat-item89-distortion-original.mp3?v=early-step127750", "emphasis": true}],
+    "models": [{"label": "SpanSynth-Edit, Base SQ CFG 2", "detail": "Step 127,750 · 64 steps · CFG 2", "ours": true, "src": "demo/assets/early-goat-item89-distortion-base-sq.mp3?v=early-step127750"}]
   },
   {
     "id": "comparison-slakh-1884",
