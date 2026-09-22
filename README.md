@@ -5,18 +5,10 @@
 </p>
 
 <p align="center">
-  <a href="https://huggingface.co/spaces/mimbres/spansynth-edit"><img src="https://img.shields.io/badge/HF%20Spaces%20%C2%B7%20Live%20Editing%20GUI-F1D8E5?style=for-the-badge&amp;logo=huggingface&amp;logoColor=334155" alt="HF Spaces · Live Editing GUI" height="32"></a>
-</p>
-
-<p align="center">
-  <a href="https://mimbres.github.io/spansynth-edit/"><img src="https://img.shields.io/badge/%E2%96%B6%20Listen%20to%20demos-C8DDF0?style=for-the-badge" alt="Listen to demos" height="32"></a>&nbsp;
-  <a href="https://github.com/mimbres/spansynth-edit"><img src="https://img.shields.io/badge/Source%20code-DCCEF0?style=for-the-badge&amp;logo=github&amp;logoColor=334155" alt="Source code on GitHub" height="32"></a>&nbsp;
-  <a href="https://huggingface.co/mimbres/spansynth-edit"><img src="https://img.shields.io/badge/Model%20weights-CBE3D6?style=for-the-badge&amp;logo=huggingface&amp;logoColor=334155" alt="Model weights on Hugging Face" height="32"></a>
-</p>
-
-<p align="center">
-  <a href="#system-requirements"><img src="https://img.shields.io/badge/NVIDIA%20CUDA-D9ECC8?style=for-the-badge&amp;logo=nvidia&amp;logoColor=334155" alt="NVIDIA CUDA supported" height="24"></a>&nbsp;
-  <a href="#system-requirements"><img src="https://img.shields.io/badge/Apple%20Metal%20(MPS)-D8E5F6?style=for-the-badge&amp;logo=apple&amp;logoColor=334155" alt="Apple Silicon GPU supported via Metal (PyTorch MPS)" height="24"></a>
+  <a href="https://huggingface.co/spaces/mimbres/spansynth-edit"><img src="https://img.shields.io/badge/HF%20Spaces%20%C2%B7%20Live%20Editing%20GUI-F0DDEE?style=flat" alt="HF Spaces · Live Editing GUI" height="26"></a>&nbsp;
+  <a href="https://mimbres.github.io/spansynth-edit/"><img src="https://img.shields.io/badge/Listen%20to%20demos-E2EBF7?style=flat" alt="Listen to demos" height="26"></a>&nbsp;
+  <a href="https://github.com/mimbres/spansynth-edit"><img src="https://img.shields.io/badge/GitHub%20%C2%B7%20Source-EBE5F4?style=flat" alt="Source code on GitHub" height="26"></a>&nbsp;
+  <a href="https://huggingface.co/mimbres/spansynth-edit"><img src="https://img.shields.io/badge/HF%20%C2%B7%20Model%20weights-E1EEE8?style=flat" alt="Model weights on Hugging Face" height="26"></a>
 </p>
 
 Synthesise music from MIDI, or add, remove, and modify notes in a recording by revising its MIDI. SpanSynth-Edit generates the selected region, using surrounding audio for timbre guidance.
