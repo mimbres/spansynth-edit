@@ -2,11 +2,11 @@
 body {background: #f6f7fc;}
 .hero {padding: 48px 26px 38px; background: radial-gradient(ellipse at 85% 0%, #e5e0fa 0%, transparent 55%), linear-gradient(120deg, #eef7fb, #f7f4fb); border: 1px solid #e1e4f0; border-radius: 22px; margin-bottom: 16px; color: #28324d;}
 .eyebrow {font-size: 11px; font-weight: 700; letter-spacing: .16em; color: #68739a; margin-bottom: 18px;}
-.hero h1 {color: #28324d !important; font-size: clamp(32px, 5vw, 52px); line-height: 1.12; letter-spacing: -.045em; font-weight: 750; margin: 0 0 20px;}
-.hero h1 span {color: #7376a9;}
-.hero p {font-size: 16px; line-height: 1.6; max-width: 600px; color: #616b83;}
+.gradio-container .hero h1 {color: #28324d; font-size: clamp(32px, 5vw, 52px); line-height: 1.12; letter-spacing: -.045em; font-weight: 750; margin: 0 0 20px;}
+.gradio-container .hero h1 span {color: #7376a9;}
+.gradio-container .hero p {font-size: 16px; line-height: 1.6; max-width: 600px; color: #616b83;}
 .hero-links {display: flex; flex-wrap: wrap; gap: 10px; margin-top: 22px;}
-.hero-links a {color: #515e82; text-decoration: none; font-size: 12px; padding: 8px 12px; border: 1px solid #d9def0; border-radius: 99px; background: #ffffffaa;}
+.gradio-container .hero-links a {color: #515e82; text-decoration: none; font-size: 12px; padding: 8px 12px; border: 1px solid #d9def0; border-radius: 99px; background: #ffffffaa;}
 .hero-links a:hover {background: white;}
 .step-card {min-width: 0 !important; border-radius: 18px !important; padding: 20px !important; margin-bottom: 16px !important; border: 1px solid #e0e5f0 !important; background: var(--block-background-fill) !important;}
 .step-card .step-card {padding: 0 !important; border: 0 !important; margin: 0 !important; background: transparent !important;}
