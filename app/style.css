@@ -1,0 +1,33 @@
+.gradio-container {max-width: 1120px !important; margin: auto; font-family: Inter, system-ui, sans-serif !important;}
+body {background: #f6f7fc;}
+.hero {padding: 48px 26px 38px; background: radial-gradient(ellipse at 85% 0%, #e5e0fa 0%, transparent 55%), linear-gradient(120deg, #eef7fb, #f7f4fb); border: 1px solid #e1e4f0; border-radius: 22px; margin-bottom: 16px; color: #28324d;}
+.eyebrow {font-size: 11px; font-weight: 700; letter-spacing: .16em; color: #68739a; margin-bottom: 18px;}
+.hero h1 {color: #28324d !important; font-size: clamp(32px, 5vw, 52px); line-height: 1.12; letter-spacing: -.045em; font-weight: 750; margin: 0 0 20px;}
+.hero h1 span {color: #7376a9;}
+.hero p {font-size: 16px; line-height: 1.6; max-width: 600px; color: #616b83;}
+.hero-links {display: flex; flex-wrap: wrap; gap: 10px; margin-top: 22px;}
+.hero-links a {color: #515e82; text-decoration: none; font-size: 12px; padding: 8px 12px; border: 1px solid #d9def0; border-radius: 99px; background: #ffffffaa;}
+.hero-links a:hover {background: white;}
+.step-card {border-radius: 18px !important; padding: 20px !important; margin-bottom: 16px !important; border: 1px solid #e0e5f0 !important; background: var(--block-background-fill) !important;}
+.step-card h3 {font-size: 18px !important; margin: 0 0 12px !important; color: var(--body-text-color);}
+.footer-note {font-size: 12px !important; opacity: .75; padding: 6px 18px 24px; line-height: 1.7;}
+#run-status {padding: 12px 16px; border-radius: 12px; background: #eef3fb; color: #485576;}
+.roll-shell {color: #35415f; background: #fff; border: 1px solid #dce2ef; border-radius: 12px; overflow: hidden;}
+.roll-toolbar {display: flex; flex-wrap: wrap; align-items: center; gap: 8px; padding: 12px; background: #f8f9fd;}
+.roll-toolbar label {display: flex; align-items: center; gap: 6px; font-size: 11px; font-weight: 600;}
+.roll-toolbar select, .roll-toolbar button, .roll-toolbar input[type=number] {font: inherit; color: #435173; background: white; border: 1px solid #dbe1ef; border-radius: 7px; padding: 6px 8px; height: 30px;}
+.roll-toolbar select {max-width: 175px; font-size: 12px;}
+.roll-toolbar button {font-size: 12px; cursor: pointer; white-space: nowrap;}
+.roll-toolbar button:hover {background: #edf0fb; border-color: #9ba8d3;}
+.roll-toolbar button:disabled {opacity: .35; cursor: default;}
+.roll-toolbar input[type=number] {width: 60px;}
+.roll-toolbar input[type=range] {width: 80px; accent-color: #7c84c6;}
+.roll-secondary {padding-top: 0; border-bottom: 1px solid #e0e5f0;}
+.roll-secondary [data-role=count] {margin-left: auto; font-size: 11px; color: #7d879e;}
+.roll-scroll {overflow: auto; height: 380px; background: #fff; outline: none; overscroll-behavior: contain;}
+.roll-scroll:focus-visible {outline: 2px solid #8b97d1; outline-offset: -2px;}
+.roll-scroll canvas {display: block; touch-action: none;}
+.roll-help, .roll-detail {margin: 0; padding: 9px 12px; font-size: 11px; line-height: 1.6; color: #71809a;}
+.roll-help {border-top: 1px solid #e4e8f1; background: #fafbfe;}
+.roll-detail {padding-top: 0; background: #fafbfe; min-height: 24px;}
+@media (max-width: 600px) {.hero {padding: 30px 20px;}.step-card {padding: 12px !important;}.roll-scroll {height: 320px;}.roll-toolbar {gap: 6px;}}
