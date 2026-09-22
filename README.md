@@ -10,7 +10,7 @@
   <a href="https://huggingface.co/mimbres/spansynth-edit"><img src="https://img.shields.io/badge/Model%20weights-CBE3D6?style=for-the-badge&amp;logo=huggingface&amp;logoColor=334155" alt="Model weights on Hugging Face" height="32"></a>
 </p>
 
-Add, remove, or modify notes in a recording by revising its MIDI. SpanSynth-Edit resynthesises the selected region, using surrounding audio for timbre guidance.
+Synthesise music from MIDI, or add, remove, and modify notes in a recording by revising its MIDI. SpanSynth-Edit generates the selected region, using surrounding audio for timbre guidance.
 
 <p align="center">
   <img src="https://raw.githubusercontent.com/mimbres/spansynth-edit/main/demo/assets/FigureDraft-fig1-retro-04.svg" alt="SpanSynth-Edit model overview" width="100%">
@@ -35,7 +35,7 @@ Add, remove, or modify notes in a recording by revising its MIDI. SpanSynth-Edit
 
 Measured peak VRAM was **about 3.9 GiB** on a GH200 for synthesis and both editing methods with default settings (20.48 s crop, 16 steps, CFG 2.0).
 
-Install the CLI without downloading the demo audio:
+Install [PyTorch for your GPU](https://pytorch.org/get-started/locally/) first, then install the CLI without downloading the demo audio:
 
 ```bash
 git clone --depth 1 --filter=blob:none --sparse https://github.com/mimbres/spansynth-edit.git
@@ -65,9 +65,11 @@ for name in early-slakh-track00006-original.mp3 \
 done
 ```
 
+The examples below regenerate **6.40–14.08 s** within the first **20.48 s** of the recording.
+
 ### spansynth-edit
 
-Resynthesise the selected region from the revised MIDI:
+Provide the full revised MIDI, including notes that should remain unchanged within the selected region:
 
 ```bash
 spansynth-edit edit \
@@ -91,12 +93,12 @@ spansynth-edit edit --method flowedit \
 
 ### Synthesis
 
-Use `spansynth-edit synthesize` to generate a region from a score. The recording supplies the surrounding audio context:
+Synthesise the original score in the selected region, using the surrounding recording as audio context:
 
 ```bash
 spansynth-edit synthesize \
-  --audio recording.wav --midi score.mid \
-  --crop-start 30 --edit-start 6.4 --edit-end 14.08 \
+  --audio ../spansynth-inputs/early-slakh-track00006-original.mp3 \
+  --midi ../spansynth-inputs/early-slakh-track00006-before.mid \
   --output ../spansynth-results/synthesis
 ```
 
@@ -114,7 +116,7 @@ Common options are listed below. Flags marked **off** are enabled by adding them
 | `--cfg` | `2.0` | MIDI classifier-free guidance scale (0 or higher). |
 | `--steps` | `16` | Number of Euler steps. |
 | `--context-midi` | off | Use original MIDI outside the generated region. Requires `--source-midi`. |
-| `--drop-context-audio` | off | Drop the clean-audio condition. Audio outside the generated region is still preserved. |
+| `--drop-context-audio` | off | Drop the audio-context condition. Audio outside the generated region is still preserved. |
 
 ### Inputs and timing
 
