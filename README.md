@@ -18,7 +18,7 @@ The CLI defaults to **16 Euler steps, CFG 2, ordinary generation, context MIDI d
 
 ## Install
 
-Use Python 3.11–3.13. CUDA is recommended. Install a PyTorch build appropriate for your GPU and driver using the [official PyTorch instructions](https://pytorch.org/get-started/locally/) before installing this package. CPU execution is supported but a full checkpoint run is expensive. Apple GPU execution is not supported.
+Use Python 3.11–3.13. A CUDA GPU supporting bfloat16 is recommended. Install a PyTorch build appropriate for your GPU and driver using the [official PyTorch instructions](https://pytorch.org/get-started/locally/) before installing this package. CPU execution is supported but a full checkpoint run is expensive. Apple GPU execution is not supported.
 
 ```bash
 git clone https://github.com/mimbres/spansynth-edit.git
@@ -172,6 +172,8 @@ The export includes model configuration, model weights, frozen codec assets and 
 python -m pip install '.[test]'
 PYTHONDONTWRITEBYTECODE=1 python -m pytest -q
 ```
+
+Validation on a Jupiter GH200 with Python 3.12 and PyTorch 2.13 / CUDA 13 completed synthesis, ordinary editing and FlowEdit at the default 16 steps. All three produced finite 48 kHz outputs with unchanged samples outside the applied interval. Small-model numerical comparisons matched the original MIDI conditions and quantized Euler/FlowEdit outputs. These checks establish execution and numerical behavior, not perceptual quality.
 
 The existing static website uses `index.html` and `demo/`, with no Python build required. See [demo maintenance notes](https://github.com/mimbres/spansynth-edit/blob/main/demo/README.md). Spaces, automatic transcription and an interactive MIDI editor are follow-up work.
 

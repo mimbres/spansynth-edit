@@ -125,6 +125,8 @@ def run(args):
     last = math.ceil(args.edit_end * 25 - 1e-9)
     first_sample = first * HOP_LENGTH
     last_sample = min(last * HOP_LENGTH, len(crop.original))
+    if first_sample >= last_sample:
+        raise ValueError("The selected interval contains no output samples")
     generated = torch.zeros(512, dtype=torch.bool)
     generated[first:last] = True
     target = read_notes(args.midi, crop_start=args.crop_start, offset=args.midi_offset, program=args.program)
@@ -156,6 +158,10 @@ def run(args):
         raise ValueError("Supported devices are cpu, cuda, or cuda:N")
     if device.type == "cuda" and not torch.cuda.is_available():
         raise ValueError("CUDA was requested but is not available in this PyTorch installation")
+    if device.type == "cuda":
+        with torch.cuda.device(device):
+            if not torch.cuda.is_bf16_supported():
+                raise ValueError("CUDA inference requires a GPU supporting bfloat16")
     if args.attention == "flash" and device.type != "cuda":
         raise ValueError("Flash attention requires CUDA")
     print(f"{args.method}: {args.steps} steps, CFG {args.cfg:g}, interval {first_sample / SAMPLE_RATE:.3f}-{last_sample / SAMPLE_RATE:.3f}s", flush=True)
