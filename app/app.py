@@ -48,7 +48,7 @@ GALLERY_REPO = "mimbres/spansynth-edit-gallery"
 SPACE_URL = "https://mimbres-spansynth-edit.hf.space/"
 WORK_ID = re.compile(r"[a-z0-9][a-z0-9_-]{0,99}\Z")
 INSTRUMENTS = [{"program": programs[0], "name": name, "members": list(programs)}
-               for name, programs in PROGRAM_GROUPS.items()]
+               for name, programs in PROGRAM_GROUPS.items() if name not in {"Banjo", "Sitar", "Fiddle"}]
 EXAMPLE_ROOT = "https://raw.githubusercontent.com/mimbres/spansynth-edit/main/demo/assets/"
 EXAMPLE_FILES = {
     "Slakh": ("early-slakh-track00006-original.mp3", "early-slakh-track00006-before.mid"),
@@ -343,7 +343,7 @@ def generate(value, session, start, end, method, steps, cfg, context_midi, drop_
         }
         first, last = math.floor(start * 25 + 1e-9) / 25, min(math.ceil(end * 25 - 1e-9) / 25, session["duration"])
         return (str(take / "output.wav"), target_path,
-                f"Generated {first:.2f}–{last:.2f} s. Audio outside this region is unchanged.",
+                f"Generated {first:.2f}–{last:.2f} s. Keep editing the score to try another version.",
                 f"Generation time · {elapsed:.1f} s")
     except (ValueError, RuntimeError, OSError) as error:
         raise gr.Error(str(error)) from error
@@ -418,8 +418,8 @@ def gallery_html():
             preview = '<svg viewBox="0 0 360 116" role="img" aria-label="Edited score preview">' + ''.join(bars) + '</svg>'
             cards.append(f'<article class="work-card"><div class="work-score">{preview}</div><div class="work-body">'
                          f'<div class="work-method">{method} · {duration:.2f} s</div><h3>{title}</h3><p>{description}</p>'
-                         f'<label>Original<audio controls preload="none" src="{work_url(work_id, "input.wav")}"></audio></label>'
-                         f'<label>Edited<audio controls preload="none" src="{work_url(work_id, "output.wav")}"></audio></label>'
+                         f'<label>Original<button class="audio-start" type="button" data-audio-start aria-label="Original audio: go to start">⏮ Start</button><audio controls preload="none" src="{work_url(work_id, "input.wav")}"></audio></label>'
+                         f'<label>Edited<button class="audio-start" type="button" data-audio-start aria-label="Edited audio: go to start">⏮ Start</button><audio controls preload="none" src="{work_url(work_id, "output.wav")}"></audio></label>'
                          f'<a class="work-open" href="?work={work_id}" target="_blank" rel="noopener">Open in editor ↗</a>'
                          '</div></article>')
         return '<div class="work-grid">' + ''.join(cards) + '</div>' if cards else (
@@ -573,6 +573,7 @@ def load_example(old_session, sample_name="Slakh"):
 
 EDITOR_HTML = """
 <div class="roll-shell">
+  <audio data-role="player" preload="metadata" hidden></audio>
   <div class="roll-toolbar">
     <div class="track-control"><span>Track</span><div class="track-picker">
       <button data-role="track" type="button" aria-label="MIDI track" aria-describedby="midi-track-name" aria-haspopup="listbox" aria-expanded="false" aria-controls="midi-track-options">
@@ -581,27 +582,46 @@ EDITOR_HTML = """
       <div id="midi-track-options" data-role="track-options" role="listbox" aria-label="MIDI tracks" hidden></div>
     </div></div>
     <label>Instrument <select data-role="instrument" aria-label="Track instrument"></select></label>
-    <button data-action="add-track">+ Track</button>
+    <button data-action="add-track">+ Instrument</button>
+  </div>
+  <div class="roll-toolbar roll-add" data-role="add-panel" hidden>
+    <label>New instrument <select data-role="new-instrument" aria-label="New instrument"></select></label>
+    <button data-action="confirm-track">Add instrument</button><button data-action="cancel-track">Cancel</button>
+    <span>Then draw notes with the pencil.</span>
+  </div>
+  <div class="roll-toolbar roll-tools">
+    <button data-tool="select" title="Select and move notes (V)">↖ Select</button>
+    <button data-tool="pencil" title="Draw notes (D)">✎ Pencil</button>
+    <button data-tool="erase" title="Erase notes (E)">▱ Eraser</button>
+    <label>Select <select data-role="scope" aria-label="Selection tracks"><option value="track">Current track</option><option value="all">All tracks</option></select></label>
     <label>Snap <select data-role="snap" aria-label="Time snap"><option value="0">Off</option><option value="0.04" selected>40 ms</option><option value="0.1">100 ms</option><option value="0.25">250 ms</option></select></label>
     <button data-action="undo" title="Undo (Ctrl/Cmd+Z)">Undo</button>
     <button data-action="redo" title="Redo (Ctrl/Cmd+Shift+Z)">Redo</button>
-    <button data-action="delete">Delete note</button>
+    <button data-action="delete">Delete selected</button>
   </div>
   <div class="roll-toolbar roll-secondary">
-    <button data-action="play"><span class="transport-icon" aria-hidden="true">▶</span> Play clip</button>
+    <button data-action="restart" title="Go to start"><span class="transport-icon" aria-hidden="true">⏮</span> Start</button>
+    <label>Audio <select data-role="audio-source" aria-label="Audio to play"><option value="original">Original</option><option value="generated">Generated</option></select></label>
+    <button data-action="play"><span class="transport-icon" aria-hidden="true">▶</span> Play audio</button>
     <button data-action="preview"><span class="transport-icon" aria-hidden="true">▶</span> Preview notes</button>
     <button data-action="stop"><span class="transport-icon" aria-hidden="true">■</span> Stop</button>
+    <label>Listen <select data-role="listen" aria-label="Playback range"><option value="cursor">From cursor</option><option value="selection">Selection</option><option value="whole">Whole clip</option></select></label>
+    <span data-role="listen-range" aria-live="polite"></span>
+  </div>
+  <div class="roll-toolbar roll-secondary">
     <label>Zoom <input data-role="zoom" aria-label="Timeline zoom" type="range" min="1" max="4" step="0.25" value="1"></label>
     <label>Velocity <input data-role="velocity" aria-label="Selected note velocity" type="number" min="1" max="127" value="90"></label>
     <span data-role="count"></span>
   </div>
-  <div class="roll-scroll" tabindex="0" aria-label="Piano roll. Double click to add a note. Drag to move; drag the right edge to resize.">
+  <div class="roll-scroll" tabindex="0" aria-label="Piano roll. Select notes, draw with the pencil, or erase. Drag the waveform to select a playback range.">
     <canvas data-role="roll" aria-label="Editable piano roll"></canvas>
   </div>
   <div class="roll-help">
-    <p>Double-click to add · Drag to move · Drag a note’s right edge to resize</p>
-    <p><kbd>Del</kbd> remove · <kbd>Ctrl</kbd> / <kbd>⌘ Cmd</kbd> + <kbd>Z</kbd> undo · Add <kbd>Shift</kbd> to redo</p>
-    <p>Preview notes uses a simple synth.</p>
+    <p>Drag empty space to select notes · Drag selected notes to move · Drag a note’s right edge to resize</p>
+    <p>Click the waveform to seek · Drag across it to listen to a range · Select notes to preview only those notes</p>
+    <p><kbd>Shift</kbd> + click to add to selection · <kbd>↑</kbd> <kbd>↓</kbd> transpose · <kbd>Shift</kbd> + arrows for an octave · <kbd>Del</kbd> remove</p>
+    <p><kbd>Ctrl</kbd> / <kbd>⌘ Cmd</kbd> + <kbd>Z</kbd> undo · <kbd>V</kbd> select · <kbd>D</kbd> pencil · <kbd>E</kbd> eraser · <kbd>Esc</kbd> clear selection</p>
+    <p>Preview notes checks pitch and timing with a simple synth. Choose Generated audio to hear the model’s instruments.</p>
   </div>
   <p data-role="detail" class="roll-detail">Load a clip to begin.</p>
 </div>
@@ -622,6 +642,11 @@ button.addEventListener('click', () => {
   history.replaceState(history.state, '', url);
   updateThemeButton();
 });
+document.addEventListener('click', event => {
+  const button = event.target.closest('[data-audio-start]');
+  const audio = button?.parentElement.querySelector('audio');
+  if (audio) { audio.pause(); audio.currentTime = 0; }
+});
 const observer = new MutationObserver(updateThemeButton);
 for (let node = element; node; node = node.parentElement)
   observer.observe(node, {attributes:true, attributeFilter:['class']});
@@ -639,8 +664,9 @@ def build_app():
                 with gr.Group(elem_classes="step-card"):
                     gr.Markdown("### 1 · Choose your audio")
                     with gr.Row():
+                        upload_start = gr.Button("⏮ Start", size="sm", render=False)
                         audio = gr.Audio(label="Upload a recording", sources=["upload"], type="filepath", editable=False,
-                                         buttons=["download"], elem_id="upload-audio")
+                                         buttons=[upload_start, "download"], elem_id="upload-audio")
                         with gr.Column():
                             gr.Markdown("Work on one clip of up to **20.48 seconds**. Choose a sample below or upload your own recording.")
                             with gr.Row():
@@ -653,7 +679,8 @@ def build_app():
                         slakh_example = gr.Button("Slakh · 20 s", elem_classes="sample-button")
                         kraisler_example = gr.Button("Kraisler · 20 s", elem_classes="sample-button")
                         jazz_example = gr.Button("Jazz intro · 11 s", elem_classes="sample-button")
-                    original_audio = gr.Audio(label="Original clip", interactive=False, type="filepath", buttons=["download"], elem_id="source-audio")
+                    source_start = gr.Button("⏮ Start", size="sm", render=False)
+                    original_audio = gr.Audio(label="Original clip", interactive=False, type="filepath", buttons=[source_start, "download"], elem_id="source-audio")
                 with gr.Group(elem_classes="step-card"):
                     gr.Markdown("### 2 · Edit the score")
                     with gr.Row():
@@ -686,7 +713,8 @@ def build_app():
                             drop_context_audio = gr.Checkbox(value=False, label="Drop audio context")
                     generate_button = gr.Button("Apply & Generate", variant="primary", size="lg")
                     status = gr.Markdown("Choose a recording or try a sample.", elem_id="run-status")
-                    output_audio = gr.Audio(label="Edited clip · 48 kHz mono", interactive=False, type="filepath", buttons=["download"], elem_id="result-audio")
+                    output_start = gr.Button("⏮ Start", size="sm", render=False)
+                    output_audio = gr.Audio(label="Edited clip · 48 kHz mono", interactive=False, type="filepath", buttons=[output_start, "download"], elem_id="result-audio")
                     generation_time = gr.Markdown("", elem_id="generation-time")
                 with gr.Group(elem_classes=["step-card", "share-card"]):
                     gr.Markdown("### Save & Share")
@@ -709,6 +737,8 @@ def build_app():
                 refresh_gallery = gr.Button("Refresh gallery", size="sm")
                 gallery = gr.HTML('<div class="gallery-empty"><p>Loading the gallery…</p></div>', apply_default_css=False, elem_id="work-gallery")
         gr.Markdown("Audio outside the selected region is preserved. Region boundaries snap outward to 40 ms. Unsaved uploads and results are temporary. Saved works stay available through their shared links. Transcription uses [YourMT3+](https://huggingface.co/spaces/mimbres/YourMT3); generation runs here. ZeroGPU availability and usage limits depend on your Hugging Face account.", elem_classes="footer-note")
+        for button, player in ((upload_start, audio), (source_start, original_audio), (output_start, output_audio)):
+            button.click(lambda: gr.update(playback_position=0), None, player, queue=False, show_progress="hidden")
         clip_outputs = [state, original_audio, editor, edit_start, edit_end, output_audio, source_download, target_download, status, generation_time]
         load.click(load_clip, [audio, crop_start, duration, state], clip_outputs, api_name="load_clip", concurrency_id="editing")
         sample_outputs = [*clip_outputs, audio, crop_start, duration]
@@ -728,6 +758,8 @@ def build_app():
               js="() => { window.dispatchEvent(new Event('spansynth-region')); }")
         generate_button.click(generate, [editor, state, edit_start, edit_end, method, steps, cfg, context_midi, drop_context_audio, auto_region],
                               [output_audio, target_download, status, generation_time], api_name="generate", concurrency_id="editing")
+        output_audio.change(None, None, None, queue=False,
+                            js="() => { window.dispatchEvent(new Event('spansynth-generated')); }")
         save_button.click(save_work, [work_title, work_description, listed, state], [share_link, gallery],
                           api_name="save_work", concurrency_id="editing")
         shared_outputs = [*clip_outputs[:-1], method, steps, cfg, context_midi, drop_context_audio,

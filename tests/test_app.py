@@ -233,3 +233,44 @@ def test_generation_recalculates_region_before_using_stale_controls(tmp_path, mo
             assert calls[-1] == expected
     finally:
         app.cleanup(session)
+
+
+def test_added_organ_reaches_generation_and_midi_export(tmp_path, monkeypatch):
+    import soundfile as sf
+    import torch
+    from spansynth.vocabulary import PROGRAM_TO_CATEGORY
+    path = tmp_path / "input.wav"
+    sf.write(path, np.zeros(app.SAMPLE_RATE * 3, dtype=np.float32), app.SAMPLE_RATE)
+    session = app.load_clip(str(path), 0, 3, None)[0]
+    source = [note()]
+    session["source_notes"] = source
+    target = source + [dict(note(16), start=1.2, duration=.8, pitch=72)]
+    observed = []
+    monkeypatch.setattr(app, "MODEL", object())
+    monkeypatch.setattr(app, "CODEC", object())
+    monkeypatch.setattr(app, "DEVICE", torch.device("cpu"))
+    monkeypatch.setattr(app, "encode_audio", lambda *args: torch.zeros(1, 562, 128))
+    def sample(model, codes, rows, mask, **kwargs):
+        valid = rows["event_valid"] & (rows["category_id"] == PROGRAM_TO_CATEGORY[16])
+        assert valid.any()
+        observed.append(valid.nonzero()[:, 1].unique().tolist())
+        assert kwargs["steps"] == 16 and kwargs["cfg"] == 2.
+        assert not kwargs["context_midi"] and not kwargs["drop_context_audio"]
+        return codes
+    monkeypatch.setattr(app, "sample", sample)
+    monkeypatch.setattr(app, "decode_audio", lambda *args: np.zeros(app.PAYLOAD_SAMPLES, dtype=np.float32))
+    try:
+        result = app.generate(app.editor_value(session, target), session, 0, 3,
+                              "ordinary", 16, 2., False, False, True)
+        exported = parse_midi_notes(result[1], program=None).notes
+        assert {(n.program, n.pitch) for n in exported} == {(0, 60), (16, 72)}
+        assert min(observed[0]) >= 30 and max(observed[0]) < 50
+        # A second edit reaches the same production path and leaves the source independent.
+        target[-1]["pitch"] = 74
+        second = app.generate(app.editor_value(session, target), session, 0, 3,
+                              "ordinary", 16, 2., False, False, True)
+        assert second[0] != result[0]
+        assert parse_midi_notes(second[1], program=None).notes[-1].pitch == 74
+        assert source == [note()]
+    finally:
+        app.cleanup(session)

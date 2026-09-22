@@ -111,3 +111,12 @@
   .track-picker {flex: 1;}
   .gradio-container .roll-toolbar button[data-role=track], [data-role=track-options] {width: 100%; max-width: 100%;}
 }
+.roll-toolbar[hidden] {display: none !important;}
+.roll-tools {padding-top: 0;}
+.roll-add {border-block: 1px solid var(--ss-key-border); background: var(--ss-key);}
+.roll-add > span, [data-role=listen-range] {font-size: 12px; color: var(--ss-muted);}
+.gradio-container .roll-toolbar button[data-tool] {min-width: 88px;}
+.gradio-container .roll-toolbar [data-tool=erase] {font-size: 13px;}
+[data-tool=pencil] .roll-scroll canvas {cursor: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='26' height='26' viewBox='0 0 26 26'%3E%3Cpath d='M4 22l2-7L19 2l5 5L11 20z' fill='%23e9beec' stroke='%233d354b' stroke-width='2'/%3E%3Cpath d='M4 22l2-7 5 5z' fill='%233d354b'/%3E%3C/svg%3E") 4 22, crosshair;}
+[data-tool=erase] .roll-scroll canvas {cursor: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='28' height='26'%3E%3Cpath d='M2 17L16 3l10 10-10 11H9z' fill='%23e9beec' stroke='%233d354b' stroke-width='2'/%3E%3Cpath d='M2 17l6-6 10 10-2 3H9z' fill='%23f7f2fa' stroke='%233d354b' stroke-width='2'/%3E%3C/svg%3E") 3 18, crosshair;}
+.gradio-container .audio-start {float: right; padding: 2px 8px; border: 1px solid var(--ss-border); border-radius: 6px; font: 500 11px/20px system-ui; color: var(--ss-text); background: var(--ss-soft); cursor: pointer;}
