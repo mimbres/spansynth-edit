@@ -12,7 +12,11 @@ let palette = {}, data = {notes: [], instruments: [], duration: 20.48, waveform:
 let selected = new Set(), program = 0, extraTracks = [], undo = [], redo = [], drag = null, tool = "select";
 let lastSent = null, width = 900, timeline = 846, cursorTime = 0, timeRange = null;
 let playing = null, audioContext = null, previewStarted = 0, previewOffset = 0, playbackEnd = 0, playbackFrame = null;
-let viewFrame = null, auditionContext = null, auditionVoice = null, auditionRequest = 0, auditionPitch = null;
+let viewFrame = null, auditionPitch = null, previewing = false, soundRequest = 0, voiceNumber = 0;
+let soundLibrary = null, gmNames = null;
+const soundfonts = new Map(), loadingSounds = new Map(), voiceStops = new Set();
+const gmBase = "https://gleitz.github.io/midi-js-soundfonts/FluidR3_GM/";
+const drumUrl = "https://cdn.jsdelivr.net/gh/henrikvilhelmberglund/midi-js-compat-soundfonts@gh-pages/GM-soundfonts/FluidR3_GM/drumkits/Standard-mp3.js";
 const name = (p) => data.instruments.find(i => i.members.includes(p))?.name || `Program ${p}`;
 const trackColor = (p) => trackColors.get(p) || trackPalette[0];
 const snap = (time) => {const unit = Number(find("snap").value); return unit ? Math.round(time / unit) * unit : time;};
@@ -28,7 +32,7 @@ function syncValue() {
   if (value !== lastSent) {lastSent = value; props.value = value;}
 }
 function publish() {refresh(); draw(); syncValue();}
-function change(fn) {if (!data.clip || addingTrack()) return; finishDrag(); remember(snapshot()); fn(); publish();}
+function change(fn) {if (!data.clip || addingTrack()) return; finishDrag(); stop(); remember(snapshot()); fn(); publish();}
 function options(select, entries, value) {
   select.replaceChildren(...entries.map(([v, label]) => {const item = document.createElement("option"); item.value = v; item.textContent = label; return item;}));
   select.value = String(value);
@@ -216,14 +220,14 @@ function closeTrackMenu(focus=false) {trackMenu.hidden=true; track.setAttribute(
 function openTrackMenu() {if(addingTrack())return;trackMenu.hidden=false; track.setAttribute("aria-expanded","true"); const item=trackMenu.querySelector('[aria-selected="true"]'); item?.focus({preventScroll:true}); item?.scrollIntoView({block:"nearest"});}
 track.addEventListener("click",()=>trackMenu.hidden ? openTrackMenu() : closeTrackMenu(true));
 track.addEventListener("keydown",event=>{if(["ArrowDown","ArrowUp"].includes(event.key)) {event.preventDefault(); openTrackMenu();}});
-trackMenu.addEventListener("click",event=>{const item=event.target.closest('[role="option"]'); if(!item || addingTrack())return; finishDrag(); stop(); program=Number(item.dataset.program); selected.clear(); timeRange=null; closeTrackMenu(true); refresh(); centerTrack(); draw(); syncValue();});
+trackMenu.addEventListener("click",event=>{const item=event.target.closest('[role="option"]'); if(!item || addingTrack())return; finishDrag(); stop(); program=Number(item.dataset.program); selected.clear(); timeRange=null; closeTrackMenu(true); refresh(); centerTrack(); draw(); syncValue(); warmInstrument();});
 trackMenu.addEventListener("keydown",event=>{
   if(["Escape","Tab"].includes(event.key)) {closeTrackMenu(true); return;}
   const items=[...trackMenu.querySelectorAll('[role="option"]')], index=items.indexOf(document.activeElement);
   const next={ArrowDown:(index+1)%items.length,ArrowUp:(index+items.length-1)%items.length,Home:0,End:items.length-1}[event.key];
   if(next!==undefined) {event.preventDefault(); items[next]?.focus({preventScroll:true}); items[next]?.scrollIntoView({block:"nearest"});}
 });
-instrument.addEventListener("change",()=>{const next=Number(instrument.value);change(()=>{stop(); if(!trackColors.has(next))trackColors.set(next,trackColor(program)); data.notes.filter(n=>n.program===program).forEach(n=>n.program=next); extraTracks=extraTracks.filter(p=>p!==program); program=next; extraTracks.push(next);});});
+instrument.addEventListener("change",()=>{const next=Number(instrument.value);change(()=>{stop(); if(!trackColors.has(next))trackColors.set(next,trackColor(program)); data.notes.filter(n=>n.program===program).forEach(n=>n.program=next); extraTracks=extraTracks.filter(p=>p!==program); program=next; extraTracks.push(next);});warmInstrument();});
 find("zoom").addEventListener("input",()=>{draw(); syncValue();});
 find("snap").addEventListener("change",syncValue);
 find("listen").addEventListener("change",()=>{stop(); refresh(); draw();});
@@ -231,42 +235,93 @@ find("audio-source").addEventListener("change",stop);
 find("velocity").addEventListener("change",()=>{const velocity=Math.round(clamp(Number(find("velocity").value)||90,1,127));if(selected.size)change(()=>{for(const n of chosen())n.velocity=velocity;});});
 function travel(backward=true) {if(addingTrack())return; finishDrag(); const from=backward?undo:redo, to=backward?redo:undo; if(!from.length)return; stop(); to.push(snapshot()); const previous=from.pop(); data.notes=previous.notes; program=previous.program; extraTracks=previous.extraTracks; trackColors=new Map(previous.colors); selected.clear(); timeRange=null; publish();}
 function remove() {if(selected.size)change(()=>{data.notes=data.notes.filter(n=>!selected.has(n.id)); selected.clear(); timeRange=null;});}
-function stopAudition() {
-  auditionRequest++;
-  if(auditionVoice) {auditionVoice.stop();auditionVoice=null;}
-  auditionPitch=null;
+function soundStatus(message="GM preview") {find("sound-status").textContent=message;}
+function previewProgram(p) {return p===100 ? 52 : p===101 ? 53 : p;}
+function previewPitch(p,pitch) {return p!==128 || (pitch>=24 && pitch<=84);}
+function soundContext() {
+  if(!audioContext)audioContext=new AudioContext();
+  return audioContext;
+}
+async function loadInstrument(p) {
+  const key=previewProgram(p), context=soundContext();
+  if(soundfonts.has(key))return soundfonts.get(key);
+  if(loadingSounds.has(key))return loadingSounds.get(key);
+  const pending=(async()=>{
+    let url=drumUrl;
+    if(key!==128) {
+      if(!gmNames)gmNames=fetch(gmBase+"names.json",{signal:AbortSignal.timeout(15000)}).then(response=>{
+        if(!response.ok)throw Error("GM instrument list unavailable");return response.json();
+      }).catch(error=>{gmNames=null;throw error;});
+      const names=await gmNames;
+      if(!Array.isArray(names) || !/^[a-z0-9_]+$/.test(names[key]||""))throw Error("Unknown GM program");
+      url=gmBase+names[key]+"-mp3.js";
+    }
+    if(!soundLibrary)soundLibrary=import("https://cdn.jsdelivr.net/npm/smplr@1.0.0/dist/index.mjs").catch(error=>{soundLibrary=null;throw error;});
+    const {Soundfont}=await soundLibrary;
+    if(!root.isConnected)throw Error("Editor closed");
+    const player=Soundfont(context,{instrumentUrl:url,volume:75,extraGain:3});
+    try {
+      await player.ready;
+      if(!root.isConnected)throw Error("Editor closed");
+      soundfonts.set(key,player);return player;
+    } catch(error) {player.dispose();throw error;}
+  })();
+  loadingSounds.set(key,pending);
+  try {return await pending;} finally {loadingSounds.delete(key);}
+}
+function warmInstrument() {
+  if(!data.clip || addingTrack())return;
+  const p=program, request=soundRequest;
+  soundStatus(soundfonts.has(previewProgram(p)) ? "GM preview ready" : "Loading GM sound…");
+  loadInstrument(p).then(()=>{if(request===soundRequest && p===program)soundStatus("GM preview ready");})
+    .catch(()=>{if(request===soundRequest && p===program)soundStatus("GM sound unavailable. Click a key to retry.");});
+}
+function startNote(player,p,pitch,velocity,time,duration,onEnded) {
+  if(!previewPitch(p,pitch))return;
+  let cancel, releaseTimer;
+  // smplr cannot interrupt a voice after scheduling its own future release.
+  // Trigger the release when it is due so Stop can still cut off held notes.
+  const stopVoice=player.start({note:pitch,velocity,time,duration:null,ampRelease:.08,stopId:++voiceNumber,
+    onEnded:()=>{clearTimeout(releaseTimer);voiceStops.delete(cancel);onEnded?.();}});
+  cancel=()=>{clearTimeout(releaseTimer);voiceStops.delete(cancel);stopVoice();};
+  voiceStops.add(cancel);
+  if(p!==128)releaseTimer=setTimeout(cancel,Math.max(0,(time+duration-audioContext.currentTime)*1000));
 }
 async function audition(pitch, velocity=Number(find("velocity").value)||90) {
-  stopAudition();
-  const request=auditionRequest;
-  if(!auditionContext)auditionContext=new AudioContext();
+  stop();
+  const request=soundRequest, p=program, context=soundContext();
+  if(!previewPitch(p,pitch)) {soundStatus("GM drums use MIDI keys 24–84.");return;}
   try {
-    await auditionContext.resume();
-    if(request!==auditionRequest || !root.isConnected)return;
-    const voice=auditionContext.createOscillator(), gain=auditionContext.createGain(), now=auditionContext.currentTime;
-    voice.type="triangle";voice.frequency.value=440*Math.pow(2,(pitch-69)/12);
-    gain.gain.setValueAtTime(0,now);gain.gain.linearRampToValueAtTime(velocity/127*.08,now+.008);
-    gain.gain.setValueAtTime(velocity/127*.08,now+.35);gain.gain.linearRampToValueAtTime(0,now+.4);
-    voice.connect(gain).connect(auditionContext.destination);
-    voice.onended=()=>{voice.disconnect();gain.disconnect();if(auditionVoice===voice){auditionVoice=null;auditionPitch=null;draw();}};
-    auditionVoice=voice;auditionPitch=pitch;voice.start();voice.stop(now+.41);draw();
-  } catch {detail.textContent="Note preview could not start. Click a piano key to try again.";}
+    await context.resume();
+    soundStatus(soundfonts.has(previewProgram(p)) ? "GM preview ready" : "Loading GM sound…");
+    const player=await loadInstrument(p);
+    if(request!==soundRequest || !root.isConnected)return;
+    soundStatus("GM preview ready");auditionPitch=pitch;draw();
+    startNote(player,p,pitch,velocity,context.currentTime,.45,()=>{
+      if(request===soundRequest){auditionPitch=null;draw();}
+    });
+  } catch {if(request===soundRequest)soundStatus("GM sound unavailable. Click a key to retry.");}
 }
 function transportState(action) {for(const name of ["play","preview"])root.querySelector(`[data-action="${name}"]`).setAttribute("aria-pressed",String(name===action));}
 function stop() {
-  stopAudition();
+  soundRequest++;
   if (playing) cursorTime=clamp(playing.currentTime,0,data.duration);
-  if (audioContext) cursorTime=clamp(audioContext.currentTime-previewStarted+previewOffset,0,data.duration);
+  if (previewing) cursorTime=clamp(audioContext.currentTime-previewStarted+previewOffset,0,data.duration);
+  previewing=false;auditionPitch=null;
+  for(const cancel of voiceStops)cancel();voiceStops.clear();
   cancelAnimationFrame(playbackFrame); playbackFrame=null;
   playing?.pause(); playing=null;
-  const context=audioContext; audioContext=null; if(context && context.state!=="closed")context.close().catch(()=>{});
-  transportState(null); draw();
+  soundStatus();transportState(null); draw();
 }
 function animate() {
   if(!root.isConnected){stop();return;}
-  const time=audioContext ? audioContext.currentTime-previewStarted+previewOffset : playing?.currentTime;
+  const time=previewing ? audioContext.currentTime-previewStarted+previewOffset : playing?.currentTime;
   if(time===undefined)return;
-  if(time>=playbackEnd || playing?.ended) {stop(); cursorTime=playbackEnd; refresh(); draw(); return;}
+  if(time>=playbackEnd || playing?.ended) {
+    // Let sampled drum hits and note releases decay after the playback range.
+    if(previewing){previewing=false;transportState(null);}else stop();
+    playbackFrame=null;cursorTime=playbackEnd;refresh();draw();return;
+  }
   find("listen-range").textContent=`Playing · ${Math.max(0,time).toFixed(2)} s`;
   draw(Math.max(0,time)); playbackFrame=requestAnimationFrame(animate);
 }
@@ -282,25 +337,30 @@ async function play(action) {
   document.querySelectorAll("audio").forEach(a=>a.pause());
   document.querySelectorAll('#upload-audio button[aria-label="Pause"], #source-audio button[aria-label="Pause"], #result-audio button[aria-label="Pause"]').forEach(button=>button.click());
   if(action==="play") {
+    const request=soundRequest;
     const id=find("audio-source").value==="generated" ? "result-audio" : "source-audio";
     const url=document.querySelector(`#${id} a[download]`)?.href;
     const audio=find("player");
     if(!url) {detail.textContent="Generate audio first, or choose Original.";return;}
     if(audio.src!==url)audio.src=url;
     playing=audio; audio.currentTime=start;
-    try {await audio.play(); if(playing!==audio)return; transportState("play"); animate();}
-    catch {stop(); detail.textContent="Playback could not start. Try the audio player below.";}
+    try {await audio.play(); if(request!==soundRequest || playing!==audio)return; transportState("play"); animate();}
+    catch {if(request===soundRequest){stop();detail.textContent="Playback could not start. Try the audio player below.";}}
   } else {
-    const context=new AudioContext(); audioContext=context; await context.resume(); if(audioContext!==context)return;
-    previewStarted=context.currentTime+.03; previewOffset=start;
+    const request=soundRequest, p=program, context=soundContext();
     const onlySelected=find("listen").value==="selection" && selected.size && !timeRange;
-    const notes=data.notes.filter(n=>(onlySelected ? selected.has(n.id) : n.program===program) && n.start<end && n.start+n.duration>start);
+    const notes=data.notes.filter(n=>n.program===p && (!onlySelected || selected.has(n.id)) && n.start<end && n.start+n.duration>start && previewPitch(p,n.pitch));
+    if(!notes.length){soundStatus("No notes to preview in this range.");return;}
+    await context.resume();
+    soundStatus(soundfonts.has(previewProgram(p)) ? "GM preview ready" : "Loading GM sound…");
+    let player;
+    try {player=await loadInstrument(p);}
+    catch {if(request===soundRequest)soundStatus("GM sound unavailable. Press Preview notes to retry.");return;}
+    if(request!==soundRequest || !root.isConnected)return;
+    soundStatus("GM preview ready");previewStarted=context.currentTime+.03;previewOffset=start;previewing=true;
     for(const n of notes) {
-      const oscillator=context.createOscillator(), gain=context.createGain(); oscillator.type="triangle"; oscillator.frequency.value=440*Math.pow(2,(n.pitch-69)/12);
       const onset=previewStarted+Math.max(0,n.start-start), finish=previewStarted+Math.min(end,n.start+n.duration)-start;
-      gain.gain.setValueAtTime(0,onset); gain.gain.linearRampToValueAtTime(n.velocity/127*.08,Math.min(onset+.008,finish));
-      gain.gain.setValueAtTime(n.velocity/127*.08,Math.max(onset+.008,finish-.02)); gain.gain.linearRampToValueAtTime(0,finish+.02);
-      oscillator.connect(gain).connect(context.destination); oscillator.start(onset); oscillator.stop(finish+.03);
+      startNote(player,p,n.pitch,n.velocity,onset,Math.max(.01,finish-onset));
     }
     transportState("preview"); animate();
   }
@@ -323,7 +383,7 @@ root.addEventListener("click",event=>{
   if(action==="cancel-track") {find("add-panel").hidden=true; canvas.style.cursor=""; refresh(); draw();}
   if(action==="confirm-track" && find("new-instrument").value!=="") {
     find("add-panel").hidden=true;
-    change(()=>{program=Number(find("new-instrument").value); extraTracks.push(program); selected.clear(); timeRange=null; setTool("pencil"); canvas.style.cursor=""; centerTrack();});
+    change(()=>{program=Number(find("new-instrument").value); extraTracks.push(program); selected.clear(); timeRange=null; setTool("pencil"); canvas.style.cursor=""; centerTrack();});warmInstrument();
   }
   if(action==="stop") {stop();refresh();}
   if(action==="restart") {stop();cursorTime=0;find("listen").value="cursor";for(const id of ["source-audio","result-audio"]){const a=document.querySelector(`#${id} audio`);if(a)a.currentTime=0;}refresh();draw();}
@@ -337,7 +397,7 @@ scroll.addEventListener("keydown",event=>{
   if(event.key==="Escape") {selected.clear();timeRange=null;find("listen").value="cursor";refresh();draw();}
   if(["Delete","Backspace"].includes(event.key)) {event.preventDefault();remove();}
   if(["v","d","e"].includes(key) && !modifier) {setTool({v:"select",d:"pencil",e:"erase"}[key]);canvas.style.cursor="";}
-  if(event.key===" ") {event.preventDefault();playing||audioContext?stop():play("play");}
+  if(event.key===" ") {event.preventDefault();playing||previewing?stop():play("play");}
   if(["ArrowUp","ArrowDown","ArrowLeft","ArrowRight"].includes(event.key) && selected.size) {
     event.preventDefault(); const unit=Number(find("snap").value)||.04;
     change(()=>moveNotes(clone(chosen()),event.key==="ArrowLeft"?-unit:event.key==="ArrowRight"?unit:0,event.key==="ArrowUp"?(event.shiftKey?12:1):event.key==="ArrowDown"?-(event.shiftKey?12:1):0));
@@ -358,7 +418,7 @@ const observer=new ResizeObserver(()=>draw());observer.observe(scroll);
 const themeObserver=new MutationObserver(updatePalette);
 for(let node=root;node;node=node.parentElement)themeObserver.observe(node,{attributes:true,attributeFilter:["class"]});
 scroll.addEventListener("scroll",()=>{draw();cancelAnimationFrame(viewFrame);viewFrame=requestAnimationFrame(syncValue);});
-const lifetime=new MutationObserver(()=>{if(!root.isConnected){stop();events.abort();observer.disconnect();themeObserver.disconnect();lifetime.disconnect();cancelAnimationFrame(viewFrame);if(auditionContext)auditionContext.close().catch(()=>{});}});
+const lifetime=new MutationObserver(()=>{if(!root.isConnected){stop();events.abort();observer.disconnect();themeObserver.disconnect();lifetime.disconnect();cancelAnimationFrame(viewFrame);for(const player of soundfonts.values())player.dispose();soundfonts.clear();if(audioContext)audioContext.close().catch(()=>{});}});
 lifetime.observe(root.parentElement,{childList:true});
 function receive() {
   if(props.value===lastSent)return;
@@ -373,7 +433,7 @@ function receive() {
     find("zoom").value=view.zoom??1;find("snap").value=view.snap??.04;
     selected.clear();undo=[];redo=[];setTool("select");refresh();draw();centerTrack();
     if(view.scrollTop!==undefined)scroll.scrollTop=view.scrollTop;scroll.scrollLeft=view.scrollLeft??0;
-    syncValue();
+    syncValue();warmInstrument();
   } catch {detail.textContent="Unable to read MIDI. Please load the clip again.";}
 }
 watch("value",receive);updatePalette();setTool("select");receive();

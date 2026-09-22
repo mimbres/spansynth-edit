@@ -663,6 +663,7 @@ EDITOR_HTML = """
   <div class="roll-toolbar roll-secondary">
     <label>Zoom <input data-role="zoom" aria-label="Timeline zoom" type="range" min="1" max="4" step="0.25" value="1"></label>
     <label>Velocity <input data-role="velocity" aria-label="Selected note velocity" type="number" min="1" max="127" value="90"></label>
+    <span data-role="sound-status" aria-live="polite">GM preview</span>
     <span data-role="count"></span>
   </div>
   <p data-role="edit-lock" class="roll-lock" role="status" hidden>Editing paused — choose <b>Add instrument</b> or <b>Cancel</b> above.</p>
@@ -674,7 +675,7 @@ EDITOR_HTML = """
     <p>Click the waveform to seek · Drag across it to listen to a range · Select notes to preview only those notes</p>
     <p><kbd>Shift</kbd> + click to add to selection · <kbd>↑</kbd> <kbd>↓</kbd> transpose · <kbd>Shift</kbd> + arrows for an octave · <kbd>Del</kbd> remove</p>
     <p><kbd>Ctrl</kbd> / <kbd>⌘ Cmd</kbd> + <kbd>Z</kbd> undo · <kbd>V</kbd> select · <kbd>D</kbd> pencil · <kbd>E</kbd> eraser · <kbd>Esc</kbd> clear selection</p>
-    <p>Click piano keys or draw notes to hear their pitch immediately. Preview notes uses a simple synth. Choose Generated audio to hear the model’s instruments.</p>
+    <p>Click piano keys or draw notes to hear the selected GM instrument. Drums use a sampled kit. These preview sounds differ from the generated audio.</p>
   </div>
   <p data-role="detail" class="roll-detail">Load a clip to begin.</p>
 </div>

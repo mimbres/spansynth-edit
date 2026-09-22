@@ -14,3 +14,49 @@ https://github.com/HeartMuLa/heartlib
 Modifications in this distribution remove training and evaluation paths,
 retain the V8 inference model, and add a standalone CLI and checkpoint export.
 See LICENSE for the Apache License, Version 2.0.
+
+Browser MIDI preview
+
+The web editor loads smplr 1.0.0 by danigb from jsDelivr, under the MIT license.
+https://github.com/danigb/smplr
+https://cdn.jsdelivr.net/npm/smplr@1.0.0/dist/index.mjs
+
+FluidR3_GM is by Frank Wen, Copyright 2000-2002, 2008 Frank Wen and
+Copyright 2008 Toby Smithe. The original SoundFont is MIT licensed.
+https://metadata.ftp-master.debian.org/changelogs/main/f/fluid-soundfont/unstable_copyright
+
+Melodic samples are rendered and hosted by Benjamin Gleitzman. The source
+project distributes these FluidR3_GM renderings under Creative Commons
+Attribution 3.0 United States (CC BY 3.0 US).
+https://github.com/gleitz/midi-js-soundfonts
+https://creativecommons.org/licenses/by/3.0/us/
+
+The Standard drum kit is rendered from FluidR3_GM by Henrik Berglund.
+Its origin and rendering process are documented in the linked discussion.
+https://github.com/henrikvilhelmberglund/midi-js-compat-soundfonts
+https://github.com/danigb/smplr/discussions/47
+
+The editor fetches these samples unchanged from their hosts for browser
+preview only. Singing Voice programs 100 and 101 preview with GM choir
+programs 52 and 53, respectively (all program numbers are zero-based).
+This mapping does not change exported MIDI or model generation.
+
+MIT license text for the original FluidR3_GM SoundFont:
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in
+all copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+THE SOFTWARE.
