@@ -640,13 +640,12 @@ EDITOR_HTML = """
   <div class="roll-toolbar roll-add" data-role="add-panel" hidden>
     <label>New instrument <select data-role="new-instrument" aria-label="New instrument"></select></label>
     <button data-action="confirm-track">Add instrument</button><button data-action="cancel-track">Cancel</button>
-    <span>Then draw notes with the pencil.</span>
+    <span>Confirm the instrument before drawing notes.</span>
   </div>
   <div class="roll-toolbar roll-tools">
     <button data-tool="select" title="Select and move notes (V)">↖ Select</button>
     <button data-tool="pencil" title="Draw notes (D)">✎ Pencil</button>
     <button data-tool="erase" title="Erase notes (E)">▱ Eraser</button>
-    <label>Select <select data-role="scope" aria-label="Selection tracks"><option value="track">Current track</option><option value="all">All tracks</option></select></label>
     <label>Snap <select data-role="snap" aria-label="Time snap"><option value="0">Off</option><option value="0.04" selected>40 ms</option><option value="0.1">100 ms</option><option value="0.25">250 ms</option></select></label>
     <button data-action="undo" title="Undo (Ctrl/Cmd+Z)">Undo</button>
     <button data-action="redo" title="Redo (Ctrl/Cmd+Shift+Z)">Redo</button>
@@ -666,15 +665,16 @@ EDITOR_HTML = """
     <label>Velocity <input data-role="velocity" aria-label="Selected note velocity" type="number" min="1" max="127" value="90"></label>
     <span data-role="count"></span>
   </div>
-  <div class="roll-scroll" tabindex="0" aria-label="Piano roll. Select notes, draw with the pencil, or erase. Drag the waveform to select a playback range.">
+  <p data-role="edit-lock" class="roll-lock" role="status" hidden>Editing paused — choose <b>Add instrument</b> or <b>Cancel</b> above.</p>
+  <div class="roll-scroll" tabindex="0" aria-label="Piano roll. Only the selected track can be edited. Select notes, draw with the pencil, or erase. Drag the waveform to select a playback range.">
     <canvas data-role="roll" aria-label="Editable piano roll"></canvas>
   </div>
   <div class="roll-help">
-    <p>Drag empty space to select notes · Drag selected notes to move · Drag a note’s right edge to resize</p>
+    <p>Only the selected track is editable. Drag empty space to select its notes · Drag selected notes to move · Drag a note’s right edge to resize</p>
     <p>Click the waveform to seek · Drag across it to listen to a range · Select notes to preview only those notes</p>
     <p><kbd>Shift</kbd> + click to add to selection · <kbd>↑</kbd> <kbd>↓</kbd> transpose · <kbd>Shift</kbd> + arrows for an octave · <kbd>Del</kbd> remove</p>
     <p><kbd>Ctrl</kbd> / <kbd>⌘ Cmd</kbd> + <kbd>Z</kbd> undo · <kbd>V</kbd> select · <kbd>D</kbd> pencil · <kbd>E</kbd> eraser · <kbd>Esc</kbd> clear selection</p>
-    <p>Preview notes checks pitch and timing with a simple synth. Choose Generated audio to hear the model’s instruments.</p>
+    <p>Click piano keys or draw notes to hear their pitch immediately. Preview notes uses a simple synth. Choose Generated audio to hear the model’s instruments.</p>
   </div>
   <p data-role="detail" class="roll-detail">Load a clip to begin.</p>
 </div>

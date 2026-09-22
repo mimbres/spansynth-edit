@@ -12,11 +12,12 @@ let palette = {}, data = {notes: [], instruments: [], duration: 20.48, waveform:
 let selected = new Set(), program = 0, extraTracks = [], undo = [], redo = [], drag = null, tool = "select";
 let lastSent = null, width = 900, timeline = 846, cursorTime = 0, timeRange = null;
 let playing = null, audioContext = null, previewStarted = 0, previewOffset = 0, playbackEnd = 0, playbackFrame = null;
-let viewFrame = null;
+let viewFrame = null, auditionContext = null, auditionVoice = null, auditionRequest = 0, auditionPitch = null;
 const name = (p) => data.instruments.find(i => i.members.includes(p))?.name || `Program ${p}`;
 const trackColor = (p) => trackColors.get(p) || trackPalette[0];
 const snap = (time) => {const unit = Number(find("snap").value); return unit ? Math.round(time / unit) * unit : time;};
-const chosen = () => data.notes.filter(n => selected.has(n.id));
+const addingTrack = () => !find("add-panel").hidden;
+const chosen = () => data.notes.filter(n => n.program === program && selected.has(n.id));
 const snapshot = () => ({notes: clone(data.notes), program, extraTracks: [...extraTracks], colors: [...trackColors]});
 function remember(before) {undo.push(before); if (undo.length > 50) undo.shift(); redo = [];}
 function syncValue() {
@@ -27,7 +28,7 @@ function syncValue() {
   if (value !== lastSent) {lastSent = value; props.value = value;}
 }
 function publish() {refresh(); draw(); syncValue();}
-function change(fn) {if (!data.clip) return; remember(snapshot()); fn(); publish();}
+function change(fn) {if (!data.clip || addingTrack()) return; finishDrag(); remember(snapshot()); fn(); publish();}
 function options(select, entries, value) {
   select.replaceChildren(...entries.map(([v, label]) => {const item = document.createElement("option"); item.value = v; item.textContent = label; return item;}));
   select.value = String(value);
@@ -60,16 +61,22 @@ function refresh() {
   if (!entry) choices.push([program, `Imported program ${program} · choose an instrument`]);
   options(instrument, choices, entry ? entry.program : program);
   find("count").textContent = `${data.notes.length} notes · ${data.duration.toFixed(2)} s`;
-  for (const action of ["undo", "redo"]) root.querySelector(`[data-action="${action}"]`).disabled = !(action === "undo" ? undo : redo).length;
+  const locked = addingTrack();
+  root.dataset.adding = String(locked);
+  scroll.setAttribute("aria-disabled", String(locked));
+  find("edit-lock").hidden = !locked;
+  for (const control of [track, instrument, find("velocity"), ...root.querySelectorAll("[data-tool], [data-action=add-track]")]) control.disabled = locked;
+  for (const action of ["undo", "redo"]) root.querySelector(`[data-action="${action}"]`).disabled = locked || !(action === "undo" ? undo : redo).length;
   const notes = chosen();
-  root.querySelector('[data-action="delete"]').disabled = !notes.length;
+  root.querySelector('[data-action="delete"]').disabled = locked || !notes.length;
   if (notes.length) find("velocity").value = notes[0].velocity;
   const range = selectionRange();
   find("listen-range").textContent = find("listen").value === "selection" && range ? `${range[0].toFixed(2)}–${range[1].toFixed(2)} s` : `Cursor · ${cursorTime.toFixed(2)} s`;
   if (!data.clip) detail.textContent = "Load a clip to begin.";
+  else if (locked) detail.textContent = "Choose Add instrument or Cancel to continue editing.";
   else if (notes.length === 1) {const n = notes[0]; detail.textContent = `${name(n.program)} · ${noteName(n.pitch)} · ${n.start.toFixed(2)}–${(n.start+n.duration).toFixed(2)} s · velocity ${n.velocity}`;}
   else if (notes.length) detail.textContent = `${notes.length} notes selected · drag to move together, ↑ ↓ to transpose, Del to remove.`;
-  else detail.textContent = `${name(program)} · ${tool === "pencil" ? "Click or drag to draw a note." : tool === "erase" ? "Click or drag over notes to erase." : "Click any note to edit it. Drag empty space to select a group."}`;
+  else detail.textContent = `${name(program)} · ${tool === "pencil" ? "Click or drag to draw a note." : tool === "erase" ? "Click or drag over notes to erase." : "Only this track is editable. Drag empty space to select its notes."}`;
 }
 function region() {return ["edit-start", "edit-end"].map(id => Number(document.querySelector(`#${id} input`)?.value || 0));}
 function draw(playhead = cursorTime) {
@@ -85,7 +92,7 @@ function draw(playhead = cursorTime) {
   for (let pitch=127; pitch>=0; pitch--) {
     const y = header+(127-pitch)*row, black = [1,3,6,8,10].includes(pitch%12);
     ctx.fillStyle = black ? palette["grid-black"] : palette["grid-white"]; ctx.fillRect(keys,y,timeline,row);
-    ctx.fillStyle = black ? palette["piano-black"] : palette["piano-white"]; ctx.fillRect(0,y,keys,row);
+    ctx.fillStyle = pitch===auditionPitch ? trackColor(program) : black ? palette["piano-black"] : palette["piano-white"]; ctx.fillRect(0,y,keys,row);
     ctx.strokeStyle = pitch%12 === 0 ? palette["octave-line"] : palette["grid-line"]; ctx.beginPath(); ctx.moveTo(0,y+row); ctx.lineTo(width,y+row); ctx.stroke();
     if (pitch%12 === 0) {ctx.fillStyle = palette.muted; ctx.fillText(noteName(pitch),10,y+10);}
   }
@@ -95,7 +102,7 @@ function draw(playhead = cursorTime) {
   for (let t=0; t<=data.duration; t+=tick) {const x=keys+t/data.duration*timeline; ctx.strokeStyle=palette["grid-line"]; ctx.beginPath(); ctx.moveTo(x,header); ctx.lineTo(x,height); ctx.stroke();}
   [...data.notes].sort((a,b) => Number(a.program===program)-Number(b.program===program)).forEach(n => {
     const x=keys+n.start/data.duration*timeline, y=header+(127-n.pitch)*row+1, w=Math.max(3,n.duration/data.duration*timeline);
-    ctx.globalAlpha = n.program===program || selected.has(n.id) ? 1 : .6;
+    ctx.globalAlpha = n.program===program || selected.has(n.id) ? 1 : .35;
     ctx.fillStyle=trackColor(n.program); ctx.fillRect(x,y,w,row-2);
     ctx.strokeStyle=selected.has(n.id) ? palette["note-outline"] : "#7f91b077"; ctx.lineWidth=selected.has(n.id) ? 2 : 1; ctx.strokeRect(x,y,w,row-2);
     if ((n.program===program || selected.has(n.id)) && w>25) {ctx.fillStyle="#283747"; ctx.fillText(noteName(n.pitch),x+4,y+9);}
@@ -123,9 +130,8 @@ function updatePalette() {
 }
 function centerTrack() {const pitches=data.notes.filter(n=>n.program===program).map(n=>n.pitch); const pitch=pitches.length ? pitches.reduce((a,b)=>a+b,0)/pitches.length : 60; scroll.scrollTop=Math.max(0,header+(127-pitch)*row-scroll.clientHeight/2);}
 function position(event) {const box=canvas.getBoundingClientRect(), x=event.clientX-box.left, y=event.clientY-box.top; return {x,y,time:clamp((x-keys)/timeline*data.duration,0,data.duration),pitch:clamp(127-Math.floor((y-header)/row),0,127)};}
-function hit(p, activeOnly=false) {
-  const matches=data.notes.filter(n=>(!activeOnly || n.program===program) && n.pitch===p.pitch && p.time>=n.start && p.time<=n.start+n.duration);
-  return matches.findLast(n=>n.program===program) || matches.at(-1);
+function hit(p) {
+  return data.notes.findLast(n=>n.program===program && n.pitch===p.pitch && p.time>=n.start && p.time<=n.start+n.duration);
 }
 function setTool(next) {tool=next; root.dataset.tool=next; for (const button of root.querySelectorAll("[data-tool]")) button.setAttribute("aria-pressed", String(button.dataset.tool===next)); refresh();}
 function createNote(p) {
@@ -141,21 +147,27 @@ function moveNotes(originals, seconds, semitones) {
   timeRange=null;
 }
 canvas.addEventListener("pointerdown", event => {
-  if (!data.clip || event.button !== 0) return;
+  if (!data.clip || addingTrack() || event.button !== 0) return;
   event.preventDefault(); stop(); scroll.focus({preventScroll:true});
-  const p=position(event); if (p.x<keys) return;
+  const p=position(event);
+  if(p.x<keys) {
+    if(p.y>=scroll.scrollTop+header) {
+      canvas.setPointerCapture(event.pointerId); drag={mode:"keys",pitch:p.pitch}; audition(p.pitch);
+    }
+    return;
+  }
   canvas.setPointerCapture(event.pointerId);
   if (p.y<scroll.scrollTop+header) {
     selected.clear(); timeRange=null; cursorTime=p.time; find("listen").value="cursor";
     drag={mode:"time",pointer:p,moved:false}; refresh(); draw(); return;
   }
-  const n=hit(p,tool==="pencil"), before=snapshot();
+  const n=hit(p), before=snapshot();
   if (tool==="erase") {
     drag={mode:"erase",before,moved:!!n}; if(n) data.notes=data.notes.filter(item=>item.id!==n.id); selected.clear(); timeRange=null;
   } else if (tool==="pencil" && !n) {
-    const note=createNote(p); drag={mode:"draw",id:note.id,before,pointer:p,moved:true};
+    const note=createNote(p); audition(note.pitch,note.velocity); drag={mode:"draw",id:note.id,before,pointer:p,moved:true};
   } else if (n) {
-    program=n.program; timeRange=null;
+    timeRange=null; audition(n.pitch,n.velocity);
     if (event.shiftKey) {selected.has(n.id) ? selected.delete(n.id) : selected.add(n.id);}
     else if (!selected.has(n.id)) selected=new Set([n.id]);
     find("listen").value="selection";
@@ -167,8 +179,10 @@ canvas.addEventListener("pointerdown", event => {
   refresh(); draw();
 });
 canvas.addEventListener("pointermove", event => {
+  if (addingTrack()) {canvas.style.cursor="not-allowed"; return;}
   const p=position(event);
   if (!drag) {const n=hit(p); canvas.style.cursor=tool==="select" ? (n ? "grab" : "crosshair") : ""; return;}
+  if(drag.mode==="keys") {if(p.x<keys && p.pitch!==drag.pitch && p.y>=scroll.scrollTop+header) {drag.pitch=p.pitch; audition(p.pitch);} return;}
   if (drag.pointer && Math.abs(p.x-drag.pointer.x)+Math.abs(p.y-drag.pointer.y)<3 && !drag.moved) return;
   if (drag.mode==="erase") {const n=hit(p); if(n) {data.notes=data.notes.filter(item=>item.id!==n.id); drag.moved=true;}}
   else {
@@ -177,10 +191,15 @@ canvas.addEventListener("pointermove", event => {
     if (drag.mode==="box") {
       drag.current=p;
       const low=Math.min(p.pitch,drag.pointer.pitch), high=Math.max(p.pitch,drag.pointer.pitch), first=Math.min(p.time,drag.pointer.time), last=Math.max(p.time,drag.pointer.time);
-      selected=new Set([...drag.base,...data.notes.filter(n=>(find("scope").value==="all" || n.program===program) && n.pitch>=low && n.pitch<=high && n.start<last && n.start+n.duration>first).map(n=>n.id)]);
+      selected=new Set([...drag.base,...data.notes.filter(n=>n.program===program && n.pitch>=low && n.pitch<=high && n.start<last && n.start+n.duration>first).map(n=>n.id)]);
       find("listen").value="selection";
     }
-    if (drag.mode==="move") moveNotes(drag.originals,snap(drag.originals[0].start+p.time-drag.pointer.time)-drag.originals[0].start,p.pitch-drag.pointer.pitch);
+    if (drag.mode==="move") {
+      const previousPitch=data.notes.find(n=>n.id===drag.id)?.pitch;
+      moveNotes(drag.originals,snap(drag.originals[0].start+p.time-drag.pointer.time)-drag.originals[0].start,p.pitch-drag.pointer.pitch);
+      const note=data.notes.find(n=>n.id===drag.id);
+      if(note && note.pitch!==previousPitch)audition(note.pitch,note.velocity);
+    }
     if (drag.mode==="draw" || drag.mode==="resize") {const n=data.notes.find(n=>n.id===drag.id); if(n) n.duration=clamp(snap(p.time)-n.start,.01,data.duration-n.start); timeRange=null;}
   }
   refresh(); draw();
@@ -192,28 +211,50 @@ function finishDrag() {
   publish();
 }
 for (const event of ["pointerup","pointercancel","lostpointercapture"]) canvas.addEventListener(event,finishDrag);
-canvas.addEventListener("dblclick", event=>{const p=position(event); if(data.clip && tool==="select" && p.x>=keys && p.y>=scroll.scrollTop+header && !hit(p)) change(()=>createNote(p));});
+canvas.addEventListener("dblclick", event=>{const p=position(event); if(data.clip && !addingTrack() && tool==="select" && p.x>=keys && p.y>=scroll.scrollTop+header && !data.notes.some(n=>n.pitch===p.pitch && p.time>=n.start && p.time<=n.start+n.duration)) change(()=>{const note=createNote(p);audition(note.pitch,note.velocity);});});
 function closeTrackMenu(focus=false) {trackMenu.hidden=true; track.setAttribute("aria-expanded","false"); if(focus) track.focus({preventScroll:true});}
-function openTrackMenu() {trackMenu.hidden=false; track.setAttribute("aria-expanded","true"); const item=trackMenu.querySelector('[aria-selected="true"]'); item?.focus({preventScroll:true}); item?.scrollIntoView({block:"nearest"});}
+function openTrackMenu() {if(addingTrack())return;trackMenu.hidden=false; track.setAttribute("aria-expanded","true"); const item=trackMenu.querySelector('[aria-selected="true"]'); item?.focus({preventScroll:true}); item?.scrollIntoView({block:"nearest"});}
 track.addEventListener("click",()=>trackMenu.hidden ? openTrackMenu() : closeTrackMenu(true));
 track.addEventListener("keydown",event=>{if(["ArrowDown","ArrowUp"].includes(event.key)) {event.preventDefault(); openTrackMenu();}});
-trackMenu.addEventListener("click",event=>{const item=event.target.closest('[role="option"]'); if(!item)return; stop(); program=Number(item.dataset.program); selected.clear(); timeRange=null; closeTrackMenu(true); refresh(); centerTrack(); draw(); syncValue();});
+trackMenu.addEventListener("click",event=>{const item=event.target.closest('[role="option"]'); if(!item || addingTrack())return; finishDrag(); stop(); program=Number(item.dataset.program); selected.clear(); timeRange=null; closeTrackMenu(true); refresh(); centerTrack(); draw(); syncValue();});
 trackMenu.addEventListener("keydown",event=>{
   if(["Escape","Tab"].includes(event.key)) {closeTrackMenu(true); return;}
   const items=[...trackMenu.querySelectorAll('[role="option"]')], index=items.indexOf(document.activeElement);
   const next={ArrowDown:(index+1)%items.length,ArrowUp:(index+items.length-1)%items.length,Home:0,End:items.length-1}[event.key];
   if(next!==undefined) {event.preventDefault(); items[next]?.focus({preventScroll:true}); items[next]?.scrollIntoView({block:"nearest"});}
 });
-instrument.addEventListener("change",()=>change(()=>{const next=Number(instrument.value); if(!trackColors.has(next))trackColors.set(next,trackColor(program)); data.notes.filter(n=>n.program===program).forEach(n=>n.program=next); extraTracks=extraTracks.filter(p=>p!==program); program=next; extraTracks.push(next);}));
+instrument.addEventListener("change",()=>{const next=Number(instrument.value);change(()=>{stop(); if(!trackColors.has(next))trackColors.set(next,trackColor(program)); data.notes.filter(n=>n.program===program).forEach(n=>n.program=next); extraTracks=extraTracks.filter(p=>p!==program); program=next; extraTracks.push(next);});});
 find("zoom").addEventListener("input",()=>{draw(); syncValue();});
 find("snap").addEventListener("change",syncValue);
 find("listen").addEventListener("change",()=>{stop(); refresh(); draw();});
 find("audio-source").addEventListener("change",stop);
-find("velocity").addEventListener("change",()=>{if(selected.size)change(()=>{for(const n of chosen())n.velocity=Math.round(clamp(Number(find("velocity").value)||90,1,127));});});
-function travel(from,to) {if(!from.length)return; stop(); to.push(snapshot()); const previous=from.pop(); data.notes=previous.notes; program=previous.program; extraTracks=previous.extraTracks; trackColors=new Map(previous.colors); selected.clear(); timeRange=null; publish();}
+find("velocity").addEventListener("change",()=>{const velocity=Math.round(clamp(Number(find("velocity").value)||90,1,127));if(selected.size)change(()=>{for(const n of chosen())n.velocity=velocity;});});
+function travel(backward=true) {if(addingTrack())return; finishDrag(); const from=backward?undo:redo, to=backward?redo:undo; if(!from.length)return; stop(); to.push(snapshot()); const previous=from.pop(); data.notes=previous.notes; program=previous.program; extraTracks=previous.extraTracks; trackColors=new Map(previous.colors); selected.clear(); timeRange=null; publish();}
 function remove() {if(selected.size)change(()=>{data.notes=data.notes.filter(n=>!selected.has(n.id)); selected.clear(); timeRange=null;});}
+function stopAudition() {
+  auditionRequest++;
+  if(auditionVoice) {auditionVoice.stop();auditionVoice=null;}
+  auditionPitch=null;
+}
+async function audition(pitch, velocity=Number(find("velocity").value)||90) {
+  stopAudition();
+  const request=auditionRequest;
+  if(!auditionContext)auditionContext=new AudioContext();
+  try {
+    await auditionContext.resume();
+    if(request!==auditionRequest || !root.isConnected)return;
+    const voice=auditionContext.createOscillator(), gain=auditionContext.createGain(), now=auditionContext.currentTime;
+    voice.type="triangle";voice.frequency.value=440*Math.pow(2,(pitch-69)/12);
+    gain.gain.setValueAtTime(0,now);gain.gain.linearRampToValueAtTime(velocity/127*.08,now+.008);
+    gain.gain.setValueAtTime(velocity/127*.08,now+.35);gain.gain.linearRampToValueAtTime(0,now+.4);
+    voice.connect(gain).connect(auditionContext.destination);
+    voice.onended=()=>{voice.disconnect();gain.disconnect();if(auditionVoice===voice){auditionVoice=null;auditionPitch=null;draw();}};
+    auditionVoice=voice;auditionPitch=pitch;voice.start();voice.stop(now+.41);draw();
+  } catch {detail.textContent="Note preview could not start. Click a piano key to try again.";}
+}
 function transportState(action) {for(const name of ["play","preview"])root.querySelector(`[data-action="${name}"]`).setAttribute("aria-pressed",String(name===action));}
 function stop() {
+  stopAudition();
   if (playing) cursorTime=clamp(playing.currentTime,0,data.duration);
   if (audioContext) cursorTime=clamp(audioContext.currentTime-previewStarted+previewOffset,0,data.duration);
   cancelAnimationFrame(playbackFrame); playbackFrame=null;
@@ -268,26 +309,31 @@ root.addEventListener("click",event=>{
   const button=event.target.closest("button"); if(!button)return;
   if(button.dataset.tool) {setTool(button.dataset.tool); canvas.style.cursor=""; return;}
   const action=button.dataset.action;
-  if(action==="undo")travel(undo,redo);
-  if(action==="redo")travel(redo,undo);
+  if(action==="undo")travel();
+  if(action==="redo")travel(false);
   if(action==="delete")remove();
   if(action==="add-track") {
+    stop(); finishDrag(); closeTrackMenu();
     const used=[...data.notes.map(n=>n.program),...extraTracks];
     const available=data.instruments.filter(i=>!i.members.some(p=>used.includes(p)));
     options(find("new-instrument"),available.map(i=>[i.program,i.name]),available[0]?.program);
-    find("add-panel").hidden=false; find("new-instrument").focus();
+    find("add-panel").hidden=false; refresh(); canvas.style.cursor="not-allowed"; find("new-instrument").focus();
     root.querySelector('[data-action="confirm-track"]').disabled=!available.length || !data.clip;
   }
-  if(action==="cancel-track")find("add-panel").hidden=true;
-  if(action==="confirm-track")change(()=>{program=Number(find("new-instrument").value); extraTracks.push(program); selected.clear(); timeRange=null; find("add-panel").hidden=true; setTool("pencil"); canvas.style.cursor=""; centerTrack();});
+  if(action==="cancel-track") {find("add-panel").hidden=true; canvas.style.cursor=""; refresh(); draw();}
+  if(action==="confirm-track" && find("new-instrument").value!=="") {
+    find("add-panel").hidden=true;
+    change(()=>{program=Number(find("new-instrument").value); extraTracks.push(program); selected.clear(); timeRange=null; setTool("pencil"); canvas.style.cursor=""; centerTrack();});
+  }
   if(action==="stop") {stop();refresh();}
   if(action==="restart") {stop();cursorTime=0;find("listen").value="cursor";for(const id of ["source-audio","result-audio"]){const a=document.querySelector(`#${id} audio`);if(a)a.currentTime=0;}refresh();draw();}
   if(action==="play" || action==="preview")play(action).catch(()=>{stop();detail.textContent="Playback could not start. Please try again.";});
 });
 scroll.addEventListener("keydown",event=>{
+  if(addingTrack()) {if(event.key!=="Tab")event.preventDefault(); return;}
   const key=event.key.toLowerCase(), modifier=event.metaKey||event.ctrlKey;
-  if(modifier && key==="z") {event.preventDefault();event.shiftKey?travel(redo,undo):travel(undo,redo);return;}
-  if(modifier && key==="a") {event.preventDefault();selected=new Set(data.notes.filter(n=>find("scope").value==="all"||n.program===program).map(n=>n.id));timeRange=null;find("listen").value="selection";refresh();draw();return;}
+  if(modifier && key==="z") {event.preventDefault();event.shiftKey?travel(false):travel();return;}
+  if(modifier && key==="a") {event.preventDefault();selected=new Set(data.notes.filter(n=>n.program===program).map(n=>n.id));timeRange=null;find("listen").value="selection";refresh();draw();return;}
   if(event.key==="Escape") {selected.clear();timeRange=null;find("listen").value="cursor";refresh();draw();}
   if(["Delete","Backspace"].includes(event.key)) {event.preventDefault();remove();}
   if(["v","d","e"].includes(key) && !modifier) {setTool({v:"select",d:"pencil",e:"erase"}[key]);canvas.style.cursor="";}
@@ -312,14 +358,14 @@ const observer=new ResizeObserver(()=>draw());observer.observe(scroll);
 const themeObserver=new MutationObserver(updatePalette);
 for(let node=root;node;node=node.parentElement)themeObserver.observe(node,{attributes:true,attributeFilter:["class"]});
 scroll.addEventListener("scroll",()=>{draw();cancelAnimationFrame(viewFrame);viewFrame=requestAnimationFrame(syncValue);});
-const lifetime=new MutationObserver(()=>{if(!root.isConnected){stop();events.abort();observer.disconnect();themeObserver.disconnect();lifetime.disconnect();cancelAnimationFrame(viewFrame);}});
+const lifetime=new MutationObserver(()=>{if(!root.isConnected){stop();events.abort();observer.disconnect();themeObserver.disconnect();lifetime.disconnect();cancelAnimationFrame(viewFrame);if(auditionContext)auditionContext.close().catch(()=>{});}});
 lifetime.observe(root.parentElement,{childList:true});
 function receive() {
   if(props.value===lastSent)return;
   try {
     const next=JSON.parse(props.value||"{}");
     if(!next.clip){refresh();draw();centerTrack();return;}
-    stop();closeTrackMenu();drag=null;timeRange=null;find("listen").value="cursor";
+    stop();closeTrackMenu();find("add-panel").hidden=true;drag=null;timeRange=null;find("listen").value="cursor";
     if(next.clip!==data.clip){trackColors.clear();cursorTime=0;timeRange=null;}
     data=next;data.notes=data.notes.map((n,i)=>({...n,id:i}));
     const view=data.view||{};if(view.colors)trackColors=new Map(view.colors);
