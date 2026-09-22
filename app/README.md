@@ -8,6 +8,7 @@ sdk_version: 6.28.0
 python_version: 3.12
 app_file: app/app.py
 pinned: false
+hf_oauth: true
 license: apache-2.0
 short_description: Edit notes in a recording with MIDI-guided music generation
 thumbnail: https://raw.githubusercontent.com/mimbres/spansynth-edit/main/demo/assets/social-preview.png
@@ -27,7 +28,9 @@ Use **Apply edits** to save an updated MIDI file, or **Apply & Generate** to gen
 
 Three sample inputs are available: **Slakh**, **Kraisler**, and **Jazz intro** (*Piano Sway Intro B* by OurMusicBox). Slakh and Kraisler include aligned MIDI. Use YourMT3+ to transcribe the jazz sample. Downloaded audio and MIDI use the chosen clip's timeline.
 
-Uploads and results are stored temporarily for your session. Temporary files are periodically removed. GPU availability and usage limits are managed by Hugging Face ZeroGPU.
+**Save & Share** preserves the last generated audio, its MIDI, and its editing settings. A shared link opens an editable copy without changing the published work. The **Gallery** lets visitors compare original and edited clips, then open a work in the editor. Publishing is currently limited to the `mimbres` HF account; viewing and editing need no login.
+
+Saved audio and MIDI are public in the [gallery dataset](https://huggingface.co/datasets/mimbres/spansynth-edit-gallery), including works not listed in the gallery. Unsaved uploads and results are temporary. GPU availability and usage limits are managed by Hugging Face ZeroGPU.
 
 ![Model overview](https://raw.githubusercontent.com/mimbres/spansynth-edit/main/demo/assets/FigureDraft-fig1-retro-04.svg)
 
@@ -45,3 +48,5 @@ CUDA, Apple Silicon through MPS, and CPU are supported locally. Model weights do
 ## Deploy
 
 `python scripts/deploy_space.py` publishes the app and inference package to `mimbres/spansynth-edit`. It excludes the static demo audio and preserves this file as the Space's root README. The existing HF model repository is separate from the Space.
+
+The deployment also prepares the gallery dataset and sets `SPANSYNTH_GALLERY_TOKEN` as a Space secret using the local HF login. This credential must have write access to the gallery dataset. The Space uses HF OAuth to verify the publisher; no repository access is requested from visitors. Locally, Gradio's sign-in uses the HF account already logged in on the machine.

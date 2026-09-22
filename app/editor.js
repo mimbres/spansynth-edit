@@ -31,11 +31,15 @@ const trackColor = (p) => trackColors.get(p) || trackPalette[0];
 const snap = (time) => { const unit = Number(find("snap").value); return unit ? Math.round(time / unit) * unit : time; };
 const snapshot = () => ({notes: clone(data.notes), program, extraTracks: [...extraTracks], colors: [...trackColors]});
 function remember(before) { undo.push(before); if (undo.length > 50) undo.shift(); redo = []; }
-function publish() {
+function syncValue() {
+  if (!data.clip) return;
+  data.view = {program, colors: [...trackColors], extraTracks: [...extraTracks],
+               zoom: Number(find("zoom").value), snap: Number(find("snap").value),
+               scrollTop: scroll.scrollTop, scrollLeft: scroll.scrollLeft};
   lastSent = JSON.stringify(data);
   props.value = lastSent;
-  refresh(); draw();
 }
+function publish() { refresh(); draw(); syncValue(); }
 function change(fn) { if (!data.clip) return; remember(snapshot()); fn(); publish(); }
 function options(select, entries, value) {
   select.replaceChildren(...entries.map(([v, label]) => { const item = document.createElement("option"); item.value = v; item.textContent = label; return item; }));
@@ -237,10 +241,31 @@ const observer = new ResizeObserver(() => draw()); observer.observe(scroll);
 const themeObserver = new MutationObserver(updatePalette);
 for (let node = root; node; node = node.parentElement)
   themeObserver.observe(node, {attributes:true, attributeFilter:["class"]});
-scroll.addEventListener("scroll", () => draw());
+scroll.addEventListener("scroll", () => {draw(); syncValue();});
+root.addEventListener("click", syncValue);
+root.addEventListener("input", syncValue);
+root.addEventListener("change", syncValue);
 function receive() {
   if (props.value === lastSent) return;
-  try {const next = JSON.parse(props.value || "{}"); if(!next.clip) {refresh(); draw(); centerTrack(); return;} stop(); closeTrackMenu(); if (next.clip !== data.clip) trackColors.clear(); data = next; data.notes = data.notes.map((n,i) => ({...n,id:i})); program = data.notes[0]?.program ?? 0; extraTracks = []; selected = null; undo = []; redo = []; refresh(); draw(); centerTrack();} catch {detail.textContent = "Unable to read MIDI. Please load the clip again.";}
+  try {
+    const next = JSON.parse(props.value || "{}");
+    if(!next.clip) {refresh(); draw(); centerTrack(); return;}
+    stop(); closeTrackMenu();
+    if (next.clip !== data.clip) trackColors.clear();
+    data = next;
+    data.notes = data.notes.map((n,i) => ({...n,id:i}));
+    const view = data.view || {};
+    if (view.colors) trackColors = new Map(view.colors);
+    program = view.program ?? data.notes[0]?.program ?? 0;
+    extraTracks = view.extraTracks || [];
+    find("zoom").value = view.zoom ?? 1;
+    find("snap").value = view.snap ?? .04;
+    selected = null; undo = []; redo = [];
+    refresh(); draw(); centerTrack();
+    if (view.scrollTop !== undefined) scroll.scrollTop = view.scrollTop;
+    scroll.scrollLeft = view.scrollLeft ?? 0;
+    syncValue();
+  } catch {detail.textContent = "Unable to read MIDI. Please load the clip again.";}
 }
 watch("value", receive);
 updatePalette();

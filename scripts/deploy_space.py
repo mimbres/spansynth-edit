@@ -2,7 +2,35 @@
 from pathlib import Path
 import tomllib
 
-from huggingface_hub import CommitOperationAdd, HfApi, SpaceHardware
+from huggingface_hub import CommitOperationAdd, HfApi, SpaceHardware, get_token
+
+
+GALLERY_README = """---
+pretty_name: SpanSynth-Edit Gallery
+task_categories:
+- audio-to-audio
+tags:
+- music
+- midi
+- spansynth-edit
+---
+
+# SpanSynth-Edit Gallery
+
+Finished MIDI-guided music edits made with [SpanSynth-Edit](https://huggingface.co/spaces/mimbres/spansynth-edit).
+Open a work's shared link to compare the original and edited audio, explore its score, and make an editable copy.
+
+Each work has its own folder:
+
+- `input.wav` and `output.wav`: the original clip and saved generated audio, at 48 kHz mono.
+- `original.mid` and `edited.mid`: the source and edited score, aligned to the clip.
+- `context.wav`: the normalized audio used by the model, including the history before the clip.
+- `project.json`: the title, description, notes, editing region, generation settings, and piano-roll display settings.
+
+Shared links have the form `https://mimbres-spansynth-edit.hf.space/?work=FOLDER_NAME`.
+An unlisted work is still public here. Source recordings retain their original rights; publication does not grant a new license to them.
+Publishing is curated by `mimbres`.
+"""
 
 
 def main():
@@ -11,6 +39,15 @@ def main():
     api = HfApi()
     api.create_repo(repo, repo_type="space", space_sdk="gradio", exist_ok=True,
                     space_hardware=SpaceHardware.ZERO_A10G)
+    gallery = "mimbres/spansynth-edit-gallery"
+    api.create_repo(gallery, repo_type="dataset", private=False, exist_ok=True)
+    if not api.file_exists(gallery, "README.md", repo_type="dataset"):
+        api.upload_file(repo_id=gallery, repo_type="dataset", path_in_repo="README.md",
+                        path_or_fileobj=GALLERY_README.encode(), commit_message="Introduce the SpanSynth-Edit gallery")
+    token = get_token()
+    if not token:
+        raise RuntimeError("Log in to Hugging Face with gallery write access before deploying.")
+    api.add_space_secret(repo, "SPANSYNTH_GALLERY_TOKEN", token)
     # Spaces installs requirements before copying the application source.
     dependencies = tomllib.loads((root / "pyproject.toml").read_text())["project"]["dependencies"]
     requirements = (root / "app/requirements.txt").read_text().replace("\n.\n", "\n" + "\n".join(dependencies) + "\n")
