@@ -75,7 +75,7 @@ function refresh() {
   root.querySelector('[data-action="delete"]').disabled = locked || !notes.length;
   if (notes.length) find("velocity").value = notes[0].velocity;
   const range = selectionRange();
-  find("listen-range").textContent = find("listen").value === "selection" && range ? `${range[0].toFixed(2)}–${range[1].toFixed(2)} s` : `Cursor · ${cursorTime.toFixed(2)} s`;
+  find("listen-range").textContent = range ? `${range[0].toFixed(2)}–${range[1].toFixed(2)} s` : `Cursor · ${cursorTime.toFixed(2)} s`;
   if (!data.clip) detail.textContent = "Load a clip to begin.";
   else if (locked) detail.textContent = "Choose Add instrument or Cancel to continue editing.";
   else if (notes.length === 1) {const n = notes[0]; detail.textContent = `${name(n.program)} · ${noteName(n.pitch)} · ${n.start.toFixed(2)}–${(n.start+n.duration).toFixed(2)} s · velocity ${n.velocity}`;}
@@ -141,7 +141,7 @@ function setTool(next) {tool=next; root.dataset.tool=next; for (const button of 
 function createNote(p) {
   const start=clamp(snap(p.time),0,data.duration-.01), id=Math.max(-1,...data.notes.map(n=>n.id))+1;
   const note={id,start,duration:Math.min(.4,data.duration-start),pitch:p.pitch,velocity:Math.round(clamp(Number(find("velocity").value)||90,1,127)),program};
-  data.notes.push(note); selected=new Set([id]); timeRange=null; find("listen").value="selection";
+  data.notes.push(note); selected=new Set([id]); timeRange=null;
   return note;
 }
 function moveNotes(originals, seconds, semitones) {
@@ -175,7 +175,7 @@ canvas.addEventListener("pointerdown", event => {
   }
   canvas.setPointerCapture(event.pointerId);
   if (p.y<scroll.scrollTop+header) {
-    selected.clear(); timeRange=null; cursorTime=p.time; find("listen").value="cursor";
+    selected.clear(); timeRange=null; cursorTime=p.time;
     drag={mode:"time",pointer:p,moved:false}; refresh(); draw(); return;
   }
   const n=hit(p), before=snapshot();
@@ -187,7 +187,6 @@ canvas.addEventListener("pointerdown", event => {
     timeRange=null; audition(n.pitch,n.velocity);
     if (event.shiftKey) {selected.has(n.id) ? selected.delete(n.id) : selected.add(n.id);}
     else if (!selected.has(n.id)) selected=new Set([n.id]);
-    find("listen").value="selection";
     if (selected.has(n.id)) drag={mode:selected.size===1 && n.duration/data.duration*timeline>14 && Math.abs(p.x-(keys+(n.start+n.duration)/data.duration*timeline))<7 ? "resize" : "move",id:n.id,before,originals:clone(chosen()),pointer:p,moved:false,preview:{pitch:n.pitch,start:n.start,at:performance.now()}};
   } else {
     const base=event.shiftKey ? [...selected] : []; selected=new Set(base); timeRange=null;
@@ -204,12 +203,11 @@ canvas.addEventListener("pointermove", event => {
   if (drag.mode==="erase") {const n=hit(p); if(n) {data.notes=data.notes.filter(item=>item.id!==n.id); drag.moved=true;}}
   else {
     drag.moved=true;
-    if (drag.mode==="time") {timeRange=[Math.min(p.time,drag.pointer.time),Math.max(p.time,drag.pointer.time)]; find("listen").value="selection";}
+    if (drag.mode==="time") {timeRange=[Math.min(p.time,drag.pointer.time),Math.max(p.time,drag.pointer.time)];}
     if (drag.mode==="box") {
       drag.current=p;
       const low=Math.min(p.pitch,drag.pointer.pitch), high=Math.max(p.pitch,drag.pointer.pitch), first=Math.min(p.time,drag.pointer.time), last=Math.max(p.time,drag.pointer.time);
       selected=new Set([...drag.base,...data.notes.filter(n=>n.program===program && n.pitch>=low && n.pitch<=high && n.start<last && n.start+n.duration>first).map(n=>n.id)]);
-      find("listen").value="selection";
     }
     if (drag.mode==="move") {
       moveNotes(drag.originals,snap(drag.originals[0].start+p.time-drag.pointer.time)-drag.originals[0].start,p.pitch-drag.pointer.pitch);
@@ -339,8 +337,8 @@ function animate() {
 }
 function playbackRange() {
   const range=selectionRange();
-  if(find("listen").value==="selection" && range)return range;
-  return [find("listen").value==="whole" || cursorTime>=data.duration ? 0 : cursorTime,data.duration];
+  if(range)return range;
+  return [cursorTime>=data.duration ? 0 : cursorTime,data.duration];
 }
 async function play(action) {
   stop(); if(!data.clip)return;
@@ -359,20 +357,21 @@ async function play(action) {
     try {await audio.play(); if(request!==soundRequest || playing!==audio)return; transportState("play"); animate();}
     catch {if(request===soundRequest){stop();detail.textContent="Playback could not start. Try the audio player below.";}}
   } else {
-    const request=soundRequest, p=program, context=soundContext();
-    const onlySelected=find("listen").value==="selection" && selected.size && !timeRange;
-    const notes=data.notes.filter(n=>n.program===p && (!onlySelected || selected.has(n.id)) && n.start<end && n.start+n.duration>start && previewPitch(p,n.pitch));
+    const request=soundRequest, context=soundContext(), onlyTrack=find("listen").value==="selected";
+    const notes=data.notes.filter(n=>(!onlyTrack || n.program===program) && n.start<end && n.start+n.duration>start && previewPitch(n.program,n.pitch));
     if(!notes.length){soundStatus("No notes to preview in this range.");return;}
     await context.resume();
-    soundStatus(soundfonts.has(previewProgram(p)) ? "GM preview ready" : "Loading GM sound…");
-    let player;
-    try {player=await loadInstrument(p);}
+    if(request!==soundRequest || !root.isConnected)return;
+    const programs=[...new Set(notes.map(n=>n.program))];
+    soundStatus(programs.every(p=>soundfonts.has(previewProgram(p))) ? "GM preview ready" : "Loading GM sounds…");
+    let players;
+    try {players=new Map(await Promise.all(programs.map(async p=>[p,await loadInstrument(p)])));}
     catch {if(request===soundRequest)soundStatus("GM sound unavailable. Press Preview notes to retry.");return;}
     if(request!==soundRequest || !root.isConnected)return;
     soundStatus("GM preview ready");previewStarted=context.currentTime+.03;previewOffset=start;previewing=true;
     for(const n of notes) {
       const onset=previewStarted+Math.max(0,n.start-start), finish=previewStarted+Math.min(end,n.start+n.duration)-start;
-      startNote(player,p,n.pitch,n.velocity,onset,Math.max(.01,finish-onset));
+      startNote(players.get(n.program),n.program,n.pitch,n.velocity,onset,Math.max(.01,finish-onset));
     }
     transportState("preview"); animate();
   }
@@ -398,15 +397,15 @@ root.addEventListener("click",event=>{
     change(()=>{program=Number(find("new-instrument").value); extraTracks.push(program); selected.clear(); timeRange=null; setTool("pencil"); canvas.style.cursor=""; centerTrack();});warmInstrument();
   }
   if(action==="stop") {stop();refresh();}
-  if(action==="restart") {stop();cursorTime=0;find("listen").value="cursor";for(const id of ["source-audio","result-audio"]){const a=document.querySelector(`#${id} audio`);if(a)a.currentTime=0;}refresh();draw();}
+  if(action==="restart") {stop();cursorTime=0;timeRange=null;selected.clear();for(const id of ["source-audio","result-audio"]){const a=document.querySelector(`#${id} audio`);if(a)a.currentTime=0;}refresh();draw();}
   if(action==="play" || action==="preview")play(action).catch(()=>{stop();detail.textContent="Playback could not start. Please try again.";});
 });
 scroll.addEventListener("keydown",event=>{
   if(addingTrack()) {if(event.key!=="Tab")event.preventDefault(); return;}
   const key=event.key.toLowerCase(), modifier=event.metaKey||event.ctrlKey;
   if(modifier && key==="z") {event.preventDefault();event.shiftKey?travel(false):travel();return;}
-  if(modifier && key==="a") {event.preventDefault();selected=new Set(data.notes.filter(n=>n.program===program).map(n=>n.id));timeRange=null;find("listen").value="selection";refresh();draw();return;}
-  if(event.key==="Escape") {selected.clear();timeRange=null;find("listen").value="cursor";refresh();draw();}
+  if(modifier && key==="a") {event.preventDefault();selected=new Set(data.notes.filter(n=>n.program===program).map(n=>n.id));timeRange=null;refresh();draw();return;}
+  if(event.key==="Escape") {selected.clear();timeRange=null;refresh();draw();}
   if(["Delete","Backspace"].includes(event.key)) {event.preventDefault();remove();}
   if(["v","d","e"].includes(key) && !modifier) {setTool({v:"select",d:"pencil",e:"erase"}[key]);canvas.style.cursor="";}
   if(event.key===" ") {event.preventDefault();playing||previewing?stop():play("play");}
@@ -425,7 +424,7 @@ document.addEventListener("input",event=>{if(event.target.closest?.("#edit-start
 document.addEventListener("click",event=>{
   const button=event.target.closest("#upload-audio button, #source-audio button, #result-audio button");
   const label=button?.getAttribute("aria-label");
-  if(label==="Play" || label==="Go to start") {stop();if(label==="Go to start"){cursorTime=0;find("listen").value="cursor";}refresh();draw();}
+  if(label==="Play" || label==="Go to start") {stop();if(label==="Go to start"){cursorTime=0;timeRange=null;selected.clear();}refresh();draw();}
 },{capture:true,signal:events.signal});
 document.addEventListener("pause",event=>{if(event.target===playing){stop();refresh();}},{capture:true,signal:events.signal});
 window.addEventListener("spansynth-generated",()=>{stop();find("audio-source").value=document.querySelector("#result-audio a[download]")?"generated":"original";refresh();draw();},{signal:events.signal});
@@ -441,7 +440,7 @@ function receive() {
   try {
     const next=JSON.parse(props.value||"{}");
     if(!next.clip){refresh();draw();centerTrack();return;}
-    stop();closeTrackMenu();find("add-panel").hidden=true;drag=null;timeRange=null;find("listen").value="cursor";
+    stop();closeTrackMenu();find("add-panel").hidden=true;drag=null;timeRange=null;
     if(next.clip!==data.clip){trackColors.clear();cursorTime=0;timeRange=null;}
     data=next;data.notes=data.notes.map((n,i)=>({...n,id:i}));
     const view=data.view||{};if(view.colors)trackColors=new Map(view.colors);

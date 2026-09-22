@@ -657,7 +657,7 @@ EDITOR_HTML = """
     <button data-action="play"><span class="transport-icon" aria-hidden="true">▶</span> Play audio</button>
     <button data-action="preview"><span class="transport-icon" aria-hidden="true">▶</span> Preview notes</button>
     <button data-action="stop"><span class="transport-icon" aria-hidden="true">■</span> Stop</button>
-    <label>Listen <select data-role="listen" aria-label="Playback range"><option value="cursor">From cursor</option><option value="selection">Selection</option><option value="whole">Whole clip</option></select></label>
+    <label>Listen <select data-role="listen" aria-label="Preview instruments"><option value="all">All instruments</option><option value="selected">Selected instrument</option></select></label>
     <span data-role="listen-range" aria-live="polite"></span>
   </div>
   <div class="roll-toolbar roll-secondary">
@@ -672,7 +672,8 @@ EDITOR_HTML = """
   </div>
   <div class="roll-help">
     <p>Only the selected track is editable. Drag empty space to select its notes · Drag selected notes to move · Drag a note’s right edge to resize</p>
-    <p>Click the waveform to seek · Drag across it to listen to a range · Select notes to preview only those notes</p>
+    <p>Click the waveform to seek · Drag across it or select notes to choose a playback range · Start clears the range</p>
+    <p>Listen chooses the instruments for Preview notes. Play audio always plays the full mix.</p>
     <p><kbd>Shift</kbd> + click to add to selection · <kbd>↑</kbd> <kbd>↓</kbd> transpose · <kbd>Shift</kbd> + arrows for an octave · <kbd>Del</kbd> remove</p>
     <p><kbd>Ctrl</kbd> / <kbd>⌘ Cmd</kbd> + <kbd>Z</kbd> undo · <kbd>V</kbd> select · <kbd>D</kbd> pencil · <kbd>E</kbd> eraser · <kbd>Esc</kbd> clear selection</p>
     <p>Click piano keys, draw notes, or move them with arrows or dragging to hear the selected GM instrument. Drums use a sampled kit. These preview sounds differ from the generated audio.</p>

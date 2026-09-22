@@ -24,7 +24,7 @@ Select a track to edit its notes; other tracks remain visible but cannot be chan
 
 Transcription uses the existing [YourMT3+ Space](https://huggingface.co/spaces/mimbres/YourMT3). You can also upload an aligned MIDI file. The original MIDI is kept separately for `spansynth-edit + flowedit`.
 
-Click the waveform to seek, or drag across it to choose a playback range. **Play audio** compares the original or generated clip; **Preview notes** plays selected notes or the current track. In steps 1 and 3, the **|◀** button beside the playback controls returns to the beginning.
+**Listen** switches **Preview notes** between **All instruments** (default) and **Selected instrument**. Click the waveform to seek, or drag across it or select notes to choose a playback range. **Start** clears the range and returns to the beginning. **Play audio** plays the full original or generated mix. In steps 1 and 3, the **|◀** button beside the playback controls returns to the beginning.
 
 Click piano keys or draw notes to hear GM instrument samples, also used by **Preview notes**. Drums use a standard drum kit, and singing voices use choir samples. Each instrument downloads on first use and stays loaded while the editor is open. This preview differs from the generated audio, and long notes may outlast the samples. Preview uses [smplr](https://github.com/danigb/smplr) and FluidR3_GM; see [credits and licenses](https://github.com/mimbres/spansynth-edit/blob/main/NOTICE).
 
