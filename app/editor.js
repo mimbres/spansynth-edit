@@ -303,7 +303,7 @@ document.addEventListener("input",event=>{if(event.target.closest?.("#edit-start
 document.addEventListener("click",event=>{
   const button=event.target.closest("#upload-audio button, #source-audio button, #result-audio button");
   const label=button?.getAttribute("aria-label");
-  if(label==="Play" || label==="⏮ Start") {stop();if(label==="⏮ Start"){cursorTime=0;find("listen").value="cursor";}refresh();draw();}
+  if(label==="Play" || label==="Go to start") {stop();if(label==="Go to start"){cursorTime=0;find("listen").value="cursor";}refresh();draw();}
 },{capture:true,signal:events.signal});
 document.addEventListener("pause",event=>{if(event.target===playing){stop();refresh();}},{capture:true,signal:events.signal});
 window.addEventListener("spansynth-generated",()=>{stop();find("audio-source").value=document.querySelector("#result-audio a[download]")?"generated":"original";refresh();draw();},{signal:events.signal});

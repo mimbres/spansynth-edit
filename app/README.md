@@ -24,13 +24,13 @@ Choose **+ Instrument** to add a track, then draw notes with **Pencil** or remov
 
 Transcription uses the existing [YourMT3+ Space](https://huggingface.co/spaces/mimbres/YourMT3). You can also upload an aligned MIDI file. The original MIDI is kept separately for `spansynth-edit + flowedit`.
 
-Click the waveform to seek, or drag across it to choose a playback range. **Play audio** compares the original or generated clip; **Preview notes** plays selected notes or the current track. Every audio player has a **Start** button.
+Click the waveform to seek, or drag across it to choose a playback range. **Play audio** compares the original or generated clip; **Preview notes** plays selected notes or the current track. In steps 1 and 3, the **|◀** button beside the playback controls returns to the beginning.
 
 Use **Apply edits** to save an updated MIDI file, or **Apply & Generate** to generate audio from your latest edits. Keep editing after generation and generate again to try another version. The region automatically covers added, removed, and modified notes, including their original positions. Turn off **Auto region from note edits** to set the region yourself. The **Light mode / Dark mode** button at the top switches appearance without clearing your work.
 
 Three sample inputs are available: **Slakh**, **Kraisler**, and **Jazz intro** (*Piano Sway Intro B* by OurMusicBox). Slakh and Kraisler include aligned MIDI. Use YourMT3+ to transcribe the jazz sample. Downloaded audio and MIDI use the chosen clip's timeline.
 
-**Save & Share** preserves the last generated audio, its MIDI, and its editing settings. Enter a title, then save to get a shareable link. Publishing is currently limited to the `mimbres` HF account; sign in to the Space in the new tab and return to your editing tab. The app shows your sign-in status. Viewing and editing need no login. A shared link opens an editable copy without changing the published work. The **Gallery** lets visitors compare original and edited clips, then open a work in the editor.
+**Save & Share** preserves the last generated audio, its MIDI, and its editing settings. A title is filled in automatically; change it if you like, then save to get a shareable link. Publishing is currently limited to the `mimbres` HF account; sign in to the Space in the new tab and return to your editing tab. The app shows your sign-in status. Viewing and editing need no login. A shared link opens an editable copy without changing the published work. The **Gallery** lets visitors compare original and edited clips, then open a work in the editor.
 
 Saved audio and MIDI are public in the [gallery dataset](https://huggingface.co/datasets/mimbres/spansynth-edit-gallery), including works not listed in the gallery. Unsaved uploads and results are temporary. GPU availability and usage limits are managed by Hugging Face ZeroGPU.
 

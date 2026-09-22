@@ -217,7 +217,7 @@ def load_clip(audio, crop_start, duration, old_session):
     directory = Path(tempfile.mkdtemp(prefix="spansynth-session-"))
     session = {"directory": str(directory), "clip": directory.name, "crop": crop,
                "duration": len(crop.original) / SAMPLE_RATE, "crop_start": crop_start,
-               "source_notes": None}
+               "source_notes": None, "suggested_title": f"{Path(audio).stem[:93]} · edit"}
     preview = directory / "input.wav"
     sf.write(preview, crop.original, SAMPLE_RATE, subtype="FLOAT")
     cleanup(old_session)
@@ -429,6 +429,26 @@ def gallery_html():
         return '<div class="gallery-empty"><p>The gallery is temporarily unavailable. Please refresh it in a moment.</p></div>'
 
 
+def default_work_title():
+    return datetime.now(timezone.utc).strftime("Music edit · %Y-%m-%d %H:%M")
+
+
+def initial_work_title():
+    title = default_work_title()
+    return title, title
+
+
+def resolved_work_title(title, session):
+    return str(title or "").strip() or (session or {}).get("suggested_title") or default_work_title()
+
+
+def suggest_work_title(title, session, automatic_title):
+    if str(title or "").strip() and title != automatic_title:
+        return title, automatic_title
+    title = resolved_work_title("", session)
+    return title, title
+
+
 def publishing_status(profile: gr.OAuthProfile | None):
     if profile is None:
         message = ("Sign in to this Space to publish. Being signed in to the Hugging Face website alone does not "
@@ -447,10 +467,8 @@ def save_work(title, description, listed, session, profile: gr.OAuthProfile | No
         raise gr.Error("Publishing is currently limited to mimbres. Sign in with that account to save.")
     if not session or not session.get("take"):
         raise gr.Error("Generate an edited clip before saving a work.")
-    title = str(title or "").strip()
+    title = resolved_work_title(title, session)
     description = str(description or "").strip()
-    if not title:
-        raise gr.Error("Enter a title above, then click Save & Share again. Your generated take is still here.")
     if len(title) > 100 or len(description) > 1000:
         raise gr.Error("Keep the title within 100 characters and the description within 1,000 characters.")
     token = os.environ.get("SPANSYNTH_GALLERY_TOKEN")
@@ -496,15 +514,16 @@ def save_work(title, description, listed, session, profile: gr.OAuthProfile | No
 
 def publish_work(title, description, listed, session, profile: gr.OAuthProfile | None):
     """Keep save feedback beside the button without clearing a previous share link."""
+    title = resolved_work_title(title, session)
     try:
         link, gallery = save_work(title, description, listed, session, profile)
     except gr.Error as error:
-        return gr.skip(), gr.skip(), f"**Not saved.** {escape(error.message)}"
+        return gr.skip(), gr.skip(), f"**Not saved.** {escape(error.message)}", title
     except Exception as error:
         print(f"Gallery save failed: {type(error).__name__}", flush=True)
         return gr.skip(), gr.skip(), ("**Not saved.** The files could not be prepared. "
-                                     "Your edit is still here; download your audio and MIDI before leaving, then try saving again.")
-    return link, gallery, "**Saved.** Copy the link below to share this version."
+                                     "Your edit is still here; download your audio and MIDI before leaving, then try saving again."), title
+    return link, gallery, "**Saved.** Copy the link below to share this version.", title
 
 
 def load_work(work_id, old_session):
@@ -558,6 +577,7 @@ def load_work(work_id, old_session):
         editor["view"] = view
         cleanup(old_session)
         title = str(project["title"])
+        session["suggested_title"] = title
         return (session, str(directory / "input.wav"), json.dumps(editor), start, end, str(take / "output.wav"),
                 str(take / "original.mid") if source is not None else None, str(take / "edited.mid"),
                 f'Opened “{escape(title)}”. You are editing a copy; the shared work stays unchanged.',
@@ -593,6 +613,7 @@ def load_example(old_session, sample_name="Slakh"):
                     (folder / filename).write_bytes(response.read())
         loaded = load_clip(str(folder / audio_name), 0, 20.48, old_session)
         session, preview, editor, start, end, *_ = loaded
+        session["suggested_title"] = f"{sample_name} · edit"
         midi = None
         status = f"{sample_name} loaded. Use YourMT3+ to transcribe it, then edit the notes."
         if midi_name:
@@ -679,6 +700,26 @@ document.addEventListener('click', event => {
   const audio = button?.parentElement.querySelector('audio');
   if (audio) { audio.pause(); audio.currentTime = 0; }
 });
+function addAudioStartButtons() {
+  for (const id of ['upload-audio', 'source-audio', 'result-audio']) {
+    const player = document.getElementById(id);
+    const controls = player?.querySelector('[data-testid="waveform-controls"] .play-pause-wrapper');
+    if (!controls || controls.querySelector('.audio-restart')) continue;
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.className = 'audio-restart';
+    button.title = 'Go to start';
+    button.setAttribute('aria-label', 'Go to start');
+    button.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 4h3v16H5zM19 4v16L9 12z" fill="currentColor"/></svg>';
+    button.addEventListener('click', () => document.getElementById(id + '-start')?.click());
+    controls.prepend(button);
+  }
+}
+const audioControlsObserver = new MutationObserver(records => {
+  if (records.some(record => [...record.addedNodes].some(node => node.nodeType === 1))) addAudioStartButtons();
+});
+audioControlsObserver.observe(element.closest('.gradio-container'), {childList: true, subtree: true});
+addAudioStartButtons();
 function refreshPublishingStatus() {
   if (document.visibilityState !== 'visible') return;
   const refresh = document.querySelector('#publishing-auth-refresh');
@@ -703,9 +744,9 @@ def build_app():
                 with gr.Group(elem_classes="step-card"):
                     gr.Markdown("### 1 · Choose your audio")
                     with gr.Row():
-                        upload_start = gr.Button("⏮ Start", size="sm", render=False)
+                        upload_start = gr.Button("Go to start", visible="hidden", elem_id="upload-audio-start")
                         audio = gr.Audio(label="Upload a recording", sources=["upload"], type="filepath", editable=False,
-                                         buttons=[upload_start, "download"], elem_id="upload-audio")
+                                         buttons=["download"], elem_id="upload-audio")
                         with gr.Column():
                             gr.Markdown("Work on one clip of up to **20.48 seconds**. Choose a sample below or upload your own recording.")
                             with gr.Row():
@@ -718,8 +759,8 @@ def build_app():
                         slakh_example = gr.Button("Slakh · 20 s", elem_classes="sample-button")
                         kraisler_example = gr.Button("Kraisler · 20 s", elem_classes="sample-button")
                         jazz_example = gr.Button("Jazz intro · 11 s", elem_classes="sample-button")
-                    source_start = gr.Button("⏮ Start", size="sm", render=False)
-                    original_audio = gr.Audio(label="Original clip", interactive=False, type="filepath", buttons=[source_start, "download"], elem_id="source-audio")
+                    source_start = gr.Button("Go to start", visible="hidden", elem_id="source-audio-start")
+                    original_audio = gr.Audio(label="Original clip", interactive=False, type="filepath", buttons=["download"], elem_id="source-audio")
                 with gr.Group(elem_classes="step-card"):
                     gr.Markdown("### 2 · Edit the score")
                     with gr.Row():
@@ -752,14 +793,15 @@ def build_app():
                             drop_context_audio = gr.Checkbox(value=False, label="Drop audio context")
                     generate_button = gr.Button("Apply & Generate", variant="primary", size="lg")
                     status = gr.Markdown("Choose a recording or try a sample.", elem_id="run-status")
-                    output_start = gr.Button("⏮ Start", size="sm", render=False)
-                    output_audio = gr.Audio(label="Edited clip · 48 kHz mono", interactive=False, type="filepath", buttons=[output_start, "download"], elem_id="result-audio")
+                    output_start = gr.Button("Go to start", visible="hidden", elem_id="result-audio-start")
+                    output_audio = gr.Audio(label="Edited clip · 48 kHz mono", interactive=False, type="filepath", buttons=["download"], elem_id="result-audio")
                     generation_time = gr.Markdown("", elem_id="generation-time")
                 with gr.Group(elem_classes=["step-card", "share-card"]):
                     gr.Markdown("### Save & Share")
                     gr.Markdown("Save the last generated take, with the score and settings that produced it. Shared audio and MIDI are public.")
                     with gr.Row():
-                        work_title = gr.Textbox(label="Title · required", placeholder="Give this version a name", max_length=100)
+                        work_title = gr.Textbox(value=default_work_title(), label="Title", placeholder="Give this version a name", max_length=100)
+                        automatic_title = gr.State("")
                         work_description = gr.Textbox(label="Description · optional", placeholder="What did you change?", max_length=1000)
                     listed = gr.Checkbox(value=True, label="Show in gallery")
                     gr.Markdown("Publishing is currently curated by **mimbres**. Unlisted works are also public.", elem_classes="apply-note")
@@ -802,9 +844,12 @@ def build_app():
         for event in (load_event, slakh_event, kraisler_event, jazz_event, import_event, transcribe_event, generate_event):
             event.success(lambda: ("", ""), None, [share_link, save_status], queue=False,
                           show_progress="hidden", api_name=False)
+        for event in (load_event, slakh_event, kraisler_event, jazz_event):
+            event.success(suggest_work_title, [work_title, state, automatic_title], [work_title, automatic_title], queue=False,
+                          show_progress="hidden", api_name=False)
         output_audio.change(None, None, None, queue=False,
                             js="() => { window.dispatchEvent(new Event('spansynth-generated')); }")
-        save_button.click(publish_work, [work_title, work_description, listed, state], [share_link, gallery, save_status],
+        save_button.click(publish_work, [work_title, work_description, listed, state], [share_link, gallery, save_status, work_title],
                           api_name="save_work", concurrency_id="editing").then(
             publishing_status, None, [auth_status, sign_in_button], queue=False, show_progress="hidden", api_name=False)
         demo.load(publishing_status, None, [auth_status, sign_in_button], queue=False,
@@ -814,8 +859,11 @@ def build_app():
         shared_outputs = [*clip_outputs[:-1], method, steps, cfg, context_midi, drop_context_audio,
                           work_title, work_description, share_link, generation_time, auto_region,
                           audio, crop_start, duration]
-        demo.load(open_shared_work, [shared_id, state], shared_outputs, api_name="open_shared_work", concurrency_id="editing",
-                  js="(id, state) => [new URLSearchParams(location.search).get('work') || '', state]")
+        demo.load(initial_work_title, None, [work_title, automatic_title], queue=False,
+                  show_progress="hidden", api_name=False).then(
+            open_shared_work, [shared_id, state], shared_outputs, api_name="open_shared_work", concurrency_id="editing",
+            js="(id, state) => [new URLSearchParams(location.search).get('work') || '', state]").success(
+            lambda title: title, work_title, automatic_title, queue=False, show_progress="hidden", api_name=False)
         gallery_tab.select(gallery_html, None, gallery, api_name="gallery")
         refresh_gallery.click(gallery_html, None, gallery, api_name="refresh_gallery")
     return demo
