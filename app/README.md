@@ -30,7 +30,7 @@ Use **Apply edits** to save an updated MIDI file, or **Apply & Generate** to gen
 
 Three sample inputs are available: **Slakh**, **Kraisler**, and **Jazz intro** (*Piano Sway Intro B* by OurMusicBox). Slakh and Kraisler include aligned MIDI. Use YourMT3+ to transcribe the jazz sample. Downloaded audio and MIDI use the chosen clip's timeline.
 
-**Save & Share** preserves the last generated audio, its MIDI, and its editing settings. A shared link opens an editable copy without changing the published work. The **Gallery** lets visitors compare original and edited clips, then open a work in the editor. Publishing is currently limited to the `mimbres` HF account; viewing and editing need no login.
+**Save & Share** preserves the last generated audio, its MIDI, and its editing settings. Enter a title, then save to get a shareable link. Publishing is currently limited to the `mimbres` HF account; sign in to the Space in the new tab and return to your editing tab. The app shows your sign-in status. Viewing and editing need no login. A shared link opens an editable copy without changing the published work. The **Gallery** lets visitors compare original and edited clips, then open a work in the editor.
 
 Saved audio and MIDI are public in the [gallery dataset](https://huggingface.co/datasets/mimbres/spansynth-edit-gallery), including works not listed in the gallery. Unsaved uploads and results are temporary. GPU availability and usage limits are managed by Hugging Face ZeroGPU.
 

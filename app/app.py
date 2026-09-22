@@ -429,15 +429,30 @@ def gallery_html():
         return '<div class="gallery-empty"><p>The gallery is temporarily unavailable. Please refresh it in a moment.</p></div>'
 
 
+def publishing_status(profile: gr.OAuthProfile | None):
+    if profile is None:
+        message = ("Sign in to this Space to publish. Being signed in to the Hugging Face website alone does not "
+                   "authorize this Space. Sign-in opens a new tab; return here afterward to keep your work.")
+    elif profile.username == "mimbres":
+        message = "Signed in as **mimbres**. Ready to save your generated take."
+    else:
+        message = f"Signed in as **{escape(profile.username)}**. Publishing is currently limited to **mimbres**."
+    return gr.update(value=message), gr.update(visible=profile is None)
+
+
 def save_work(title, description, listed, session, profile: gr.OAuthProfile | None):
-    if profile is None or profile.username != "mimbres":
-        raise gr.Error("Publishing is currently limited to mimbres. Sign in, then return to this tab to save your work.")
+    if profile is None:
+        raise gr.Error("Sign in to this Space, then return to this tab and save. Your edit will stay here.")
+    if profile.username != "mimbres":
+        raise gr.Error("Publishing is currently limited to mimbres. Sign in with that account to save.")
     if not session or not session.get("take"):
         raise gr.Error("Generate an edited clip before saving a work.")
     title = str(title or "").strip()
     description = str(description or "").strip()
-    if not title or len(title) > 100 or len(description) > 1000:
-        raise gr.Error("Enter a title of up to 100 characters and a description of up to 1,000 characters.")
+    if not title:
+        raise gr.Error("Enter a title above, then click Save & Share again. Your generated take is still here.")
+    if len(title) > 100 or len(description) > 1000:
+        raise gr.Error("Keep the title within 100 characters and the description within 1,000 characters.")
     token = os.environ.get("SPANSYNTH_GALLERY_TOKEN")
     if not token and not os.environ.get("SPACE_ID"):
         token = get_token()
@@ -469,10 +484,27 @@ def save_work(title, description, listed, session, profile: gr.OAuthProfile | No
             repo_id=GALLERY_REPO, repo_type="dataset", commit_message=f"Save {title}",
             operations=[CommitOperationAdd(path_in_repo=f'{take["work_id"]}/{name}', path_or_fileobj=directory / name)
                         for name in files])
-    except Exception:
-        raise gr.Error("The work could not be saved. Your take is still here; please try again.") from None
+    except Exception as error:
+        status = getattr(getattr(error, "response", None), "status_code", None)
+        print(f"Gallery upload failed: {type(error).__name__}; HTTP {status}", flush=True)
+        if status in (401, 403):
+            raise gr.Error("The gallery's upload credential needs attention. Your edit is still here; download your audio and MIDI before leaving.") from None
+        raise gr.Error("The gallery could not be reached to save your work. Your take is still here; please try again.") from None
     gr.Info("Saved. Anyone with this link can listen and open an editable copy.")
     return SPACE_URL + "?work=" + take["work_id"], gallery_html()
+
+
+def publish_work(title, description, listed, session, profile: gr.OAuthProfile | None):
+    """Keep save feedback beside the button without clearing a previous share link."""
+    try:
+        link, gallery = save_work(title, description, listed, session, profile)
+    except gr.Error as error:
+        return gr.skip(), gr.skip(), f"**Not saved.** {escape(error.message)}"
+    except Exception as error:
+        print(f"Gallery save failed: {type(error).__name__}", flush=True)
+        return gr.skip(), gr.skip(), ("**Not saved.** The files could not be prepared. "
+                                     "Your edit is still here; download your audio and MIDI before leaving, then try saving again.")
+    return link, gallery, "**Saved.** Copy the link below to share this version."
 
 
 def load_work(work_id, old_session):
@@ -647,6 +679,13 @@ document.addEventListener('click', event => {
   const audio = button?.parentElement.querySelector('audio');
   if (audio) { audio.pause(); audio.currentTime = 0; }
 });
+function refreshPublishingStatus() {
+  if (document.visibilityState !== 'visible') return;
+  const refresh = document.querySelector('#publishing-auth-refresh');
+  (refresh?.matches('button') ? refresh : refresh?.querySelector('button'))?.click();
+}
+window.addEventListener('focus', refreshPublishingStatus);
+document.addEventListener('visibilitychange', refreshPublishingStatus);
 const observer = new MutationObserver(updateThemeButton);
 for (let node = element; node; node = node.parentElement)
   observer.observe(node, {attributes:true, attributeFilter:['class']});
@@ -657,7 +696,7 @@ updateThemeButton();
 def build_app():
     with gr.Blocks(title="SpanSynth-Edit", delete_cache=(3600, 3600)) as demo:
         gr.HTML('<header class="hero"><button class="theme-toggle" type="button" aria-label="Switch to dark mode">☾ Dark mode</button><div class="eyebrow">SPANSYNTH-EDIT · MIDI-GUIDED MUSIC EDITING</div><h1>Change the notes.<br><span>Keep the musical context.</span></h1><p>Upload a recording, edit its score, and hear a new version of the selected region.</p><div class="hero-links"><a href="https://mimbres.github.io/spansynth-edit/" target="_blank">Listen to demos ↗</a><a href="https://github.com/mimbres/spansynth-edit" target="_blank">Source code ↗</a><a href="https://huggingface.co/mimbres/spansynth-edit" target="_blank">Model weights ↗</a></div></header>', apply_default_css=False, js_on_load=THEME_JS)
-        state = gr.State(None, time_to_live=3600, delete_callback=cleanup)
+        state = gr.State(None, delete_callback=cleanup)
         shared_id = gr.Textbox(visible=False)
         with gr.Tabs():
             with gr.Tab("Editor", id="editor"):
@@ -720,16 +759,18 @@ def build_app():
                     gr.Markdown("### Save & Share")
                     gr.Markdown("Save the last generated take, with the score and settings that produced it. Shared audio and MIDI are public.")
                     with gr.Row():
-                        work_title = gr.Textbox(label="Title", placeholder="Give this version a name", max_length=100)
+                        work_title = gr.Textbox(label="Title · required", placeholder="Give this version a name", max_length=100)
                         work_description = gr.Textbox(label="Description · optional", placeholder="What did you change?", max_length=1000)
                     listed = gr.Checkbox(value=True, label="Show in gallery")
                     gr.Markdown("Publishing is currently curated by **mimbres**. Unlisted works are also public.", elem_classes="apply-note")
                     # Enable Gradio's OAuth routes; its built-in click handler reloads the editing tab.
                     gr.LoginButton(visible=False)
-                    gr.Button("Sign in to publish ↗", link="/login/huggingface", link_target="_blank",
-                              variant="huggingface", size="sm")
-                    gr.Markdown("Sign in opens a new tab. Return to this tab to save without losing your work.", elem_classes="apply-note")
+                    sign_in_button = gr.Button("Sign in to publish ↗", link="/login/huggingface", link_target="_blank",
+                                               variant="huggingface", size="sm")
+                    auth_status = gr.Markdown("Checking sign-in status…", elem_classes="apply-note")
+                    refresh_auth = gr.Button("Refresh sign-in status", visible="hidden", elem_id="publishing-auth-refresh")
                     save_button = gr.Button("Save & Share", variant="primary")
+                    save_status = gr.Markdown("", elem_classes="apply-note", elem_id="save-status")
                     share_link = gr.Textbox(label="Saved work link", interactive=False, buttons=["copy"])
             with gr.Tab("Gallery", id="gallery") as gallery_tab:
                 gr.Markdown("## Made with SpanSynth-Edit")
@@ -760,8 +801,13 @@ def build_app():
                               [output_audio, target_download, status, generation_time], api_name="generate", concurrency_id="editing")
         output_audio.change(None, None, None, queue=False,
                             js="() => { window.dispatchEvent(new Event('spansynth-generated')); }")
-        save_button.click(save_work, [work_title, work_description, listed, state], [share_link, gallery],
-                          api_name="save_work", concurrency_id="editing")
+        save_button.click(publish_work, [work_title, work_description, listed, state], [share_link, gallery, save_status],
+                          api_name="save_work", concurrency_id="editing").then(
+            publishing_status, None, [auth_status, sign_in_button], queue=False, show_progress="hidden", api_name=False)
+        demo.load(publishing_status, None, [auth_status, sign_in_button], queue=False,
+                  show_progress="hidden", api_name=False)
+        refresh_auth.click(publishing_status, None, [auth_status, sign_in_button], queue=False,
+                           show_progress="hidden", api_name=False)
         shared_outputs = [*clip_outputs[:-1], method, steps, cfg, context_midi, drop_context_audio,
                           work_title, work_description, share_link, generation_time, auto_region,
                           audio, crop_start, duration]

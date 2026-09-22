@@ -95,9 +95,54 @@ def test_gallery_rejects_anonymous_and_other_publishers(monkeypatch):
     def unexpected_write(*args, **kwargs):
         pytest.fail("An unauthorized user must not reach storage")
     monkeypatch.setattr(app, "HfApi", unexpected_write)
-    for visitor in (None, profile("visitor")):
-        with pytest.raises(app.gr.Error, match="limited to mimbres"):
+    for visitor, message in ((None, "Sign in to this Space"), (profile("visitor"), "limited to mimbres")):
+        with pytest.raises(app.gr.Error, match=message):
             app.save_work("My edit", "", True, {}, visitor)
+
+
+def test_missing_title_leaves_take_and_previous_link_untouched(monkeypatch):
+    def unexpected_write(*args, **kwargs):
+        pytest.fail("A missing title must not reach storage")
+    monkeypatch.setattr(app, "HfApi", unexpected_write)
+    session = {"take": {"directory": "still-here"}}
+    link, gallery, message = app.publish_work("  ", "", True, session, profile("mimbres"))
+    assert link == gallery == app.gr.skip()
+    assert "Enter a title above" in message
+    assert session == {"take": {"directory": "still-here"}}
+
+
+def test_save_feedback_survives_preparation_errors(monkeypatch):
+    def failed_save(*args):
+        raise OSError("private server detail")
+    monkeypatch.setattr(app, "save_work", failed_save)
+    link, gallery, message = app.publish_work("My edit", "", True, {}, profile("mimbres"))
+    assert link == gallery == app.gr.skip()
+    assert "files could not be prepared" in message
+    assert "private server detail" not in message
+
+
+def test_publishing_status_reflects_current_account():
+    message, button = app.publishing_status(None)
+    assert button["visible"] and "Sign in to this Space" in message["value"]
+    message, button = app.publishing_status(profile("mimbres"))
+    assert not button["visible"] and "Signed in as **mimbres**" in message["value"]
+    message, button = app.publishing_status(profile("visitor"))
+    assert not button["visible"] and "limited to **mimbres**" in message["value"]
+
+
+def test_open_editing_session_survives_an_hour_but_closed_sessions_expire():
+    from datetime import datetime, timedelta
+    from gradio.state_holder import SessionState
+    demo = app.build_app()
+    state = next(block for block in demo.blocks.values() if isinstance(block, app.gr.State))
+    session = SessionState(demo)
+    session[state._id] = {"take": {}}
+    ttl, _ = session._state_ttl[state._id]
+    session._state_ttl[state._id] = (ttl, datetime.now() - timedelta(hours=2))
+    session[state._id]["take"]["notes"] = [note()]
+    assert not list(session.state_components)[0][2]
+    session.is_closed = True
+    assert list(session.state_components)[0][2]
 
 
 def test_saved_work_restores_the_generated_take_and_can_be_edited(tmp_path, monkeypatch):
