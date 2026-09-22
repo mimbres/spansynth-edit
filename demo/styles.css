@@ -13,10 +13,10 @@
 .crop-select{color:var(--teal);font-weight:650}
 .crop-select select{border:2px solid var(--teal);box-shadow:0 0 0 3px color-mix(in srgb,var(--teal) 10%,transparent);font-weight:500}
 .crop-select select:hover{box-shadow:0 0 0 3px color-mix(in srgb,var(--teal) 20%,transparent)}
-.sections .featured-tab{--tab-accent:var(--lilac-ink);--tab-tint:var(--lilac);border:1px solid color-mix(in srgb,var(--tab-accent) 40%,var(--line));border-radius:12px 12px 12px 4px;background:linear-gradient(125deg,var(--tab-tint),var(--surface) 90%);color:var(--tab-accent)}
-.sections .featured-tab[data-section=bonus]{--tab-accent:var(--gold);--tab-tint:var(--cream)}
-.sections .featured-tab:hover,.sections .featured-tab[aria-pressed=true]{border-color:var(--tab-accent)}
-.sections .featured-tab[aria-pressed=true]{background:linear-gradient(125deg,var(--tab-tint),var(--surface) 150%);color:var(--tab-accent);box-shadow:inset 0 -3px 0 var(--tab-accent)}
+.sections .featured-tab{--tab-accent:var(--lilac-ink);border:1px solid color-mix(in srgb,var(--tab-accent) 25%,var(--line));border-radius:12px 12px 12px 4px;background:transparent;color:var(--tab-accent)}
+.sections .featured-tab[data-section=bonus]{--tab-accent:var(--gold)}
+.sections .featured-tab:hover{border-color:var(--tab-accent)}
+.sections button[aria-pressed=true],.sections .featured-tab[aria-pressed=true]{background:var(--lilac);color:var(--lilac-ink);border-color:var(--lilac-ink);box-shadow:inset 0 -3px 0 var(--lilac-ink)}
 .sections button .tab-icon{display:inline-block;margin:0 7px 0 0;font-size:1em}
 .ours-tag{white-space:nowrap;flex-shrink:0}
 
