@@ -10,6 +10,11 @@
   <a href="https://huggingface.co/mimbres/spansynth-edit"><img src="https://img.shields.io/badge/Model%20weights-CBE3D6?style=for-the-badge&amp;logo=huggingface&amp;logoColor=334155" alt="Model weights on Hugging Face" height="32"></a>
 </p>
 
+<p align="center">
+  <a href="#system-requirements"><img src="https://img.shields.io/badge/NVIDIA%20CUDA-D9ECC8?style=for-the-badge&amp;logo=nvidia&amp;logoColor=334155" alt="NVIDIA CUDA supported" height="24"></a>&nbsp;
+  <a href="#system-requirements"><img src="https://img.shields.io/badge/Apple%20Metal%20(MPS)-D8E5F6?style=for-the-badge&amp;logo=apple&amp;logoColor=334155" alt="Apple Silicon GPU supported via Metal (PyTorch MPS)" height="24"></a>
+</p>
+
 Synthesise music from MIDI, or add, remove, and modify notes in a recording by revising its MIDI. SpanSynth-Edit generates the selected region, using surrounding audio for timbre guidance.
 
 <p align="center">
@@ -31,7 +36,7 @@ Synthesise music from MIDI, or add, remove, and modify notes in a recording by r
 
 - **Python:** 3.11–3.13 with [PyTorch](https://pytorch.org/get-started/locally/).
 - **NVIDIA GPU:** CUDA with bfloat16 support. **6 GB VRAM recommended.**
-- **Apple Silicon:** supported through PyTorch MPS. Tested on an **M1 Pro with 16 GB unified memory** and PyTorch 2.13.
+- **Apple Silicon GPU:** supported through **Metal (PyTorch MPS)**. Tested on an **M1 Pro with 16 GB unified memory** and PyTorch 2.13.
 - CPU inference is also supported.
 
 Measured peak VRAM was **about 3.9 GiB** on a GH200 for synthesis and both editing methods with default settings (20.48 s crop, 16 steps, CFG 2.0).
