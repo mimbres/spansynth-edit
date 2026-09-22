@@ -1,21 +1,28 @@
----
-license: apache-2.0
-tags:
-  - audio
-  - music
-  - midi
-  - midi-to-audio
-  - audio-to-audio
-  - flow-matching
----
+<h1 align="center">SpanSynth-Edit</h1>
 
-# SpanSynth-Edit
+<p align="center">
+  <strong>MIDI-guided synthesis and editing of multi-instrument audio mixtures</strong>
+</p>
 
-SpanSynth-Edit synthesises and edits multi-instrument audio mixtures from MIDI, using surrounding audio for timbre guidance. To edit a recording, add, remove, or modify notes in its MIDI, then resynthesise the selected region.
+<p align="center">
+  <a href="https://mimbres.github.io/spansynth-edit/"><strong>Listen to demos</strong></a> &nbsp;·&nbsp;
+  <a href="https://github.com/mimbres/spansynth-edit"><strong>Source code</strong></a> &nbsp;·&nbsp;
+  <a href="https://huggingface.co/mimbres/spansynth-edit"><strong>Model weights</strong></a>
+</p>
 
-[Project page and audio demos](https://mimbres.github.io/spansynth-edit/) · [Source code](https://github.com/mimbres/spansynth-edit) · [Model weights](https://huggingface.co/mimbres/spansynth-edit)
+Add, remove, or modify notes in a recording by revising its MIDI. SpanSynth-Edit resynthesises the selected region, using surrounding audio for timbre guidance.
 
-![SpanSynth-Edit model overview](https://raw.githubusercontent.com/mimbres/spansynth-edit/main/demo/assets/FigureDraft-fig1-retro-04.svg)
+<p align="center">
+  <img src="https://raw.githubusercontent.com/mimbres/spansynth-edit/main/demo/assets/FigureDraft-fig1-retro-04.svg" alt="SpanSynth-Edit model overview" width="100%">
+</p>
+
+<p align="center">
+  <a href="#install">Install</a> &nbsp;·&nbsp;
+  <a href="#try-an-example">Examples</a> &nbsp;·&nbsp;
+  <a href="#timing-and-instruments">Timing &amp; MIDI</a> &nbsp;·&nbsp;
+  <a href="#results">Results</a> &nbsp;·&nbsp;
+  <a href="#citation">Citation</a>
+</p>
 
 ## Install
 
@@ -34,7 +41,10 @@ Model and codec weights download automatically on first use without a token. Run
 
 ## Try an example
 
-Choose `spansynth-edit` (default) or `spansynth-edit + flowedit`. Both default to **16 Euler steps and CFG 2**, with audio context enabled and context MIDI omitted.
+> **Defaults:** `spansynth-edit` · 16 Euler steps · CFG 2<br>
+> Audio context enabled · Context MIDI omitted
+
+### Example files
 
 From the repository directory, download the sample audio and its original and revised MIDI files (about 0.5 MB total):
 
@@ -48,7 +58,9 @@ for name in early-slakh-track00006-original.mp3 \
 done
 ```
 
-`spansynth-edit` resynthesises the selected region from the revised MIDI:
+### `spansynth-edit`
+
+Resynthesise the selected region from the revised MIDI:
 
 ```bash
 spansynth-edit edit \
@@ -57,7 +69,9 @@ spansynth-edit edit \
   --output ../spansynth-results/slakh-edit
 ```
 
-For `spansynth-edit + flowedit`, provide both the original and revised MIDI:
+### `spansynth-edit + flowedit`
+
+Provide both the original and revised MIDI:
 
 ```bash
 spansynth-edit edit --method flowedit \
@@ -67,7 +81,9 @@ spansynth-edit edit --method flowedit \
   --output ../spansynth-results/slakh-flowedit
 ```
 
-To synthesise a region from a score with `spansynth-edit`, use `synthesize`. The recording supplies the surrounding audio context:
+### Synthesis
+
+Use `spansynth-edit synthesize` to generate a region from a score. The recording supplies the surrounding audio context:
 
 ```bash
 spansynth-edit synthesize \
@@ -96,12 +112,12 @@ The [instrument vocabulary](https://github.com/mimbres/spansynth-edit/blob/main/
 
 ## Results
 
-Each output folder contains:
-
-- `output.wav`: the full crop with the synthesised or edited region.
-- `generated.wav`: the generated region only.
-- `input.wav`: the source crop converted to 48 kHz mono.
-- `run.json`: settings and timing.
+| File | Contents |
+| --- | --- |
+| `output.wav` | Full crop with the synthesised or edited region |
+| `generated.wav` | Generated region only |
+| `input.wav` | Source crop converted to 48 kHz mono |
+| `run.json` | Settings and timing |
 
 All audio outputs are 48 kHz mono. Outside the generated region, `output.wav` matches `input.wav` exactly. Use `--overwrite` to replace existing results.
 
