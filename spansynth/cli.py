@@ -53,11 +53,12 @@ def build_parser():
         sub.add_argument("--program", type=int, help="Override every target MIDI note's program (0-127, 128=drums)")
         sub.add_argument("--source-program", type=int, help="Override every source MIDI note's program")
         sub.add_argument("--steps", type=positive_int, default=16, help="Euler steps (default: 16)")
-        sub.add_argument("--cfg", type=finite, default=2.0, help="MIDI classifier-free guidance (default: 2)")
+        sub.add_argument("--cfg", type=finite, default=2.0, help="MIDI classifier-free guidance scale (default: 2.0)")
         sub.add_argument("--context-midi", action="store_true", help="Use source MIDI outside the interval; dropped by default")
         sub.add_argument("--drop-context-audio", action="store_true", help="Zero the static clean-audio condition; kept by default")
         if command == "edit":
-            sub.add_argument("--method", choices=("ordinary", "flowedit"), default="ordinary")
+            sub.add_argument("--method", choices=("ordinary", "flowedit"), default="ordinary",
+                             help="ordinary: spansynth-edit (default); flowedit: spansynth-edit + flowedit")
             sub.add_argument("--start-step", type=int, default=0, help="FlowEdit starting step (default: 0)")
             sub.add_argument("--average", type=positive_int, default=1, help="FlowEdit noise samples per step")
         else:
