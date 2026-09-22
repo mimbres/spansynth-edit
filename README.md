@@ -4,6 +4,7 @@ tags:
   - audio
   - music
   - midi
+  - midi-to-audio
   - audio-to-audio
   - flow-matching
 ---
