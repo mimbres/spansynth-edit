@@ -41,8 +41,8 @@ Model and codec weights download automatically on first use without a token. Run
 
 ## Try an example
 
-> **Defaults:** `spansynth-edit` · 16 Euler steps · CFG 2<br>
-> Audio context enabled · Context MIDI omitted
+**Defaults:** `spansynth-edit` · 16 Euler steps · CFG 2<br>
+Audio context enabled · Context MIDI omitted
 
 ### Example files
 
@@ -58,7 +58,7 @@ for name in early-slakh-track00006-original.mp3 \
 done
 ```
 
-### `spansynth-edit`
+### spansynth-edit
 
 Resynthesise the selected region from the revised MIDI:
 
@@ -69,7 +69,7 @@ spansynth-edit edit \
   --output ../spansynth-results/slakh-edit
 ```
 
-### `spansynth-edit + flowedit`
+### spansynth-edit + flowedit
 
 Provide both the original and revised MIDI:
 
