@@ -1,13 +1,38 @@
 import json
 import numpy as np
+import pytest
 import soundfile as sf
+import torch
 from mido import MidiFile, MidiTrack, Message
-from spansynth.cli import build_parser, main
+from spansynth.cli import build_parser, main, resolve_device
 
 
 def test_requested_defaults():
     args = build_parser().parse_args(["edit", "--audio", "a.wav", "--midi", "a.mid", "--output", "out"])
     assert (args.steps, args.cfg, args.method, args.context_midi, args.drop_context_audio) == (16, 2, "ordinary", False, False)
+
+
+@pytest.mark.parametrize("cuda,mps,expected", [(True, True, "cuda"), (False, True, "mps"), (False, False, "cpu")])
+def test_auto_device_priority(monkeypatch, cuda, mps, expected):
+    monkeypatch.setattr(torch.cuda, "is_available", lambda: cuda)
+    monkeypatch.setattr(torch.backends.mps, "is_available", lambda: mps)
+    assert str(resolve_device("auto")) == expected
+    assert str(resolve_device("cpu")) == "cpu"
+
+
+def test_explicit_device_selection(monkeypatch):
+    monkeypatch.setattr(torch.cuda, "is_available", lambda: True)
+    monkeypatch.setattr(torch.backends.mps, "is_available", lambda: True)
+    assert str(resolve_device("mps")) == "mps"
+    assert str(resolve_device("cuda:1")) == "cuda:1"
+    monkeypatch.setattr(torch.backends.mps, "is_available", lambda: False)
+    with pytest.raises(ValueError, match="Apple GPU.*not available"):
+        resolve_device("mps")
+    monkeypatch.setattr(torch.cuda, "is_available", lambda: False)
+    with pytest.raises(ValueError, match="CUDA.*not available"):
+        resolve_device("cuda")
+    with pytest.raises(ValueError, match="Supported devices"):
+        resolve_device("meta")
 
 
 def test_preflight_resampling_stereo_timing_and_no_output(tmp_path, capsys):

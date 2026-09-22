@@ -63,7 +63,7 @@ def build_parser():
             sub.add_argument("--average", type=positive_int, default=1, help="FlowEdit noise samples per step")
         else:
             sub.set_defaults(method="ordinary", start_step=0, average=1)
-        sub.add_argument("--device", default="auto", help="auto, cpu, cuda, or cuda:N (CUDA recommended)")
+        sub.add_argument("--device", default="auto", help="auto selects CUDA, then Apple GPU (mps), then CPU; or choose cpu, mps, cuda, cuda:N")
         sub.add_argument("--attention", choices=("auto", "flash", "math"), default="auto")
         sub.add_argument("--threads", type=positive_int, default=8, help="CPU thread count")
         sub.add_argument("--output", type=Path, required=True, help="Directory for output.wav, generated.wav, input.wav, and run.json")
@@ -106,6 +106,21 @@ def validate_args(args):
     if not args.overwrite and any(path.exists() for path in paths):
         raise FileExistsError("Result files already exist; choose another output directory or use --overwrite")
     return paths
+
+
+def resolve_device(name):
+    import torch
+
+    if name == "auto":
+        name = "cuda" if torch.cuda.is_available() else "mps" if torch.backends.mps.is_available() else "cpu"
+    device = torch.device(name)
+    if device.type not in ("cpu", "cuda", "mps"):
+        raise ValueError("Supported devices are cpu, mps, cuda, or cuda:N")
+    if device.type == "cuda" and not torch.cuda.is_available():
+        raise ValueError("CUDA was requested but is not available in this PyTorch installation")
+    if device.type == "mps" and not torch.backends.mps.is_available():
+        raise ValueError("Apple GPU (MPS) was requested but is not available; use an MPS-enabled PyTorch installation on a supported Mac, or --device cpu")
+    return device
 
 
 def run(args):
@@ -153,12 +168,7 @@ def run(args):
     if args.check_inputs:
         print(json.dumps(details, indent=2))
         return 0
-    device_name = "cuda" if args.device == "auto" and torch.cuda.is_available() else "cpu" if args.device == "auto" else args.device
-    device = torch.device(device_name)
-    if device.type not in ("cpu", "cuda"):
-        raise ValueError("Supported devices are cpu, cuda, or cuda:N")
-    if device.type == "cuda" and not torch.cuda.is_available():
-        raise ValueError("CUDA was requested but is not available in this PyTorch installation")
+    device = resolve_device(args.device)
     if device.type == "cuda":
         with torch.cuda.device(device):
             if not torch.cuda.is_bf16_supported():

@@ -4,6 +4,7 @@ import torch
 from mido import MidiFile, MidiTrack, Message, MetaMessage
 from spansynth.midi import read_notes, prepare_midi, encode_midi, NOTE_DTYPE
 from spansynth.sampling import _without_generated_notes
+from spansynth.model import EventSetEncoder
 
 
 def test_tempo_sustain_and_crop_alignment(tmp_path):
@@ -47,3 +48,35 @@ def test_unsupported_instrument_fails_clearly():
     notes = np.array([(0, 48000, 60, 90, 127, 0)], dtype=NOTE_DTYPE)
     with pytest.raises(ValueError, match="Fine40"):
         encode_midi(notes, torch.ones(512, dtype=torch.bool))
+
+
+@pytest.mark.parametrize("device", ["cpu", pytest.param("mps", marks=pytest.mark.skipif(
+    not torch.backends.mps.is_available(), reason="Apple GPU unavailable"))])
+def test_empty_midi_chunks_return_zero(device):
+    encoder = EventSetEncoder().to(device).eval()
+    kind = torch.ones((2, 4, 16), dtype=torch.long, device=device)
+    pitch = torch.full_like(kind, 60)
+    numeric = torch.ones((*kind.shape, 7), device=device)
+    valid = torch.ones_like(kind, dtype=torch.bool)
+    with torch.inference_mode():
+        # Exercise a populated chunk before the empty chunk with the same shape.
+        encoder._encode_and_pool_packed_chunk(kind, pitch, numeric, valid)
+        outputs = encoder._encode_and_pool_packed_chunk(kind, pitch, numeric, ~valid)
+    for output in outputs:
+        assert torch.equal(output, torch.zeros_like(output))
+
+
+@pytest.mark.skipif(not torch.backends.mps.is_available(), reason="Apple GPU unavailable")
+def test_mps_midi_encoding_matches_cpu():
+    from copy import deepcopy
+
+    encoder = EventSetEncoder().eval()
+    apple_encoder = deepcopy(encoder).to("mps")
+    notes = np.array([(0, 48000, 48 + i, 90, 0, i) for i in range(20)], dtype=NOTE_DTYPE)
+    rows = encode_midi(notes, torch.ones(512, dtype=torch.bool))
+    # Include populated chunks, empty chunks, and frames without any notes.
+    args = tuple(rows[key][None] for key in ("kind_id", "pitch_id", "numeric", "event_valid"))
+    with torch.inference_mode():
+        expected = encoder(*args)
+        actual = apple_encoder(*(value.to("mps") for value in args)).cpu()
+    torch.testing.assert_close(actual, expected, rtol=1e-4, atol=1e-5)

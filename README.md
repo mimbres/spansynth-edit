@@ -30,8 +30,9 @@ Synthesise music from MIDI, or add, remove, and modify notes in a recording by r
 ### System requirements
 
 - **Python:** 3.11–3.13 with [PyTorch](https://pytorch.org/get-started/locally/).
-- **GPU:** NVIDIA CUDA with bfloat16 support. **6 GB VRAM recommended.**
-- CPU inference is also supported. Apple GPUs are not supported.
+- **NVIDIA GPU:** CUDA with bfloat16 support. **6 GB VRAM recommended.**
+- **Apple Silicon:** supported through PyTorch MPS. Tested on an **M1 Pro with 16 GB unified memory** and PyTorch 2.13.
+- CPU inference is also supported.
 
 Measured peak VRAM was **about 3.9 GiB** on a GH200 for synthesis and both editing methods with default settings (20.48 s crop, 16 steps, CFG 2.0).
 
@@ -138,7 +139,7 @@ All times are in **seconds**.
 | Option | Default | Use |
 | --- | --- | --- |
 | `--output` | required | Folder for generated audio and run settings. |
-| `--device` | `auto` | Choose `cpu`, `cuda`, or `cuda:N`. `auto` uses CUDA when available. |
+| `--device` | `auto` | Choose `cpu`, `mps` (Apple GPU), `cuda`, or `cuda:N`. `auto` tries CUDA, then MPS, then CPU. |
 | `--overwrite` | off | Replace existing results in the output folder. |
 
 ## Timing and instruments

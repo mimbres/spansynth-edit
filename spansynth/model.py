@@ -253,15 +253,19 @@ class EventSetEncoder(nn.Module):
         all_sum = encoded.new_zeros(
             batch * frames,
             self.config.row_dim,
-        ).index_add(0, frame_index, encoded)
-        logits = encoded @ self.pool_queries.transpose(0, 1)
-        gates = (logits * (1.0 / math.sqrt(self.config.row_dim))).sigmoid()
-        contributions = gates[..., None] * encoded[:, None, :]
+        )
         gated_sums = encoded.new_zeros(
             batch * frames,
             self.config.learned_pool_tokens,
             self.config.row_dim,
-        ).index_add(0, frame_index, contributions)
+        )
+        # Empty-source index_add can return uninitialised values on MPS.
+        if frame_index.numel():
+            all_sum = all_sum.index_add(0, frame_index, encoded)
+            logits = encoded @ self.pool_queries.transpose(0, 1)
+            gates = (logits * (1.0 / math.sqrt(self.config.row_dim))).sigmoid()
+            contributions = gates[..., None] * encoded[:, None, :]
+            gated_sums = gated_sums.index_add(0, frame_index, contributions)
         return (
             all_sum.reshape(batch, frames, self.config.row_dim),
             gated_sums.reshape(
