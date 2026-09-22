@@ -38,7 +38,7 @@ git sparse-checkout set spansynth
 python -m pip install .
 ```
 
-Model and codec weights download automatically on first use without a token. Run `spansynth-edit download` to download them in advance. Use `--cache-dir` to choose a cache folder or `--offline` to use cached weights.
+Model and codec weights download automatically on first use. No token is required.
 
 ## Try an example
 
@@ -98,7 +98,7 @@ Add `--check-inputs` to validate audio, MIDI, and timing without loading the mod
 
 ## Options
 
-Omitted options use the defaults below. Flags marked **off** are enabled by adding them to the command. Run `spansynth-edit edit --help` or `spansynth-edit synthesize --help` for command-specific help.
+Common options are listed below. Flags marked **off** are enabled by adding them to the command. For all options, run `spansynth-edit edit --help` or `spansynth-edit synthesize --help`.
 
 ### Generation
 
@@ -109,12 +109,10 @@ Omitted options use the defaults below. Flags marked **off** are enabled by addi
 | `--steps` | `16` | Number of Euler steps. |
 | `--context-midi` | off | Use original MIDI outside the generated region. Requires `--source-midi`. |
 | `--drop-context-audio` | off | Drop the clean-audio condition. Audio outside the generated region is still preserved. |
-| `--start-step` | `0` | First active step for `spansynth-edit + flowedit`, from 0 to `--steps - 1`. |
-| `--average` | `1` | Noise samples averaged per step for `spansynth-edit + flowedit`. Higher values use more computation and memory. |
 
 ### Inputs and timing
 
-All times are in **seconds**. Instrument overrides apply to every note in the corresponding MIDI file.
+All times are in **seconds**.
 
 | Option | Default | Use |
 | --- | --- | --- |
@@ -126,8 +124,6 @@ All times are in **seconds**. Instrument overrides apply to every note in the co
 | `--edit-start`, `--edit-end` | `6.40`, `14.08` | Generated region relative to the crop. |
 | `--midi-offset` | `0.0` | Offset added to target MIDI times to obtain audio times. |
 | `--source-midi-offset` | `0.0` | Offset added to original MIDI times to obtain audio times. |
-| `--program` | from MIDI | Override the target instrument using a supported [program number](https://github.com/mimbres/spansynth-edit/blob/main/spansynth/vocabulary.py). |
-| `--source-program` | from MIDI | Override the original instrument using a supported program number. |
 
 ### Execution and output
 
@@ -135,16 +131,7 @@ All times are in **seconds**. Instrument overrides apply to every note in the co
 | --- | --- | --- |
 | `--output` | required | Folder for generated audio and run settings. |
 | `--device` | `auto` | Choose `cpu`, `cuda`, or `cuda:N`. `auto` uses CUDA when available. |
-| `--threads` | `8` | Number of CPU threads. |
-| `--attention` | `auto` | Attention backend: `auto`, `flash` (CUDA only), or `math`. |
-| `--check-inputs` | off | Validate inputs without loading weights or generating audio. |
 | `--overwrite` | off | Replace existing results in the output folder. |
-| `--save-codes` | off | Also save SQ latent codes in `codes.safetensors`. |
-| `--cache-dir` | HF cache | Choose where downloaded weights are cached. |
-| `--offline` | off | Use local weights or the cache without downloading. |
-| `--checkpoint` | HF model | Use a local folder containing `config.json` and `model.safetensors`. |
-| `--codec-dir` | HF codec | Use a local folder containing the bundled codec files. |
-| `--revision` | `main` | Select a branch, tag, or commit in the HF model repository. |
 
 ## Timing and instruments
 
