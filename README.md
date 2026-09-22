@@ -22,9 +22,12 @@ The CLI defaults to **16 Euler steps, CFG 2, ordinary generation, context MIDI d
 
 Use Python 3.11–3.13. A CUDA GPU supporting bfloat16 is recommended. Install a PyTorch build appropriate for your GPU and driver using the [official PyTorch instructions](https://pytorch.org/get-started/locally/) before installing this package. CPU execution is supported but a full checkpoint run is expensive. Apple GPU execution is not supported.
 
+For CLI use, download only the root files and inference package. This shallow, sparse clone skips the demo audio and earlier Git history:
+
 ```bash
-git clone https://github.com/mimbres/spansynth-edit.git
+git clone --depth 1 --filter=blob:none --sparse https://github.com/mimbres/spansynth-edit.git
 cd spansynth-edit
+git sparse-checkout set spansynth
 python -m pip install .
 spansynth-edit --help
 ```
@@ -55,14 +58,26 @@ NOTICE
 
 The SQ files are the exact frozen scalar codec used with this checkpoint. They are not the complete HeartCodec music-generation pipeline or a fine-tuned decoder. To use manually downloaded files, pass both `--checkpoint /path/to/v3-sq-v8-127750step` and `--codec-dir /path/to/heartcodec-sq`.
 
-## Try the included example
+## Try an example
 
-Run these from the Git clone. The example's audio and MIDI already use the same crop-relative timeline. Outputs can be stored outside the checkout:
+Run these from the Git clone. Download just the example audio and its two MIDI files (about 0.5 MB combined) into a folder outside the checkout:
+
+```bash
+mkdir -p ../spansynth-inputs
+for name in early-slakh-track00006-original.mp3 \
+            early-slakh-track00006-before.mid \
+            early-slakh-track00006-after.mid; do
+  curl --fail --location --output "../spansynth-inputs/$name" \
+    "https://raw.githubusercontent.com/mimbres/spansynth-edit/main/demo/assets/$name"
+done
+```
+
+The audio and MIDI already use the same crop-relative timeline. Save the edited result outside the checkout:
 
 ```bash
 spansynth-edit edit \
-  --audio demo/assets/early-slakh-track00006-original.mp3 \
-  --midi demo/assets/early-slakh-track00006-after.mid \
+  --audio ../spansynth-inputs/early-slakh-track00006-original.mp3 \
+  --midi ../spansynth-inputs/early-slakh-track00006-after.mid \
   --output ../spansynth-results/slakh-edit
 ```
 
@@ -70,9 +85,9 @@ This uses ordinary generation, 16 steps, CFG 2, and no context MIDI. To use Flow
 
 ```bash
 spansynth-edit edit --method flowedit \
-  --audio demo/assets/early-slakh-track00006-original.mp3 \
-  --source-midi demo/assets/early-slakh-track00006-before.mid \
-  --midi demo/assets/early-slakh-track00006-after.mid \
+  --audio ../spansynth-inputs/early-slakh-track00006-original.mp3 \
+  --source-midi ../spansynth-inputs/early-slakh-track00006-before.mid \
+  --midi ../spansynth-inputs/early-slakh-track00006-after.mid \
   --output ../spansynth-results/slakh-flowedit
 ```
 
@@ -159,6 +174,12 @@ Use `--device cuda:0` to select a GPU, `--threads` to limit CPU threads, and `--
 
 ## Release and development
 
+If you used the sparse clone above, fetch the export script and tests before running the development commands:
+
+```bash
+git sparse-checkout add scripts tests
+```
+
 The inference code preserves V8 parameter names and uses strict safetensors loading. Training state, optimizer files, evaluation models and dataset preparation are excluded. To export the approved research checkpoint and codec into a release directory outside the checkout:
 
 ```bash
@@ -177,7 +198,7 @@ PYTHONDONTWRITEBYTECODE=1 python -m pytest -q
 
 Validation on a Jupiter GH200 with Python 3.12 and PyTorch 2.13 / CUDA 13 completed synthesis, ordinary editing and FlowEdit at the default 16 steps. All three produced finite 48 kHz outputs with unchanged samples outside the applied interval. Small-model numerical comparisons matched the original MIDI conditions and quantized Euler/FlowEdit outputs. These checks establish execution and numerical behavior, not perceptual quality.
 
-The existing static website uses `index.html` and `demo/`, with no Python build required. See [demo maintenance notes](https://github.com/mimbres/spansynth-edit/blob/main/demo/README.md). Spaces, automatic transcription and an interactive MIDI editor are follow-up work.
+The existing static website uses `index.html` and `demo/`, with no Python build required. To work on the website from a sparse clone, run `git sparse-checkout add demo`; this downloads the demo assets, including all audio. See [demo maintenance notes](https://github.com/mimbres/spansynth-edit/blob/main/demo/README.md). Spaces, automatic transcription and an interactive MIDI editor are follow-up work.
 
 ## License and credits
 
