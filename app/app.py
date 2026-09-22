@@ -675,7 +675,7 @@ EDITOR_HTML = """
     <p>Click the waveform to seek · Drag across it to listen to a range · Select notes to preview only those notes</p>
     <p><kbd>Shift</kbd> + click to add to selection · <kbd>↑</kbd> <kbd>↓</kbd> transpose · <kbd>Shift</kbd> + arrows for an octave · <kbd>Del</kbd> remove</p>
     <p><kbd>Ctrl</kbd> / <kbd>⌘ Cmd</kbd> + <kbd>Z</kbd> undo · <kbd>V</kbd> select · <kbd>D</kbd> pencil · <kbd>E</kbd> eraser · <kbd>Esc</kbd> clear selection</p>
-    <p>Click piano keys or draw notes to hear the selected GM instrument. Drums use a sampled kit. These preview sounds differ from the generated audio.</p>
+    <p>Click piano keys, draw notes, or move them with arrows or dragging to hear the selected GM instrument. Drums use a sampled kit. These preview sounds differ from the generated audio.</p>
   </div>
   <p data-role="detail" class="roll-detail">Load a clip to begin.</p>
 </div>

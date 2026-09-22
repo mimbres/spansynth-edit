@@ -147,8 +147,21 @@ function createNote(p) {
 function moveNotes(originals, seconds, semitones) {
   const dt=clamp(seconds,-Math.min(...originals.map(n=>n.start)),data.duration-Math.max(...originals.map(n=>n.start+n.duration)));
   const dp=clamp(semitones,-Math.min(...originals.map(n=>n.pitch)),127-Math.max(...originals.map(n=>n.pitch)));
-  for (const n of originals) {const current=data.notes.find(item=>item.id===n.id); if(current) {current.start=n.start+dt; current.pitch=n.pitch+dp;}}
+  let moved=false;
+  for (const n of originals) {const current=data.notes.find(item=>item.id===n.id); if(current) {
+    moved ||= current.start!==n.start+dt || current.pitch!==n.pitch+dp;
+    current.start=n.start+dt; current.pitch=n.pitch+dp;
+  }}
   timeRange=null;
+  return moved;
+}
+function previewMovedNote(movement, finish=false) {
+  const note=data.notes.find(n=>n.id===movement.id), previous=movement.preview, now=performance.now();
+  // Always hear a new pitch; limit repeated attacks while sliding along the timeline.
+  if(note && (note.pitch!==previous.pitch || (note.start!==previous.start && (finish || now-previous.at>=100)))) {
+    movement.preview={pitch:note.pitch,start:note.start,at:now};
+    audition(note.pitch,note.velocity);
+  }
 }
 canvas.addEventListener("pointerdown", event => {
   if (!data.clip || addingTrack() || event.button !== 0) return;
@@ -175,7 +188,7 @@ canvas.addEventListener("pointerdown", event => {
     if (event.shiftKey) {selected.has(n.id) ? selected.delete(n.id) : selected.add(n.id);}
     else if (!selected.has(n.id)) selected=new Set([n.id]);
     find("listen").value="selection";
-    if (selected.has(n.id)) drag={mode:selected.size===1 && n.duration/data.duration*timeline>14 && Math.abs(p.x-(keys+(n.start+n.duration)/data.duration*timeline))<7 ? "resize" : "move",id:n.id,before,originals:clone(chosen()),pointer:p,moved:false};
+    if (selected.has(n.id)) drag={mode:selected.size===1 && n.duration/data.duration*timeline>14 && Math.abs(p.x-(keys+(n.start+n.duration)/data.duration*timeline))<7 ? "resize" : "move",id:n.id,before,originals:clone(chosen()),pointer:p,moved:false,preview:{pitch:n.pitch,start:n.start,at:performance.now()}};
   } else {
     const base=event.shiftKey ? [...selected] : []; selected=new Set(base); timeRange=null;
     drag={mode:"box",pointer:p,current:p,base,moved:false};
@@ -199,18 +212,17 @@ canvas.addEventListener("pointermove", event => {
       find("listen").value="selection";
     }
     if (drag.mode==="move") {
-      const previousPitch=data.notes.find(n=>n.id===drag.id)?.pitch;
       moveNotes(drag.originals,snap(drag.originals[0].start+p.time-drag.pointer.time)-drag.originals[0].start,p.pitch-drag.pointer.pitch);
-      const note=data.notes.find(n=>n.id===drag.id);
-      if(note && note.pitch!==previousPitch)audition(note.pitch,note.velocity);
+      previewMovedNote(drag);
     }
     if (drag.mode==="draw" || drag.mode==="resize") {const n=data.notes.find(n=>n.id===drag.id); if(n) n.duration=clamp(snap(p.time)-n.start,.01,data.duration-n.start); timeRange=null;}
   }
   refresh(); draw();
 });
-function finishDrag() {
+function finishDrag(event) {
   if (!drag) return;
   const previous=drag; drag=null;
+  if(event?.type==="pointerup" && previous.mode==="move" && previous.moved)previewMovedNote(previous,true);
   if (previous.moved && previous.before) remember(previous.before);
   publish();
 }
@@ -400,7 +412,11 @@ scroll.addEventListener("keydown",event=>{
   if(event.key===" ") {event.preventDefault();playing||previewing?stop():play("play");}
   if(["ArrowUp","ArrowDown","ArrowLeft","ArrowRight"].includes(event.key) && selected.size) {
     event.preventDefault(); const unit=Number(find("snap").value)||.04;
-    change(()=>moveNotes(clone(chosen()),event.key==="ArrowLeft"?-unit:event.key==="ArrowRight"?unit:0,event.key==="ArrowUp"?(event.shiftKey?12:1):event.key==="ArrowDown"?-(event.shiftKey?12:1):0));
+    change(()=>{
+      const moved=moveNotes(clone(chosen()),event.key==="ArrowLeft"?-unit:event.key==="ArrowRight"?unit:0,event.key==="ArrowUp"?(event.shiftKey?12:1):event.key==="ArrowDown"?-(event.shiftKey?12:1):0);
+      const id=[...selected].at(-1), note=data.notes.find(n=>n.id===id);
+      if(moved && note)audition(note.pitch,note.velocity);
+    });
   }
 });
 const events=new AbortController();
