@@ -32,7 +32,7 @@ function syncValue() {
   if (value !== lastSent) {lastSent = value; props.value = value;}
 }
 function publish() {refresh(); draw(); syncValue();}
-function change(fn) {if (!data.clip || addingTrack()) return; finishDrag(); stop(); remember(snapshot()); fn(); publish();}
+function change(fn) {if (!data.clip || addingTrack()) return; finishDrag(); stop(); const before=snapshot(); if(fn()!==false)remember(before); publish();}
 function options(select, entries, value) {
   select.replaceChildren(...entries.map(([v, label]) => {const item = document.createElement("option"); item.value = v; item.textContent = label; return item;}));
   select.value = String(value);
@@ -147,8 +147,9 @@ function createNote(p) {
 function moveNotes(originals, seconds, semitones) {
   const dt=clamp(seconds,-Math.min(...originals.map(n=>n.start)),data.duration-Math.max(...originals.map(n=>n.start+n.duration)));
   const dp=clamp(semitones,-Math.min(...originals.map(n=>n.pitch)),127-Math.max(...originals.map(n=>n.pitch)));
+  const currentNotes=new Map(data.notes.map(n=>[n.id,n]));
   let moved=false;
-  for (const n of originals) {const current=data.notes.find(item=>item.id===n.id); if(current) {
+  for (const n of originals) {const current=currentNotes.get(n.id); if(current) {
     moved ||= current.start!==n.start+dt || current.pitch!==n.pitch+dp;
     current.start=n.start+dt; current.pitch=n.pitch+dp;
   }}
@@ -210,7 +211,7 @@ canvas.addEventListener("pointermove", event => {
       selected=new Set([...drag.base,...data.notes.filter(n=>n.program===program && n.pitch>=low && n.pitch<=high && n.start<last && n.start+n.duration>first).map(n=>n.id)]);
     }
     if (drag.mode==="move") {
-      moveNotes(drag.originals,snap(drag.originals[0].start+p.time-drag.pointer.time)-drag.originals[0].start,p.pitch-drag.pointer.pitch);
+      moveNotes(drag.originals,snap(p.time-drag.pointer.time),p.pitch-drag.pointer.pitch);
       previewMovedNote(drag);
     }
     if (drag.mode==="draw" || drag.mode==="resize") {const n=data.notes.find(n=>n.id===drag.id); if(n) n.duration=clamp(snap(p.time)-n.start,.01,data.duration-n.start); timeRange=null;}
@@ -221,11 +222,11 @@ function finishDrag(event) {
   if (!drag) return;
   const previous=drag; drag=null;
   if(event?.type==="pointerup" && previous.mode==="move" && previous.moved)previewMovedNote(previous,true);
-  if (previous.moved && previous.before) remember(previous.before);
+  if (previous.moved && previous.before && JSON.stringify(previous.before.notes)!==JSON.stringify(data.notes))remember(previous.before);
   publish();
 }
 for (const event of ["pointerup","pointercancel","lostpointercapture"]) canvas.addEventListener(event,finishDrag);
-canvas.addEventListener("dblclick", event=>{const p=position(event); if(data.clip && !addingTrack() && tool==="select" && p.x>=keys && p.y>=scroll.scrollTop+header && !data.notes.some(n=>n.pitch===p.pitch && p.time>=n.start && p.time<=n.start+n.duration)) change(()=>{const note=createNote(p);audition(note.pitch,note.velocity);});});
+canvas.addEventListener("dblclick", event=>{const p=position(event); if(data.clip && !addingTrack() && tool==="select" && p.x>=keys && p.y>=scroll.scrollTop+header && !hit(p)) change(()=>{const note=createNote(p);audition(note.pitch,note.velocity);});});
 function closeTrackMenu(focus=false) {trackMenu.hidden=true; track.setAttribute("aria-expanded","false"); if(focus) track.focus({preventScroll:true});}
 function openTrackMenu() {if(addingTrack())return;trackMenu.hidden=false; track.setAttribute("aria-expanded","true"); const item=trackMenu.querySelector('[aria-selected="true"]'); item?.focus({preventScroll:true}); item?.scrollIntoView({block:"nearest"});}
 track.addEventListener("click",()=>trackMenu.hidden ? openTrackMenu() : closeTrackMenu(true));
@@ -340,12 +341,19 @@ function playbackRange() {
   if(range)return range;
   return [cursorTime>=data.duration ? 0 : cursorTime,data.duration];
 }
+function pauseOtherAudio(except=null) {
+  const owner=except?.closest("#upload-audio, #source-audio, #result-audio");
+  document.querySelectorAll("audio").forEach(audio=>{if(audio!==except && !owner?.contains(audio))audio.pause();});
+  for(const id of ["upload-audio","source-audio","result-audio"]) {
+    const player=document.getElementById(id);
+    if(player!==owner)player?.querySelector('button[aria-label="Pause"]')?.click();
+  }
+}
 async function play(action) {
   stop(); if(!data.clip)return;
   const [start,end]=playbackRange(); if(end<=start)return;
   playbackEnd=end;
-  document.querySelectorAll("audio").forEach(a=>a.pause());
-  document.querySelectorAll('#upload-audio button[aria-label="Pause"], #source-audio button[aria-label="Pause"], #result-audio button[aria-label="Pause"]').forEach(button=>button.click());
+  pauseOtherAudio();
   if(action==="play") {
     const request=soundRequest;
     const id=find("audio-source").value==="generated" ? "result-audio" : "source-audio";
@@ -415,6 +423,7 @@ scroll.addEventListener("keydown",event=>{
       const moved=moveNotes(clone(chosen()),event.key==="ArrowLeft"?-unit:event.key==="ArrowRight"?unit:0,event.key==="ArrowUp"?(event.shiftKey?12:1):event.key==="ArrowDown"?-(event.shiftKey?12:1):0);
       const id=[...selected].at(-1), note=data.notes.find(n=>n.id===id);
       if(moved && note)audition(note.pitch,note.velocity);
+      return moved;
     });
   }
 });
@@ -424,9 +433,10 @@ document.addEventListener("input",event=>{if(event.target.closest?.("#edit-start
 document.addEventListener("click",event=>{
   const button=event.target.closest("#upload-audio button, #source-audio button, #result-audio button");
   const label=button?.getAttribute("aria-label");
-  if(label==="Play" || label==="Go to start") {stop();if(label==="Go to start"){cursorTime=0;timeRange=null;selected.clear();}refresh();draw();}
+  if(label==="Play" || label==="Go to start") {stop();if(label==="Play")pauseOtherAudio(button);else{cursorTime=0;timeRange=null;selected.clear();}refresh();draw();}
 },{capture:true,signal:events.signal});
-document.addEventListener("pause",event=>{if(event.target===playing){stop();refresh();}},{capture:true,signal:events.signal});
+document.addEventListener("play",event=>{if(event.target.tagName==="AUDIO" && !event.target.paused){if(event.target!==playing)stop();pauseOtherAudio(event.target);}},{capture:true,signal:events.signal});
+document.addEventListener("pause",event=>{if(event.target===playing && event.target.paused){stop();refresh();}},{capture:true,signal:events.signal});
 window.addEventListener("spansynth-generated",()=>{stop();find("audio-source").value=document.querySelector("#result-audio a[download]")?"generated":"original";refresh();draw();},{signal:events.signal});
 window.addEventListener("spansynth-region",()=>requestAnimationFrame(()=>draw()),{signal:events.signal});
 const observer=new ResizeObserver(()=>draw());observer.observe(scroll);

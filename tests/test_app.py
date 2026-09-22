@@ -10,7 +10,7 @@ import pytest
 pytest.importorskip("gradio")
 pytest.importorskip("spaces")
 from app import app
-from spansynth.midi import parse_midi_notes
+from spansynth.midi import parse_midi_notes, read_notes
 
 
 def note(program=0, **changes):
@@ -27,13 +27,61 @@ def test_midi_export_preserves_timing_instruments_and_drums(tmp_path):
         assert n.offset == pytest.approx(.75)
         assert n.velocity == 90
     cropped = app.midi_notes(path, .5, .1)
-    assert len(cropped) == 3
+    assert {n["program"] for n in cropped} == {0, 40}
     assert all(n["start"] == 0 and n["duration"] == pytest.approx(.1) for n in cropped)
 
 
 def test_export_rejects_channel_collision(tmp_path):
     with pytest.raises(ValueError, match="15 melodic"):
         app.write_midi([note(program) for program in range(16)], tmp_path / "score.mid")
+
+
+def test_crop_boundary_keeps_sustains_and_does_not_retrigger_drums(tmp_path):
+    path = Path(app.write_midi([note(), note(128)], tmp_path / "score.mid"))
+    source = app.midi_notes(path, .5, 1)
+    session = {"clip": "current", "duration": 1}
+    target = app.validate_score(json.dumps({"clip": "current", "notes": source}), session)
+    expected = read_notes(path, crop_start=.5)
+    assert len(source) == 1 and target[0]["source_onset"] == -.25
+    assert np.array_equal(app.note_array(source), expected)
+    assert np.array_equal(app.note_array(target), expected)
+    mask = app.torch.ones(512, dtype=app.torch.bool)
+    actual_rows = app.prepare_midi(app.note_array(target), app.note_array(source), mask, context_midi=True)
+    expected_rows = app.prepare_midi(expected, expected, mask, context_midi=True)
+    assert all(app.torch.equal(actual_rows[key], expected_rows[key]) for key in expected_rows)
+    assert actual_rows["kind_id"][0, 0, 0].item() == 2
+    assert app.changed_region(source, target, 1) is None
+    for start, onset in ((.25, 12000), (0, -12000)):
+        target[0]["start"] = start
+        validated = app.validate_score(json.dumps({"clip": "current", "notes": target}), session)
+        assert app.note_array(validated)[0]["onset"] == onset
+        assert validated[0]["source_onset"] == -.25
+    retriggered = [dict(target[0])]
+    retriggered[0].pop("source_onset")
+    assert app.changed_region(source, retriggered, 1) == (0, .28)
+
+
+@pytest.mark.parametrize("onset", [True, float("nan"), .1, -3601])
+def test_invalid_source_onset_is_rejected(onset):
+    session = {"clip": "current", "duration": 1}
+    with pytest.raises(ValueError, match="Source note start"):
+        app.validate_score(json.dumps({"clip": "current", "notes": [note(source_onset=onset)]}), session)
+
+
+def test_zero_length_drum_at_crop_start_survives_and_tiny_end_fragment_is_skipped(tmp_path):
+    path = tmp_path / "score.mid"
+    midi = app.MidiFile(ticks_per_beat=1000)
+    midi.tracks.append(app.MidiTrack([
+        app.MetaMessage("set_tempo", tempo=1_000_000),
+        app.Message("note_on", channel=9, note=38, velocity=90, time=500),
+        app.Message("note_off", channel=9, note=38, time=0),
+    ]))
+    midi.save(path)
+    cropped = app.midi_notes(path, .5, 1)
+    assert len(cropped) == 1 and cropped[0]["start"] == 0
+    assert cropped[0]["duration"] == .04
+    path = app.write_midi([dict(note(), start=.999)], path)
+    assert app.midi_notes(path, 0, .9995) == []
 
 
 def test_editor_is_validated_and_source_is_independent():
@@ -80,6 +128,57 @@ def test_crop_and_export_keep_clip_relative_alignment(tmp_path):
         app.cleanup(session)
 
 
+@pytest.mark.parametrize("length,crop_start", [(.1, 0), (1, .9)])
+def test_too_short_audio_crop_preserves_current_work(tmp_path, length, crop_start):
+    path = tmp_path / "short.wav"
+    app.sf.write(path, np.zeros(round(app.SAMPLE_RATE * length), dtype=np.float32), app.SAMPLE_RATE)
+    directory = tmp_path / "current"
+    directory.mkdir()
+    with pytest.raises(app.gr.Error, match="at least 0.2"):
+        app.load_clip(str(path), crop_start, 1, {"directory": str(directory)})
+    assert directory.is_dir()
+
+
+def test_minimum_clip_duration_is_measured_in_audio_samples(tmp_path):
+    path = tmp_path / "minimum.wav"
+    app.sf.write(path, np.zeros(round(app.SAMPLE_RATE * .3), dtype=np.float32), app.SAMPLE_RATE)
+    session = app.load_clip(str(path), .1, .2, None)[0]
+    try:
+        assert session["duration"] == .2
+    finally:
+        app.cleanup(session)
+
+
+def test_failed_clip_and_sample_preparation_preserve_current_work(tmp_path, monkeypatch):
+    assets = tmp_path / "demo" / "assets"
+    assets.mkdir(parents=True)
+    app.sf.write(assets / "sample.wav", np.zeros(app.SAMPLE_RATE, dtype=np.float32), app.SAMPLE_RATE)
+    (assets / "sample.mid").write_bytes(b"invalid MIDI")
+    monkeypatch.setattr(app, "HERE", tmp_path / "app")
+    monkeypatch.setattr(app, "EXAMPLE_FILES", {"Slakh": ("sample.wav", "sample.mid")})
+    directory = tmp_path / "current"
+    directory.mkdir()
+    session = {"directory": str(directory)}
+    created = []
+    mkdtemp = app.tempfile.mkdtemp
+    def track_directory(*args, **kwargs):
+        result = mkdtemp(*args, **kwargs)
+        created.append(Path(result))
+        return result
+    monkeypatch.setattr(app.tempfile, "mkdtemp", track_directory)
+    with pytest.raises((EOFError, OSError)):
+        app.load_example(session)
+    assert directory.is_dir()
+    assert created and all(not path.exists() for path in created)
+    def failed_preview(*args):
+        raise ValueError("preview failed")
+    monkeypatch.setattr(app, "editor_value", failed_preview)
+    with pytest.raises(ValueError, match="preview failed"):
+        app.load_clip(str(assets / "sample.wav"), 0, 1, session)
+    assert directory.is_dir()
+    assert all(not path.exists() for path in created)
+
+
 def test_web_app_registers_workflow_endpoints():
     demo = app.build_app()
     names = {fn.api_name for fn in demo.fns.values()}
@@ -98,6 +197,24 @@ def test_gallery_rejects_anonymous_and_other_publishers(monkeypatch):
     for visitor, message in ((None, "Sign in to this Space"), (profile("visitor"), "limited to mimbres")):
         with pytest.raises(app.gr.Error, match=message):
             app.save_work("My edit", "", True, {}, visitor)
+
+
+def test_gallery_keeps_valid_works_when_one_project_is_unavailable(monkeypatch):
+    class Storage:
+        def __init__(self, **kwargs):
+            pass
+        def list_repo_tree(self, *args, **kwargs):
+            return [app.RepoFolder(path=name, oid="") for name in ("good-work", "broken-work")]
+    def project(work_id):
+        if work_id == "broken-work":
+            raise OSError("unavailable")
+        return dict(listed=True, title="A piano idea", settings={"method": "ordinary"}, duration=1, notes=[note()])
+    monkeypatch.setattr(app, "HfApi", Storage)
+    monkeypatch.setattr(app, "read_project", project)
+    html = app.gallery_html()
+    assert "A piano idea" in html and "?work=good-work" in html
+    assert "Some works could not be loaded" in html
+    assert "temporarily unavailable" not in html
 
 
 def test_blank_title_uses_clip_name_and_updates_the_visible_title(monkeypatch):
@@ -168,9 +285,9 @@ def test_saved_work_restores_the_generated_take_and_can_be_edited(tmp_path, monk
     path = tmp_path / "audio.wav"
     sf.write(path, audio, rate, subtype="FLOAT")
     session = app.load_clip(str(path), .5, 1, None)[0]
-    source = [note()]
+    source = [dict(note(), start=0, duration=.25, source_onset=-.25)]
     session = app.install_source_notes(session, source, "Loaded")[0]
-    target = [dict(note(), pitch=72)]
+    target = [dict(source[0], pitch=72)]
     value = json.loads(app.editor_value(session, target))
     value["view"] = dict(program=0, zoom=2, snap=.1, scrollTop=500, colors=[[0, "#79a8e8"]])
     expected = session["crop"].original.copy()
@@ -199,6 +316,7 @@ def test_saved_work_restores_the_generated_take_and_can_be_edited(tmp_path, monk
         assert saved["title"] == expected_title
         assert saved["notes"][0]["pitch"] == 72
         assert saved["source_notes"][0]["pitch"] == 60
+        assert saved["notes"][0]["source_onset"] == saved["source_notes"][0]["source_onset"] == -.25
         assert len(uploads) == 6
         app.cleanup(session)
         loaded = app.load_work(work_id, None)
@@ -217,6 +335,21 @@ def test_saved_work_restores_the_generated_take_and_can_be_edited(tmp_path, monk
         assert json.loads(loaded[2])["view"]["colors"] == [[0, "#79a8e8"]]
         assert parse_midi_notes(loaded[7], program=None).notes[0].pitch == 72
         assert restored["source_notes"][0]["pitch"] == 60
+        assert restored["source_notes"][0]["source_onset"] == -.25
+        assert restored["take"]["notes"][0]["source_onset"] == -.25
+        assert app.note_array(restored["take"]["notes"])[0]["onset"] == -12000
+        # The upload shown by a reopened work is the cropped clip. Its MIDI starts at zero.
+        imported = app.load_midi(loaded[7], restored)
+        imported_note = json.loads(imported[1])["notes"][0]
+        assert imported_note["start"] == 0 and imported_note["duration"] == .25
+        # A late failure while opening another work must not delete the active one.
+        broken = dict(saved)
+        broken.pop("title")
+        uploads[f"{work_id}/project.json"] = json.dumps(broken).encode()
+        with pytest.raises(app.gr.Error, match="could not be opened"):
+            app.load_work(work_id, restored)
+        assert Path(restored["directory"]).is_dir()
+        assert Path(loaded[5]).is_file()
         # Imported copies cannot modify the shared work or its saved MIDI by exporting.
         editing = json.loads(loaded[2])
         editing["notes"][0]["pitch"] = 84
@@ -294,6 +427,26 @@ def test_generation_recalculates_region_before_using_stale_controls(tmp_path, mo
         for auto, expected in ((True, (.24, 2.6)), (False, (1., 1.5))):
             app.generate(value, session, 1., 1.5, "ordinary", 16, 2., False, False, auto)
             assert calls[-1] == expected
+    finally:
+        app.cleanup(session)
+
+
+def test_failed_generation_keeps_last_take_and_removes_partial_files(tmp_path, monkeypatch):
+    path = tmp_path / "audio.wav"
+    app.sf.write(path, np.zeros(app.SAMPLE_RATE, dtype=np.float32), app.SAMPLE_RATE)
+    session = app.load_clip(str(path), 0, 1, None)[0]
+    monkeypatch.setattr(app, "generate_audio", lambda crop, *args: crop.original.copy())
+    try:
+        value = app.editor_value(session, [note()])
+        output = app.generate(value, session, 0, 1, "ordinary", 16, 2., False, False)
+        previous = session["take"]
+        def failed_export(*args):
+            raise OSError("MIDI export failed")
+        monkeypatch.setattr(app, "write_midi", failed_export)
+        with pytest.raises(app.gr.Error, match="MIDI export failed"):
+            app.generate(value, session, 0, 1, "ordinary", 16, 2., False, False)
+        assert session["take"] is previous and Path(output[0]).is_file()
+        assert list(Path(session["directory"]).glob("take-*")) == [Path(previous["directory"])]
     finally:
         app.cleanup(session)
 

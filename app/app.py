@@ -98,17 +98,24 @@ def validate_score(value, session, *, allow_unsupported=False):
             fields[name] = number
         if not allow_unsupported and fields["program"] not in PROGRAM_TO_CATEGORY:
             raise ValueError(f"Program {fields['program']} is not supported. Select that track and choose an instrument.")
+        if "source_onset" in note and fields["program"] != 128:
+            fields["source_onset"] = float(finite_number(note["source_onset"], "Source note start", -3600, 0))
         result.append({"start": float(onset), "duration": float(length), **fields})
     if len({note["program"] for note in result if note["program"] != 128}) > 15:
         raise ValueError("Use at most 15 melodic instruments plus drums for MIDI export. Merge a few tracks first.")
     return result
 
 
+def note_onset(note):
+    # Notes already sounding at the crop boundary keep their sustain condition.
+    return note.get("source_onset", 0) if note["start"] == 0 and note["program"] != 128 else note["start"]
+
+
 def changed_region(source, target, duration):
     """Cover added, removed, and modified notes on the 40 ms generation grid."""
     def events(notes):
         return Counter((round(n["start"] * SAMPLE_RATE), round((n["start"] + n["duration"]) * SAMPLE_RATE),
-                        n["pitch"], n["velocity"], n["program"]) for n in notes)
+                        n["pitch"], n["velocity"], n["program"], round(note_onset(n) * SAMPLE_RATE)) for n in notes)
     before, after = events(source or []), events(target)
     changed = list(before - after) + list(after - before)
     if not changed:
@@ -140,16 +147,22 @@ def midi_notes(path, crop_start, duration):
     parsed = parse_midi_notes(path, program=None)
     result = []
     for note in parsed.notes:
-        start = max(0.0, note.onset - crop_start)
+        source_onset = note.onset - crop_start
+        start = max(0.0, source_onset)
         end = min(duration, note.offset - crop_start)
-        if note.onset >= crop_start + duration or note.offset <= crop_start:
+        if note.onset >= crop_start + duration:
+            continue
+        if (note.program == 128 and source_onset < 0) or (note.program != 128 and note.offset <= crop_start):
             continue
         if end - start < 0.001:
             end = min(duration, start + 0.04)
-        if end <= start:
+        if end - start < 0.001:
             continue
-        result.append({"id": len(result), "start": start, "duration": end - start,
-                       "pitch": note.pitch, "velocity": note.velocity, "program": note.program})
+        entry = {"id": len(result), "start": start, "duration": end - start,
+                 "pitch": note.pitch, "velocity": note.velocity, "program": note.program}
+        if source_onset < 0:
+            entry["source_onset"] = source_onset
+        result.append(entry)
     if len(result) > MAX_NOTES:
         raise ValueError(f"The MIDI clip exceeds {MAX_NOTES} notes.")
     return result
@@ -190,7 +203,7 @@ def instrument_name(program):
 
 
 def note_array(notes):
-    return np.array([(round(n["start"] * SAMPLE_RATE), round((n["start"] + n["duration"]) * SAMPLE_RATE),
+    return np.array([(round(note_onset(n) * SAMPLE_RATE), round((n["start"] + n["duration"]) * SAMPLE_RATE),
                       n["pitch"], n["velocity"], n["program"], i) for i, n in enumerate(notes)], dtype=NOTE_DTYPE)
 
 
@@ -213,16 +226,24 @@ def load_clip(audio, crop_start, duration, old_session):
     if crop_start >= info.duration:
         raise gr.Error("The crop starts after the recording ends.")
     duration = min(duration, info.duration - crop_start)
+    if math.floor(duration * SAMPLE_RATE + 0.5) < SAMPLE_RATE // 5:
+        raise gr.Error("The selected clip must contain at least 0.2 seconds of audio. Move the crop start earlier or choose a longer recording.")
     crop = read_audio(Path(audio), crop_start, duration)
     directory = Path(tempfile.mkdtemp(prefix="spansynth-session-"))
     session = {"directory": str(directory), "clip": directory.name, "crop": crop,
                "duration": len(crop.original) / SAMPLE_RATE, "crop_start": crop_start,
                "source_notes": None, "suggested_title": f"{Path(audio).stem[:93]} · edit"}
     preview = directory / "input.wav"
-    sf.write(preview, crop.original, SAMPLE_RATE, subtype="FLOAT")
+    try:
+        sf.write(preview, crop.original, SAMPLE_RATE, subtype="FLOAT")
+        start, end = (6.4, 14.08) if duration >= 14.08 else (duration * 0.25, duration * 0.75)
+        outputs = (session, str(preview), editor_value(session, []), start, end, None, None, None,
+                   "Clip ready. Transcribe it, upload MIDI, or add notes.", "")
+    except Exception:
+        cleanup(session)
+        raise
     cleanup(old_session)
-    start, end = (6.4, 14.08) if duration >= 14.08 else (duration * 0.25, duration * 0.75)
-    return session, str(preview), editor_value(session, []), start, end, None, None, None, "Clip ready. Transcribe it, upload MIDI, or add notes.", ""
+    return outputs
 
 
 def load_midi(path, session):
@@ -230,7 +251,7 @@ def load_midi(path, session):
         raise gr.Error("Load an audio clip first.")
     if not path:
         raise gr.Error("Choose a MIDI file aligned with the full uploaded recording.")
-    notes = midi_notes(path, session["crop_start"], session["duration"])
+    notes = midi_notes(path, session.get("midi_crop_start", session["crop_start"]), session["duration"])
     return install_source_notes(session, notes, "MIDI loaded")
 
 
@@ -306,6 +327,7 @@ def generate_audio(crop, target, source, start, end, method, steps, cfg, context
 
 
 def generate(value, session, start, end, method, steps, cfg, context_midi, drop_context_audio, auto_region=False):
+    take = None
     try:
         notes = validate_score(value, session)
         if auto_region:
@@ -346,6 +368,8 @@ def generate(value, session, start, end, method, steps, cfg, context_midi, drop_
                 f"Generated {first:.2f}–{last:.2f} s. Keep editing the score to try another version.",
                 f"Generation time · {elapsed:.1f} s")
     except (ValueError, RuntimeError, OSError) as error:
+        if take is not None:
+            shutil.rmtree(take, ignore_errors=True)
         raise gr.Error(str(error)) from error
 
 
@@ -396,32 +420,39 @@ def gallery_html():
         folders = [entry.path for entry in HfApi(token=False).list_repo_tree(GALLERY_REPO, repo_type="dataset")
                    if isinstance(entry, RepoFolder) and WORK_ID.fullmatch(entry.path)]
         cards = []
+        unavailable = False
         for work_id in sorted(folders, reverse=True):
-            project = read_project(work_id)
-            if not project.get("listed"):
-                continue
-            title = escape(str(project.get("title", "Untitled")))
-            description = escape(str(project.get("description", "")))
-            settings = project["settings"]
-            method = "spansynth-edit + flowedit" if settings["method"] == "flowedit" else "spansynth-edit"
-            duration = float(project["duration"])
-            colors = dict(editor_view(project.get("view", {})).get("colors", []))
-            notes = project["notes"]
-            pitches = [n["pitch"] for n in notes]
-            low, high = min(pitches, default=48) - 2, max(pitches, default=72) + 2
-            bars = []
-            for note in notes:
-                x, width = note["start"] / duration * 360, max(2, note["duration"] / duration * 360)
-                y = 12 + (high - note["pitch"]) / (high - low) * 88
-                color = colors.get(note["program"], "#b091dc")
-                bars.append(f'<rect x="{x:.1f}" y="{y:.1f}" width="{width:.1f}" height="3" rx="1" fill="{color}"/>')
-            preview = '<svg viewBox="0 0 360 116" role="img" aria-label="Edited score preview">' + ''.join(bars) + '</svg>'
-            cards.append(f'<article class="work-card"><div class="work-score">{preview}</div><div class="work-body">'
-                         f'<div class="work-method">{method} · {duration:.2f} s</div><h3>{title}</h3><p>{description}</p>'
-                         f'<label>Original<button class="audio-start" type="button" data-audio-start aria-label="Original audio: go to start">⏮ Start</button><audio controls preload="none" src="{work_url(work_id, "input.wav")}"></audio></label>'
-                         f'<label>Edited<button class="audio-start" type="button" data-audio-start aria-label="Edited audio: go to start">⏮ Start</button><audio controls preload="none" src="{work_url(work_id, "output.wav")}"></audio></label>'
-                         f'<a class="work-open" href="?work={work_id}" target="_blank" rel="noopener">Open in editor ↗</a>'
-                         '</div></article>')
+            try:
+                project = read_project(work_id)
+                if not project.get("listed"):
+                    continue
+                title = escape(str(project.get("title", "Untitled")))
+                description = escape(str(project.get("description", "")))
+                settings = project["settings"]
+                method = "spansynth-edit + flowedit" if settings["method"] == "flowedit" else "spansynth-edit"
+                duration = float(project["duration"])
+                colors = dict(editor_view(project.get("view", {})).get("colors", []))
+                notes = project["notes"]
+                pitches = [n["pitch"] for n in notes]
+                low, high = min(pitches, default=48) - 2, max(pitches, default=72) + 2
+                bars = []
+                for note in notes:
+                    x, width = note["start"] / duration * 360, max(2, note["duration"] / duration * 360)
+                    y = 12 + (high - note["pitch"]) / (high - low) * 88
+                    color = colors.get(note["program"], "#b091dc")
+                    bars.append(f'<rect x="{x:.1f}" y="{y:.1f}" width="{width:.1f}" height="3" rx="1" fill="{color}"/>')
+                preview = '<svg viewBox="0 0 360 116" role="img" aria-label="Edited score preview">' + ''.join(bars) + '</svg>'
+                cards.append(f'<article class="work-card"><div class="work-score">{preview}</div><div class="work-body">'
+                             f'<div class="work-method">{method} · {duration:.2f} s</div><h3>{title}</h3><p>{description}</p>'
+                             f'<label>Original<button class="audio-start" type="button" data-audio-start aria-label="Original audio: go to start">⏮ Start</button><audio controls preload="none" src="{work_url(work_id, "input.wav")}"></audio></label>'
+                             f'<label>Edited<button class="audio-start" type="button" data-audio-start aria-label="Edited audio: go to start">⏮ Start</button><audio controls preload="none" src="{work_url(work_id, "output.wav")}"></audio></label>'
+                             f'<a class="work-open" href="?work={work_id}" target="_blank" rel="noopener">Open in editor ↗</a>'
+                             '</div></article>')
+            except Exception:
+                unavailable = True
+        if unavailable:
+            notice = '<p>Some works could not be loaded. Refresh the gallery to try again.</p>'
+            return notice + '<div class="work-grid">' + ''.join(cards) + '</div>'
         return '<div class="work-grid">' + ''.join(cards) + '</div>' if cards else (
             '<div class="gallery-empty"><span>♫</span><h3>A place for finished ideas</h3>'
             '<p>Saved works will appear here, ready to listen to and open in the editor.</p></div>')
@@ -565,7 +596,8 @@ def load_work(work_id, old_session):
             audio[name] = samples
         crop = AudioCrop(torch.from_numpy(audio["context"]), audio["input"], gain,
                          project["input_rate"], project["input_channels"], project["padded_samples"])
-        session.update(directory=str(directory), clip=directory.name, crop=crop, crop_start=crop_start, source_notes=source)
+        session.update(directory=str(directory), clip=directory.name, crop=crop, crop_start=crop_start,
+                       midi_crop_start=0, source_notes=source)
         shutil.copyfile(take / "input.wav", directory / "input.wav")
         view = editor_view(project.get("view", {}))
         elapsed = project.get("elapsed_seconds")
@@ -575,10 +607,9 @@ def load_work(work_id, old_session):
                            "elapsed_seconds": elapsed}
         editor = json.loads(editor_value(session, notes))
         editor["view"] = view
-        cleanup(old_session)
         title = str(project["title"])
         session["suggested_title"] = title
-        return (session, str(directory / "input.wav"), json.dumps(editor), start, end, str(take / "output.wav"),
+        outputs = (session, str(directory / "input.wav"), json.dumps(editor), start, end, str(take / "output.wav"),
                 str(take / "original.mid") if source is not None else None, str(take / "edited.mid"),
                 f'Opened “{escape(title)}”. You are editing a copy; the shared work stays unchanged.',
                 settings["method"], gr.update(choices=sorted(set(EULER_STEPS + [int(steps)])), value=int(steps)),
@@ -586,6 +617,8 @@ def load_work(work_id, old_session):
                 title, str(project.get("description", "")), SPACE_URL + "?work=" + work_id,
                 f"Generation time · {elapsed:.1f} s" if elapsed is not None else "", settings.get("auto_region", False),
                 str(directory / "input.wav"), 0, duration)
+        cleanup(old_session)
+        return outputs
     except Exception:
         if directory is not None:
             shutil.rmtree(directory, ignore_errors=True)
@@ -611,17 +644,24 @@ def load_example(old_session, sample_name="Slakh"):
             else:
                 with urlopen(EXAMPLE_ROOT + filename, timeout=30) as response:
                     (folder / filename).write_bytes(response.read())
-        loaded = load_clip(str(folder / audio_name), 0, 20.48, old_session)
+        loaded = load_clip(str(folder / audio_name), 0, 20.48, None)
         session, preview, editor, start, end, *_ = loaded
-        session["suggested_title"] = f"{sample_name} · edit"
-        midi = None
-        status = f"{sample_name} loaded. Use YourMT3+ to transcribe it, then edit the notes."
-        if midi_name:
-            notes = midi_notes(folder / midi_name, 0, session["duration"])
-            session, editor, midi, _, _, status, _ = install_source_notes(session, notes, f"{sample_name} sample")
-        sample_audio = Path(session["directory"]) / audio_name
-        shutil.copyfile(folder / audio_name, sample_audio)
-        return session, preview, editor, start, end, None, midi, None, status, "", str(sample_audio), 0, session["duration"]
+        try:
+            session["suggested_title"] = f"{sample_name} · edit"
+            midi = None
+            status = f"{sample_name} loaded. Use YourMT3+ to transcribe it, then edit the notes."
+            if midi_name:
+                notes = midi_notes(folder / midi_name, 0, session["duration"])
+                session, editor, midi, _, _, status, _ = install_source_notes(session, notes, f"{sample_name} sample")
+            sample_audio = Path(session["directory"]) / audio_name
+            shutil.copyfile(folder / audio_name, sample_audio)
+            outputs = (session, preview, editor, start, end, None, midi, None, status, "",
+                       str(sample_audio), 0, session["duration"])
+        except Exception:
+            cleanup(session)
+            raise
+        cleanup(old_session)
+        return outputs
 
 
 EDITOR_HTML = """
