@@ -1,0 +1,16 @@
+SpanSynth-Edit
+Copyright 2026 SpanSynth contributors
+
+The MIDI parser and Fine40 instrument grouping adapt code and vocabulary
+from YourMT3, Copyright 2024-2026 The YourMT3 Authors, under Apache-2.0.
+https://github.com/mimbres/YourMT3
+
+The bundled scalar codec is the inference subset of HeartCodec used by the
+released SpanSynth checkpoint. HeartMuLa/HeartCodec code and weights are
+licensed under Apache-2.0. The scalar encoder and decoder are redistributed
+with their configuration, without the music language model or diffusion decoder.
+https://github.com/HeartMuLa/heartlib
+
+Modifications in this distribution remove training and evaluation paths,
+retain the V8 inference model, and add a standalone CLI and checkpoint export.
+See LICENSE for the Apache License, Version 2.0.
