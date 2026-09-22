@@ -328,7 +328,7 @@ EDITOR_HTML = """
 
 def build_app():
     with gr.Blocks(title="SpanSynth-Edit", delete_cache=(3600, 3600)) as demo:
-        gr.HTML('<header class="hero"><div class="eyebrow">SPANSYNTH-EDIT · MIDI-GUIDED MUSIC EDITING</div><h1>Change the notes.<br><span>Keep the musical context.</span></h1><p>Upload a recording, edit its score, and hear a new version of the selected region.</p><div class="hero-links"><a href="https://mimbres.github.io/spansynth-edit/" target="_blank">Listen to demos ↗</a><a href="https://github.com/mimbres/spansynth-edit" target="_blank">Source code ↗</a><a href="https://huggingface.co/mimbres/spansynth-edit" target="_blank">Model weights ↗</a></div></header>')
+        gr.HTML('<header class="hero"><div class="eyebrow">SPANSYNTH-EDIT · MIDI-GUIDED MUSIC EDITING</div><h1>Change the notes.<br><span>Keep the musical context.</span></h1><p>Upload a recording, edit its score, and hear a new version of the selected region.</p><div class="hero-links"><a href="https://mimbres.github.io/spansynth-edit/" target="_blank">Listen to demos ↗</a><a href="https://github.com/mimbres/spansynth-edit" target="_blank">Source code ↗</a><a href="https://huggingface.co/mimbres/spansynth-edit" target="_blank">Model weights ↗</a></div></header>', apply_default_css=False)
         state = gr.State(None, time_to_live=3600, delete_callback=cleanup)
         with gr.Group(elem_classes="step-card"):
             gr.Markdown("### 1 · Choose your audio")
