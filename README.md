@@ -11,13 +11,11 @@ tags:
 
 # SpanSynth-Edit
 
-MIDI-guided music synthesis and editing with the V8 checkpoint at step **127,750** and the frozen **Base SQ (HeartCodec)** encoder/decoder. Ordinary generation and FlowEdit use the same weights.
+SpanSynth-Edit synthesises and edits multi-instrument music from MIDI, using surrounding audio to guide instrument timbre. To edit a recording, revise the MIDI to add, remove, or modify notes, and the model resynthesises the selected region.
 
 [Project page and audio demos](https://mimbres.github.io/spansynth-edit/) · [Source code](https://github.com/mimbres/spansynth-edit) · [Model weights](https://huggingface.co/mimbres/spansynth-edit)
 
 ![SpanSynth-Edit model overview](https://raw.githubusercontent.com/mimbres/spansynth-edit/main/demo/assets/FigureDraft-fig1-retro-04.svg)
-
-The CLI defaults to **16 Euler steps, CFG 2, ordinary generation, context MIDI dropout on, and context audio dropout off**. FlowEdit is opt-in.
 
 ## Install
 
@@ -35,6 +33,8 @@ python -m pip install .
 Weights and the codec download automatically on first use, without a token. Use `spansynth-edit download` to prefetch them, `--cache-dir` to choose a cache, or `--offline` to use cached files only.
 
 ## Try an example
+
+The CLI defaults to **16 Euler steps, CFG 2, ordinary generation, context MIDI dropout on, and context audio dropout off**. FlowEdit is opt-in.
 
 From the clone, download one audio file and its before/after MIDI (about 0.5 MB):
 
