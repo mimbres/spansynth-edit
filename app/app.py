@@ -322,7 +322,12 @@ def load_example(old_session, sample_name="Slakh"):
 EDITOR_HTML = """
 <div class="roll-shell">
   <div class="roll-toolbar">
-    <label>Track <select data-role="track" aria-label="MIDI track"></select></label>
+    <div class="track-control"><span>Track</span><div class="track-picker">
+      <button data-role="track" type="button" aria-label="MIDI track" aria-describedby="midi-track-name" aria-haspopup="listbox" aria-expanded="false" aria-controls="midi-track-options">
+        <span class="track-swatch" aria-hidden="true"></span><span id="midi-track-name" data-role="track-name">Choose a track</span><span class="track-arrow" aria-hidden="true">▾</span>
+      </button>
+      <div id="midi-track-options" data-role="track-options" role="listbox" aria-label="MIDI tracks" hidden></div>
+    </div></div>
     <label>Instrument <select data-role="instrument" aria-label="Track instrument"></select></label>
     <button data-action="add-track">+ Track</button>
     <label>Snap <select data-role="snap" aria-label="Time snap"><option value="0">Off</option><option value="0.04" selected>40 ms</option><option value="0.1">100 ms</option><option value="0.25">250 ms</option></select></label>
@@ -390,9 +395,9 @@ def build_app():
                         load = gr.Button("Load clip", variant="primary")
             gr.Markdown("**Try a sample** — Slakh and Kraisler include MIDI. Transcribe the jazz clip with YourMT3.", elem_classes="sample-note")
             with gr.Row():
-                slakh_example = gr.Button("Slakh · 20 s")
-                kraisler_example = gr.Button("Kraisler · 20 s")
-                jazz_example = gr.Button("Jazz intro · 11 s")
+                slakh_example = gr.Button("Slakh · 20 s", elem_classes="sample-button")
+                kraisler_example = gr.Button("Kraisler · 20 s", elem_classes="sample-button")
+                jazz_example = gr.Button("Jazz intro · 11 s", elem_classes="sample-button")
             original_audio = gr.Audio(label="Original clip", interactive=False, type="filepath", buttons=["download"], elem_id="source-audio")
         with gr.Group(elem_classes="step-card"):
             gr.Markdown("### 2 · Edit the score")

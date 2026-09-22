@@ -2,6 +2,7 @@
   --ss-text: #3d354b; --ss-muted: #746a80; --ss-border: #e6deea;
   --ss-surface: #fff; --ss-soft: #f8f4f8; --ss-hover: #efe8f4;
   --ss-accent: #875c84; --ss-key: #ede3f3; --ss-key-border: #cbb6da;
+  --ss-play: #50c878; --ss-stop: #858995;
   --ss-grid-white: #fffdfc; --ss-grid-black: #f3eff5;
   --ss-piano-white: #faf7fb; --ss-piano-black: #e7deec;
   --ss-grid-line: #ede6ef; --ss-octave-line: #d8ccdf;
@@ -14,6 +15,7 @@
   --ss-text: #eee7f3; --ss-muted: #b3a8bf; --ss-border: #423a50;
   --ss-surface: #22212e; --ss-soft: #292534; --ss-hover: #3a3047;
   --ss-accent: #d2a4cd; --ss-key: #443250; --ss-key-border: #795b8c;
+  --ss-play: #79df9c; --ss-stop: #a3a6af;
   --ss-grid-white: #23232f; --ss-grid-black: #1c1c28;
   --ss-piano-white: #302b3b; --ss-piano-black: #211e2c;
   --ss-grid-line: #343040; --ss-octave-line: #51455f;
@@ -27,6 +29,7 @@
 .gradio-container .theme-toggle {float: right; margin: -20px -8px 12px 12px; padding: 7px 11px; border: 1px solid var(--ss-border); border-radius: 99px; background: var(--ss-surface); color: var(--ss-text); font: 500 12px/20px system-ui, sans-serif; cursor: pointer;}
 .gradio-container .theme-toggle:hover {background: var(--ss-hover);}
 .sample-note {font-size: 12px !important; color: var(--ss-muted); margin-top: 12px;}
+.gradio-container button.sample-button {font-size: 13px !important; font-weight: 400 !important;}
 .gradio-container .hero h1 {color: var(--ss-text); font-size: clamp(32px, 5vw, 52px); line-height: 1.12; letter-spacing: -.045em; font-weight: 750; margin: 0 0 20px;}
 .gradio-container .hero h1 span {color: var(--ss-accent);}
 .gradio-container .hero p {font-size: 16px; line-height: 1.6; max-width: 600px; color: var(--ss-muted);}
@@ -45,13 +48,24 @@
 .roll-shell {color: var(--ss-text); background: var(--ss-surface); border: 1px solid var(--ss-border); border-radius: 12px; overflow: hidden;}
 .roll-toolbar {display: flex; flex-wrap: wrap; align-items: center; gap: 10px; padding: 12px; background: var(--ss-soft);}
 .roll-toolbar label {display: flex; flex-wrap: wrap; align-items: center; gap: 6px; min-width: 0; font-size: 12px; font-weight: 600;}
+.track-control {display: flex; flex-wrap: wrap; align-items: center; gap: 6px; min-width: 0; font-size: 12px; font-weight: 600;}
+.track-picker {position: relative; min-width: 0; max-width: 100%;}
+.gradio-container .roll-toolbar button[data-role=track] {max-width: 250px; justify-content: flex-start;}
+[data-role=track-name] {overflow: hidden; text-overflow: ellipsis; white-space: nowrap;}
+.track-swatch {display: inline-block; flex: 0 0 11px; width: 11px; height: 11px; border-radius: 3px; background: var(--track-color, #a8bce9); box-shadow: inset 0 0 0 1px #00000018;}
+.track-arrow {margin-left: auto; color: var(--ss-muted);}
+[data-role=track-options] {position: absolute; z-index: 10; top: calc(100% + 5px); left: 0; min-width: 100%; width: max-content; max-width: 250px; max-height: min(260px, 40vh); overflow-y: auto; box-sizing: border-box; padding: 5px; border: 1px solid var(--ss-border); border-radius: 10px; background: var(--ss-surface); box-shadow: 0 8px 24px #00000024;}
+.gradio-container .roll-toolbar [role=option] {display: flex; justify-content: flex-start; width: 100%; height: auto; min-height: 36px; text-align: left; white-space: normal; border: 0; background: transparent;}
+.gradio-container .roll-toolbar [role=option][aria-selected=true] {background: var(--ss-key);}
+.gradio-container .roll-toolbar [role=option]:focus-visible {outline: 2px solid var(--ss-key-border); outline-offset: -2px; background: var(--ss-hover);}
 .gradio-container .roll-toolbar select, .gradio-container .roll-toolbar button, .gradio-container .roll-toolbar input[type=number] {box-sizing: border-box; font-family: inherit; font-size: 13px; line-height: 20px; font-weight: 500; color: var(--ss-text); background-color: var(--ss-surface); border: 1px solid var(--ss-border); border-radius: 8px; padding: 8px 10px; height: 40px; min-height: 40px;}
 .gradio-container .roll-toolbar select {appearance: none; -webkit-appearance: none; max-width: 250px; padding: 8px 30px 8px 10px; background-image: linear-gradient(45deg, transparent 50%, var(--ss-muted) 50%), linear-gradient(135deg, var(--ss-muted) 50%, transparent 50%); background-position: right 14px top 17px, right 10px top 17px; background-size: 4px 4px; background-repeat: no-repeat;}
 .gradio-container .roll-toolbar select option {color: var(--ss-text); background: var(--ss-surface);}
 .gradio-container .roll-toolbar button {display: inline-flex; align-items: center; justify-content: center; gap: 7px; cursor: pointer; white-space: nowrap;}
 .gradio-container .roll-toolbar button:hover {background-color: var(--ss-hover); border-color: var(--ss-key-border);}
 .gradio-container .roll-toolbar button:disabled {opacity: .35; cursor: default;}
-.gradio-container .roll-toolbar .transport-icon {font-size: 12px; line-height: 1; color: var(--ss-accent);}
+.gradio-container .roll-toolbar .transport-icon {font-size: 12px; line-height: 1; color: var(--ss-stop);}
+.gradio-container .roll-toolbar [data-action=play] .transport-icon, .gradio-container .roll-toolbar [data-action=preview] .transport-icon {color: var(--ss-play);}
 .gradio-container .roll-toolbar button[aria-pressed=true] {background-color: var(--ss-key); border-color: var(--ss-key-border);}
 .gradio-container .roll-toolbar input[type=number] {width: 68px;}
 .roll-toolbar input[type=range] {width: 80px; accent-color: var(--ss-accent);}
@@ -67,4 +81,14 @@
 .roll-detail {padding-top: 0; min-height: 24px;}
 #apply-edits {margin-top: 12px; min-height: 48px;}
 .apply-note {font-size: 12px !important; color: var(--ss-muted);}
-@media (max-width: 600px) {.hero {padding: 30px 20px;}.gradio-container .theme-toggle {float: none; display: block; margin: 0 0 18px auto;}.step-card {padding: 12px !important;}.roll-scroll {height: 320px;}.roll-toolbar {gap: 8px;}.gradio-container .roll-toolbar select {max-width: 230px;}}
+@media (max-width: 600px) {
+  .hero {padding: 30px 20px;}
+  .gradio-container .theme-toggle {float: none; display: block; margin: 0 0 18px auto;}
+  .step-card {padding: 12px !important;}
+  .roll-scroll {height: 320px;}
+  .roll-toolbar {gap: 8px;}
+  .gradio-container .roll-toolbar select {max-width: 230px;}
+  .track-control {width: 100%;}
+  .track-picker {flex: 1;}
+  .gradio-container .roll-toolbar button[data-role=track], [data-role=track-options] {width: 100%; max-width: 100%;}
+}
