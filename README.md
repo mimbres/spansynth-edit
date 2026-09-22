@@ -18,7 +18,7 @@
 
 Synthesise music from MIDI, or add, remove, and modify notes in a recording by revising its MIDI. SpanSynth-Edit generates the selected region, using surrounding audio for timbre guidance.
 
-[Try it in your browser](https://huggingface.co/spaces/mimbres/spansynth-edit): upload audio, transcribe with YourMT3, edit the piano roll, and generate. See the [local web setup](https://github.com/mimbres/spansynth-edit/blob/main/app/README.md) to run the app yourself.
+[Try it in your browser](https://huggingface.co/spaces/mimbres/spansynth-edit): upload audio, transcribe with YourMT3+, edit the piano roll, and generate. See the [local web setup](https://github.com/mimbres/spansynth-edit/blob/main/app/README.md) to run the app yourself.
 
 <p align="center">
   <img src="https://raw.githubusercontent.com/mimbres/spansynth-edit/main/demo/assets/FigureDraft-fig1-retro-04.svg" alt="SpanSynth-Edit model overview" width="100%">
@@ -171,7 +171,7 @@ All audio outputs are 48 kHz mono. Outside the generated region, `output.wav` ma
 
 ## License and credits
 
-Code and model weights are released under Apache-2.0. See [LICENSE](https://github.com/mimbres/spansynth-edit/blob/main/LICENSE) and [NOTICE](https://github.com/mimbres/spansynth-edit/blob/main/NOTICE) for terms and credits, including YourMT3 and [HeartCodec](https://github.com/HeartMuLa/heartlib). Demo recordings retain their original rights.
+Code and model weights are released under Apache-2.0. See [LICENSE](https://github.com/mimbres/spansynth-edit/blob/main/LICENSE) and [NOTICE](https://github.com/mimbres/spansynth-edit/blob/main/NOTICE) for terms and credits, including YourMT3+ and [HeartCodec](https://github.com/HeartMuLa/heartlib). Demo recordings retain their original rights.
 
 ## Citation
 

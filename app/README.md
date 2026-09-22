@@ -15,17 +15,17 @@ thumbnail: https://raw.githubusercontent.com/mimbres/spansynth-edit/main/demo/as
 
 # SpanSynth-Edit
 
-Upload a recording, transcribe it with YourMT3, edit the notes, and regenerate a selected region with SpanSynth-Edit.
+Upload a recording, transcribe it with YourMT3+, edit the notes, and regenerate a selected region with SpanSynth-Edit.
 
 [Source code](https://github.com/mimbres/spansynth-edit) · [Model weights](https://huggingface.co/mimbres/spansynth-edit) · [Listening examples](https://mimbres.github.io/spansynth-edit/)
 
 The editor supports multiple instruments, drums, note creation, deletion, movement, resizing, and undo/redo. Each clip is up to 20.48 seconds. Audio outside the selected region is preserved in the 48 kHz mono result. MIDI export supports 15 melodic instruments plus drums; [supported programs and merged groups](https://github.com/mimbres/spansynth-edit/blob/main/spansynth/vocabulary.py) follow the model vocabulary. The note preview uses a simple synth, so it does not represent the generated timbre.
 
-Transcription uses the existing [YourMT3 Space](https://huggingface.co/spaces/mimbres/YourMT3). You can also upload an aligned MIDI file. The original MIDI is kept separately for `spansynth-edit + flowedit`.
+Transcription uses the existing [YourMT3+ Space](https://huggingface.co/spaces/mimbres/YourMT3). You can also upload an aligned MIDI file. The original MIDI is kept separately for `spansynth-edit + flowedit`.
 
 Use **Apply edits** to save an updated MIDI file, or **Apply & Generate** to generate audio from your latest edits. The **Light mode / Dark mode** button at the top switches appearance without clearing your work.
 
-Three sample inputs are available: **Slakh**, **Kraisler**, and **Jazz intro** (*Piano Sway Intro B* by OurMusicBox). Slakh and Kraisler include aligned MIDI. Use YourMT3 to transcribe the jazz sample. Downloaded audio and MIDI use the chosen clip's timeline.
+Three sample inputs are available: **Slakh**, **Kraisler**, and **Jazz intro** (*Piano Sway Intro B* by OurMusicBox). Slakh and Kraisler include aligned MIDI. Use YourMT3+ to transcribe the jazz sample. Downloaded audio and MIDI use the chosen clip's timeline.
 
 Uploads and results are stored temporarily for your session. Temporary files are periodically removed. GPU availability and usage limits are managed by Hugging Face ZeroGPU.
 

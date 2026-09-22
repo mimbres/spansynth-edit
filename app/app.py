@@ -202,10 +202,10 @@ def install_source_notes(session, notes, message):
 
 def midi_from_html(value):
     if not isinstance(value, str):
-        raise ValueError("YourMT3 did not return a transcription.")
+        raise ValueError("YourMT3+ did not return a transcription.")
     match = re.search(r"data:audio/(?:midi|mid);base64,([A-Za-z0-9+/=]+)", value)
     if not match or len(match[1]) > 8_000_000:
-        raise ValueError("YourMT3 returned no readable MIDI file. Please retry or upload MIDI.")
+        raise ValueError("YourMT3+ returned no readable MIDI file. Please retry or upload MIDI.")
     payload = base64.b64decode(match[1], validate=True)
     MidiFile(file=io.BytesIO(payload))
     return payload
@@ -214,7 +214,7 @@ def midi_from_html(value):
 def transcribe(session, request: gr.Request, progress=gr.Progress()):
     if not session:
         raise gr.Error("Load an audio clip first.")
-    progress(0, desc="Waiting for YourMT3")
+    progress(0, desc="Waiting for YourMT3+")
     headers = {}
     if request and request.headers.get("x-ip-token"):
         headers["x-ip-token"] = request.headers["x-ip-token"]
@@ -225,9 +225,9 @@ def transcribe(session, request: gr.Request, progress=gr.Progress()):
         path.write_bytes(midi_from_html(result))
         notes = midi_notes(path, 0, session["duration"])
     except Exception as error:
-        raise gr.Error(f"YourMT3 transcription could not finish. {error}") from error
+        raise gr.Error(f"YourMT3+ transcription could not finish. {error}") from error
     progress(1, desc="Transcription ready")
-    return install_source_notes(session, notes, "YourMT3 transcription")
+    return install_source_notes(session, notes, "YourMT3+ transcription")
 
 
 def export_midi(value, session):
@@ -310,7 +310,7 @@ def load_example(old_session, sample_name="Slakh"):
         loaded = load_clip(str(folder / audio_name), 0, 20.48, old_session)
         session, preview, editor, start, end, *_ = loaded
         midi = None
-        status = f"{sample_name} loaded. Use YourMT3 to transcribe it, then edit the notes."
+        status = f"{sample_name} loaded. Use YourMT3+ to transcribe it, then edit the notes."
         if midi_name:
             notes = midi_notes(folder / midi_name, 0, session["duration"])
             session, editor, midi, _, _, status = install_source_notes(session, notes, f"{sample_name} sample")
@@ -393,7 +393,7 @@ def build_app():
                         duration = gr.Number(value=20.48, minimum=0.2, maximum=20.48, precision=2, label="Clip length · seconds")
                     with gr.Row():
                         load = gr.Button("Load clip", variant="primary")
-            gr.Markdown("**Try a sample** — Slakh and Kraisler include MIDI. Transcribe the jazz clip with YourMT3.", elem_classes="sample-note")
+            gr.Markdown("**Try a sample** — Slakh and Kraisler include MIDI. Transcribe the jazz clip with YourMT3+.", elem_classes="sample-note")
             with gr.Row():
                 slakh_example = gr.Button("Slakh · 20 s", elem_classes="sample-button")
                 kraisler_example = gr.Button("Kraisler · 20 s", elem_classes="sample-button")
@@ -402,7 +402,7 @@ def build_app():
         with gr.Group(elem_classes="step-card"):
             gr.Markdown("### 2 · Edit the score")
             with gr.Row():
-                transcribe_button = gr.Button("Transcribe with YourMT3", variant="primary")
+                transcribe_button = gr.Button("Transcribe with YourMT3+", variant="primary")
                 gr.Markdown("Transcription can make mistakes. Correct the notes before generating. Slakh and Kraisler already include MIDI.")
             with gr.Accordion("Already have aligned MIDI?", open=False):
                 midi_input = gr.File(label="Original MIDI aligned with the full uploaded recording", file_types=[".mid", ".midi"])
@@ -430,7 +430,7 @@ def build_app():
             generate_button = gr.Button("Apply & Generate", variant="primary", size="lg")
             status = gr.Markdown("Choose a recording or try a sample.", elem_id="run-status")
             output_audio = gr.Audio(label="Edited clip · 48 kHz mono", interactive=False, type="filepath", buttons=["download"], elem_id="result-audio")
-        gr.Markdown("Audio outside the selected region is preserved. Region boundaries snap outward to 40 ms. Uploads and results are temporary. Transcription uses [YourMT3](https://huggingface.co/spaces/mimbres/YourMT3); generation runs here. ZeroGPU availability and usage limits depend on your Hugging Face account.", elem_classes="footer-note")
+        gr.Markdown("Audio outside the selected region is preserved. Region boundaries snap outward to 40 ms. Uploads and results are temporary. Transcription uses [YourMT3+](https://huggingface.co/spaces/mimbres/YourMT3); generation runs here. ZeroGPU availability and usage limits depend on your Hugging Face account.", elem_classes="footer-note")
         clip_outputs = [state, original_audio, editor, edit_start, edit_end, output_audio, source_download, target_download, status]
         load.click(load_clip, [audio, crop_start, duration, state], clip_outputs, api_name="load_clip", concurrency_id="editing")
         sample_outputs = [*clip_outputs, audio, crop_start, duration]
