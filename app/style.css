@@ -45,6 +45,7 @@
 .step-card h3 {font-size: 18px !important; margin: 0 0 12px !important; color: var(--body-text-color);}
 .footer-note {font-size: 12px !important; opacity: .75; padding: 6px 18px 24px; line-height: 1.7;}
 #run-status {padding: 12px 16px; border-radius: 12px; background: var(--ss-soft); color: var(--ss-text);}
+.gradio-container #generation-time, .gradio-container #generation-time p {font-size: 12px !important; line-height: 1.6; color: var(--ss-muted); margin: 4px 0 0;}
 .roll-shell {color: var(--ss-text); background: var(--ss-surface); border: 1px solid var(--ss-border); border-radius: 12px; overflow: hidden;}
 .roll-toolbar {display: flex; flex-wrap: wrap; align-items: center; gap: 10px; padding: 12px; background: var(--ss-soft);}
 .roll-toolbar label {display: flex; flex-wrap: wrap; align-items: center; gap: 6px; min-width: 0; font-size: 12px; font-weight: 600;}

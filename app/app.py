@@ -37,6 +37,7 @@ from spansynth.vocabulary import PROGRAM_GROUPS, PROGRAM_TO_CATEGORY
 HERE = Path(__file__).resolve().parent
 MODEL = CODEC = DEVICE = None
 MAX_NOTES = 10000
+EULER_STEPS = [4, 8, 16, 24, 32, 48, 64]
 INSTRUMENTS = [{"program": programs[0], "name": name, "members": list(programs)}
                for name, programs in PROGRAM_GROUPS.items()]
 EXAMPLE_ROOT = "https://raw.githubusercontent.com/mimbres/spansynth-edit/main/demo/assets/"
@@ -180,7 +181,7 @@ def load_clip(audio, crop_start, duration, old_session):
     sf.write(preview, crop.original, SAMPLE_RATE, subtype="FLOAT")
     cleanup(old_session)
     start, end = (6.4, 14.08) if duration >= 14.08 else (duration * 0.25, duration * 0.75)
-    return session, str(preview), editor_value(session, []), start, end, None, None, None, "Clip ready. Transcribe it, upload MIDI, or add notes."
+    return session, str(preview), editor_value(session, []), start, end, None, None, None, "Clip ready. Transcribe it, upload MIDI, or add notes.", ""
 
 
 def load_midi(path, session):
@@ -197,7 +198,7 @@ def install_source_notes(session, notes, message):
     original = write_midi(notes, Path(session["directory"]) / "original.mid")
     unsupported = sorted({n["program"] for n in notes} - PROGRAM_TO_CATEGORY.keys())
     suffix = f" Remap unsupported programs in the editor: {unsupported}." if unsupported else ""
-    return session, editor_value(session, notes), original, None, None, f"{message}: {len(notes)} notes. Edit a track, then generate.{suffix}"
+    return session, editor_value(session, notes), original, None, None, f"{message}: {len(notes)} notes. Edit a track, then generate.{suffix}", ""
 
 
 def midi_from_html(value):
@@ -286,8 +287,11 @@ def generate(value, session, start, end, method, steps, cfg, context_midi, drop_
         take = Path(tempfile.mkdtemp(prefix="take-", dir=directory))
         sf.write(take / "output.wav", result, SAMPLE_RATE, subtype="FLOAT")
         target_path = write_midi(notes, take / "edited.mid")
+        elapsed = time.perf_counter() - began
         first, last = math.floor(start * 25 + 1e-9) / 25, min(math.ceil(end * 25 - 1e-9) / 25, session["duration"])
-        return str(take / "output.wav"), target_path, f"Generated {first:.2f}–{last:.2f} s in {time.perf_counter() - began:.1f} s. Audio outside this region is unchanged."
+        return (str(take / "output.wav"), target_path,
+                f"Generated {first:.2f}–{last:.2f} s. Audio outside this region is unchanged.",
+                f"Generation time · {elapsed:.1f} s")
     except (ValueError, RuntimeError, OSError) as error:
         raise gr.Error(str(error)) from error
 
@@ -313,10 +317,10 @@ def load_example(old_session, sample_name="Slakh"):
         status = f"{sample_name} loaded. Use YourMT3+ to transcribe it, then edit the notes."
         if midi_name:
             notes = midi_notes(folder / midi_name, 0, session["duration"])
-            session, editor, midi, _, _, status = install_source_notes(session, notes, f"{sample_name} sample")
+            session, editor, midi, _, _, status, _ = install_source_notes(session, notes, f"{sample_name} sample")
         sample_audio = Path(session["directory"]) / audio_name
         shutil.copyfile(folder / audio_name, sample_audio)
-        return session, preview, editor, start, end, None, midi, None, status, str(sample_audio), 0, session["duration"]
+        return session, preview, editor, start, end, None, midi, None, status, "", str(sample_audio), 0, session["duration"]
 
 
 EDITOR_HTML = """
@@ -420,9 +424,9 @@ def build_app():
                 edit_start = gr.Number(value=6.4, minimum=0, precision=2, label="Region start · clip seconds", elem_id="edit-start")
                 edit_end = gr.Number(value=14.08, minimum=0, precision=2, label="Region end · clip seconds", elem_id="edit-end")
                 method = gr.Dropdown(choices=[("spansynth-edit", "ordinary"), ("spansynth-edit + flowedit", "flowedit")], value="ordinary", label="Method")
+                steps = gr.Dropdown(choices=EULER_STEPS, value=16, label="Euler steps")
             with gr.Accordion("Generation settings", open=False):
                 with gr.Row():
-                    steps = gr.Slider(1, 64, value=16, step=1, label="Euler steps")
                     cfg = gr.Slider(0, 8, value=2, step=0.1, label="MIDI guidance (CFG)")
                 with gr.Row():
                     context_midi = gr.Checkbox(value=False, label="Use original MIDI outside the region")
@@ -430,8 +434,9 @@ def build_app():
             generate_button = gr.Button("Apply & Generate", variant="primary", size="lg")
             status = gr.Markdown("Choose a recording or try a sample.", elem_id="run-status")
             output_audio = gr.Audio(label="Edited clip · 48 kHz mono", interactive=False, type="filepath", buttons=["download"], elem_id="result-audio")
+            generation_time = gr.Markdown("", elem_id="generation-time")
         gr.Markdown("Audio outside the selected region is preserved. Region boundaries snap outward to 40 ms. Uploads and results are temporary. Transcription uses [YourMT3+](https://huggingface.co/spaces/mimbres/YourMT3); generation runs here. ZeroGPU availability and usage limits depend on your Hugging Face account.", elem_classes="footer-note")
-        clip_outputs = [state, original_audio, editor, edit_start, edit_end, output_audio, source_download, target_download, status]
+        clip_outputs = [state, original_audio, editor, edit_start, edit_end, output_audio, source_download, target_download, status, generation_time]
         load.click(load_clip, [audio, crop_start, duration, state], clip_outputs, api_name="load_clip", concurrency_id="editing")
         sample_outputs = [*clip_outputs, audio, crop_start, duration]
         slakh_example.click(load_example, [state], sample_outputs, api_name="example", concurrency_id="editing")
@@ -439,12 +444,12 @@ def build_app():
                                api_name="example_kraisler", concurrency_id="editing")
         jazz_example.click(partial(load_example, sample_name="Jazz intro"), [state], sample_outputs,
                             api_name="example_jazz", concurrency_id="editing")
-        midi_outputs = [state, editor, source_download, target_download, output_audio, status]
+        midi_outputs = [state, editor, source_download, target_download, output_audio, status, generation_time]
         import_button.click(load_midi, [midi_input, state], midi_outputs, api_name="load_midi", concurrency_id="editing")
         transcribe_button.click(transcribe, [state], midi_outputs, api_name="transcribe", concurrency_id="editing")
         export_button.click(export_midi, [editor, state], target_download, api_name="export_midi", concurrency_id="editing")
         generate_button.click(generate, [editor, state, edit_start, edit_end, method, steps, cfg, context_midi, drop_context_audio],
-                              [output_audio, target_download, status], api_name="generate", concurrency_id="editing")
+                              [output_audio, target_download, status, generation_time], api_name="generate", concurrency_id="editing")
     return demo
 
 
