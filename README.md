@@ -5,7 +5,10 @@
 </p>
 
 <p align="center">
-  <a href="https://huggingface.co/spaces/mimbres/spansynth-edit"><img src="https://img.shields.io/badge/Try%20the%20app-F1D8E5?style=for-the-badge&amp;logo=huggingface&amp;logoColor=334155" alt="Try the interactive demo" height="32"></a>&nbsp;
+  <a href="https://huggingface.co/spaces/mimbres/spansynth-edit"><img src="https://img.shields.io/badge/HF%20Spaces%20%C2%B7%20Live%20Editing%20GUI-F1D8E5?style=for-the-badge&amp;logo=huggingface&amp;logoColor=334155" alt="HF Spaces · Live Editing GUI" height="32"></a>
+</p>
+
+<p align="center">
   <a href="https://mimbres.github.io/spansynth-edit/"><img src="https://img.shields.io/badge/%E2%96%B6%20Listen%20to%20demos-C8DDF0?style=for-the-badge" alt="Listen to demos" height="32"></a>&nbsp;
   <a href="https://github.com/mimbres/spansynth-edit"><img src="https://img.shields.io/badge/Source%20code-DCCEF0?style=for-the-badge&amp;logo=github&amp;logoColor=334155" alt="Source code on GitHub" height="32"></a>&nbsp;
   <a href="https://huggingface.co/mimbres/spansynth-edit"><img src="https://img.shields.io/badge/Model%20weights-CBE3D6?style=for-the-badge&amp;logo=huggingface&amp;logoColor=334155" alt="Model weights on Hugging Face" height="32"></a>
