@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import base64
+from functools import partial
 import io
 import json
 import math
@@ -39,6 +40,11 @@ MAX_NOTES = 10000
 INSTRUMENTS = [{"program": programs[0], "name": name, "members": list(programs)}
                for name, programs in PROGRAM_GROUPS.items()]
 EXAMPLE_ROOT = "https://raw.githubusercontent.com/mimbres/spansynth-edit/main/demo/assets/"
+EXAMPLE_FILES = {
+    "Slakh": ("early-slakh-track00006-original.mp3", "early-slakh-track00006-before.mid"),
+    "Kraisler": ("early-kraisler-track01-original.mp3", "early-kraisler-track01-before.mid"),
+    "Jazz intro": ("jazz-intro-ourmusicbox.mp3", None),
+}
 
 
 def cleanup(session):
@@ -156,7 +162,7 @@ def editor_value(session, notes):
 
 def load_clip(audio, crop_start, duration, old_session):
     if not audio:
-        raise gr.Error("Upload audio or choose the example first.")
+        raise gr.Error("Upload audio or choose a sample first.")
     finite_number(crop_start, "Crop start", 0, 3600)
     finite_number(duration, "Clip duration", 0.2, 20.48)
     info = sf.info(audio)
@@ -227,7 +233,9 @@ def transcribe(session, request: gr.Request, progress=gr.Progress()):
 def export_midi(value, session):
     try:
         notes = validate_score(value, session)
-        return write_midi(notes, Path(session["directory"]) / "edited.mid")
+        path = write_midi(notes, Path(session["directory"]) / "edited.mid")
+        gr.Info("Edits applied. Your edited MIDI is ready to download.")
+        return path
     except (ValueError, OSError) as error:
         raise gr.Error(str(error)) from error
 
@@ -284,18 +292,31 @@ def generate(value, session, start, end, method, steps, cfg, context_midi, drop_
         raise gr.Error(str(error)) from error
 
 
-def load_example(old_session):
+def load_example(old_session, sample_name="Slakh"):
+    if sample_name not in EXAMPLE_FILES:
+        raise gr.Error("Choose one of the three sample recordings.")
+    audio_name, midi_name = EXAMPLE_FILES[sample_name]
     with tempfile.TemporaryDirectory(prefix="spansynth-example-") as folder:
         folder = Path(folder)
-        for suffix in ("original.mp3", "before.mid"):
-            filename = "early-slakh-track00006-" + suffix
-            with urlopen(EXAMPLE_ROOT + filename, timeout=30) as response:
-                (folder / filename).write_bytes(response.read())
-        loaded = load_clip(str(folder / "early-slakh-track00006-original.mp3"), 0, 20.48, old_session)
-        session, preview, _, start, end, *_ = loaded
-        notes = midi_notes(folder / "early-slakh-track00006-before.mid", 0, session["duration"])
-        session, editor, midi, _, _, status = install_source_notes(session, notes, "Prepared example")
-        return session, preview, editor, start, end, None, midi, None, status
+        for filename in (audio_name, midi_name):
+            if filename is None:
+                continue
+            local = HERE.parent / "demo" / "assets" / filename
+            if local.is_file():
+                shutil.copyfile(local, folder / filename)
+            else:
+                with urlopen(EXAMPLE_ROOT + filename, timeout=30) as response:
+                    (folder / filename).write_bytes(response.read())
+        loaded = load_clip(str(folder / audio_name), 0, 20.48, old_session)
+        session, preview, editor, start, end, *_ = loaded
+        midi = None
+        status = f"{sample_name} loaded. Use YourMT3 to transcribe it, then edit the notes."
+        if midi_name:
+            notes = midi_notes(folder / midi_name, 0, session["duration"])
+            session, editor, midi, _, _, status = install_source_notes(session, notes, f"{sample_name} sample")
+        sample_audio = Path(session["directory"]) / audio_name
+        shutil.copyfile(folder / audio_name, sample_audio)
+        return session, preview, editor, start, end, None, midi, None, status, str(sample_audio), 0, session["duration"]
 
 
 EDITOR_HTML = """
@@ -310,9 +331,9 @@ EDITOR_HTML = """
     <button data-action="delete">Delete note</button>
   </div>
   <div class="roll-toolbar roll-secondary">
-    <button data-action="play">Play clip</button>
-    <button data-action="preview">Preview notes</button>
-    <button data-action="stop">Stop</button>
+    <button data-action="play"><span class="transport-icon" aria-hidden="true">▶</span> Play clip</button>
+    <button data-action="preview"><span class="transport-icon" aria-hidden="true">▶</span> Preview notes</button>
+    <button data-action="stop"><span class="transport-icon" aria-hidden="true">■</span> Stop</button>
     <label>Zoom <input data-role="zoom" aria-label="Timeline zoom" type="range" min="1" max="4" step="0.25" value="1"></label>
     <label>Velocity <input data-role="velocity" aria-label="Selected note velocity" type="number" min="1" max="127" value="90"></label>
     <span data-role="count"></span>
@@ -320,15 +341,40 @@ EDITOR_HTML = """
   <div class="roll-scroll" tabindex="0" aria-label="Piano roll. Double click to add a note. Drag to move; drag the right edge to resize.">
     <canvas data-role="roll" aria-label="Editable piano roll"></canvas>
   </div>
-  <p class="roll-help">Double-click to add · Drag to move · Drag a note’s right edge to resize · Delete to remove · Ctrl/Cmd+Z to undo. Preview notes uses a simple synth.</p>
+  <div class="roll-help">
+    <p>Double-click to add · Drag to move · Drag a note’s right edge to resize</p>
+    <p><kbd>Del</kbd> remove · <kbd>Ctrl</kbd> / <kbd>⌘ Cmd</kbd> + <kbd>Z</kbd> undo · Add <kbd>Shift</kbd> to redo</p>
+    <p>Preview notes uses a simple synth.</p>
+  </div>
   <p data-role="detail" class="roll-detail">Load a clip to begin.</p>
 </div>
+"""
+
+THEME_JS = """
+const button = element.querySelector('.theme-toggle');
+function updateThemeButton() {
+  const dark = !!element.closest('.dark');
+  button.textContent = dark ? '☀ Light mode' : '☾ Dark mode';
+  button.setAttribute('aria-label', dark ? 'Switch to light mode' : 'Switch to dark mode');
+}
+button.addEventListener('click', () => {
+  const current = element.closest('.dark');
+  (current || document.body).classList.toggle('dark', !current);
+  const url = new URL(location.href);
+  url.searchParams.set('__theme', current ? 'light' : 'dark');
+  history.replaceState(history.state, '', url);
+  updateThemeButton();
+});
+const observer = new MutationObserver(updateThemeButton);
+for (let node = element; node; node = node.parentElement)
+  observer.observe(node, {attributes:true, attributeFilter:['class']});
+updateThemeButton();
 """
 
 
 def build_app():
     with gr.Blocks(title="SpanSynth-Edit", delete_cache=(3600, 3600)) as demo:
-        gr.HTML('<header class="hero"><div class="eyebrow">SPANSYNTH-EDIT · MIDI-GUIDED MUSIC EDITING</div><h1>Change the notes.<br><span>Keep the musical context.</span></h1><p>Upload a recording, edit its score, and hear a new version of the selected region.</p><div class="hero-links"><a href="https://mimbres.github.io/spansynth-edit/" target="_blank">Listen to demos ↗</a><a href="https://github.com/mimbres/spansynth-edit" target="_blank">Source code ↗</a><a href="https://huggingface.co/mimbres/spansynth-edit" target="_blank">Model weights ↗</a></div></header>', apply_default_css=False)
+        gr.HTML('<header class="hero"><button class="theme-toggle" type="button" aria-label="Switch to dark mode">☾ Dark mode</button><div class="eyebrow">SPANSYNTH-EDIT · MIDI-GUIDED MUSIC EDITING</div><h1>Change the notes.<br><span>Keep the musical context.</span></h1><p>Upload a recording, edit its score, and hear a new version of the selected region.</p><div class="hero-links"><a href="https://mimbres.github.io/spansynth-edit/" target="_blank">Listen to demos ↗</a><a href="https://github.com/mimbres/spansynth-edit" target="_blank">Source code ↗</a><a href="https://huggingface.co/mimbres/spansynth-edit" target="_blank">Model weights ↗</a></div></header>', apply_default_css=False, js_on_load=THEME_JS)
         state = gr.State(None, time_to_live=3600, delete_callback=cleanup)
         with gr.Group(elem_classes="step-card"):
             gr.Markdown("### 1 · Choose your audio")
@@ -336,33 +382,38 @@ def build_app():
                 audio = gr.Audio(label="Upload a recording", sources=["upload"], type="filepath", editable=False,
                                  buttons=["download"], elem_id="upload-audio")
                 with gr.Column():
-                    gr.Markdown("Work on one clip of up to **20.48 seconds**. Start with the example or upload your own recording.")
+                    gr.Markdown("Work on one clip of up to **20.48 seconds**. Choose a sample below or upload your own recording.")
                     with gr.Row():
-                        crop_start = gr.Number(value=0, minimum=0, label="Crop start · seconds")
-                        duration = gr.Number(value=20.48, minimum=0.2, maximum=20.48, label="Clip length · seconds")
+                        crop_start = gr.Number(value=0, minimum=0, precision=2, label="Crop start · seconds")
+                        duration = gr.Number(value=20.48, minimum=0.2, maximum=20.48, precision=2, label="Clip length · seconds")
                     with gr.Row():
                         load = gr.Button("Load clip", variant="primary")
-                        example = gr.Button("Try prepared example")
+            gr.Markdown("**Try a sample** — Slakh and Kraisler include MIDI. Transcribe the jazz clip with YourMT3.", elem_classes="sample-note")
+            with gr.Row():
+                slakh_example = gr.Button("Slakh · 20 s")
+                kraisler_example = gr.Button("Kraisler · 20 s")
+                jazz_example = gr.Button("Jazz intro · 11 s")
             original_audio = gr.Audio(label="Original clip", interactive=False, type="filepath", buttons=["download"], elem_id="source-audio")
         with gr.Group(elem_classes="step-card"):
             gr.Markdown("### 2 · Edit the score")
             with gr.Row():
                 transcribe_button = gr.Button("Transcribe with YourMT3", variant="primary")
-                gr.Markdown("Transcription can make mistakes. Correct the notes before generating. The prepared example already includes MIDI.")
+                gr.Markdown("Transcription can make mistakes. Correct the notes before generating. Slakh and Kraisler already include MIDI.")
             with gr.Accordion("Already have aligned MIDI?", open=False):
                 midi_input = gr.File(label="Original MIDI aligned with the full uploaded recording", file_types=[".mid", ".midi"])
                 import_button = gr.Button("Load MIDI into editor")
             editor = gr.HTML(value="{}", html_template=EDITOR_HTML, js_on_load=(HERE / "editor.js").read_text(),
                              css_template="", apply_default_css=False, elem_id="note-editor")
+            export_button = gr.Button("Apply edits", variant="primary", size="lg", elem_id="apply-edits")
+            gr.Markdown("Apply edits to update your MIDI download. **Apply & Generate** below also uses your latest edits.", elem_classes="apply-note")
             with gr.Row():
                 source_download = gr.File(label="Original MIDI", interactive=False)
                 target_download = gr.File(label="Edited MIDI", interactive=False)
-                export_button = gr.Button("Export edited MIDI")
         with gr.Group(elem_classes="step-card"):
             gr.Markdown("### 3 · Generate the selected region")
             with gr.Row():
-                edit_start = gr.Number(value=6.4, minimum=0, label="Region start · clip seconds", elem_id="edit-start")
-                edit_end = gr.Number(value=14.08, minimum=0, label="Region end · clip seconds", elem_id="edit-end")
+                edit_start = gr.Number(value=6.4, minimum=0, precision=2, label="Region start · clip seconds", elem_id="edit-start")
+                edit_end = gr.Number(value=14.08, minimum=0, precision=2, label="Region end · clip seconds", elem_id="edit-end")
                 method = gr.Dropdown(choices=[("spansynth-edit", "ordinary"), ("spansynth-edit + flowedit", "flowedit")], value="ordinary", label="Method")
             with gr.Accordion("Generation settings", open=False):
                 with gr.Row():
@@ -371,13 +422,18 @@ def build_app():
                 with gr.Row():
                     context_midi = gr.Checkbox(value=False, label="Use original MIDI outside the region")
                     drop_context_audio = gr.Checkbox(value=False, label="Drop audio context")
-            generate_button = gr.Button("Generate audio", variant="primary", size="lg")
-            status = gr.Markdown("Choose a recording or try the prepared example.", elem_id="run-status")
+            generate_button = gr.Button("Apply & Generate", variant="primary", size="lg")
+            status = gr.Markdown("Choose a recording or try a sample.", elem_id="run-status")
             output_audio = gr.Audio(label="Edited clip · 48 kHz mono", interactive=False, type="filepath", buttons=["download"], elem_id="result-audio")
         gr.Markdown("Audio outside the selected region is preserved. Region boundaries snap outward to 40 ms. Uploads and results are temporary. Transcription uses [YourMT3](https://huggingface.co/spaces/mimbres/YourMT3); generation runs here. ZeroGPU availability and usage limits depend on your Hugging Face account.", elem_classes="footer-note")
         clip_outputs = [state, original_audio, editor, edit_start, edit_end, output_audio, source_download, target_download, status]
         load.click(load_clip, [audio, crop_start, duration, state], clip_outputs, api_name="load_clip", concurrency_id="editing")
-        example.click(load_example, [state], clip_outputs, api_name="example", concurrency_id="editing")
+        sample_outputs = [*clip_outputs, audio, crop_start, duration]
+        slakh_example.click(load_example, [state], sample_outputs, api_name="example", concurrency_id="editing")
+        kraisler_example.click(partial(load_example, sample_name="Kraisler"), [state], sample_outputs,
+                               api_name="example_kraisler", concurrency_id="editing")
+        jazz_example.click(partial(load_example, sample_name="Jazz intro"), [state], sample_outputs,
+                            api_name="example_jazz", concurrency_id="editing")
         midi_outputs = [state, editor, source_download, target_download, output_audio, status]
         import_button.click(load_midi, [midi_input, state], midi_outputs, api_name="load_midi", concurrency_id="editing")
         transcribe_button.click(transcribe, [state], midi_outputs, api_name="transcribe", concurrency_id="editing")
@@ -401,9 +457,15 @@ def initialize_models():
 if __name__ == "__main__":
     if os.environ.get("SPANSYNTH_SKIP_MODELS") != "1":
         initialize_models()
-    theme = gr.themes.Soft(primary_hue="indigo", neutral_hue="slate")
-    # Keep the score and surrounding controls on the same light canvas in both browser modes.
-    theme.set(**{key: getattr(theme, key.removesuffix("_dark")) for key in vars(theme)
-                 if key.endswith("_dark") and hasattr(theme, key.removesuffix("_dark"))})
+    theme = gr.themes.Soft(primary_hue="violet", neutral_hue="slate").set(
+        body_background_fill="#fbf8f7", body_background_fill_dark="#15151f",
+        block_background_fill="#ffffff", block_background_fill_dark="#20212e",
+        block_border_color="#e7dfe8", block_border_color_dark="#3a3749",
+        block_label_background_fill="#f3eef5", block_label_background_fill_dark="#323041",
+        block_title_background_fill="transparent", block_title_background_fill_dark="transparent",
+        button_primary_background_fill="linear-gradient(115deg, #73599c, #8c5775)",
+        button_primary_background_fill_dark="linear-gradient(115deg, #73599c, #8c5775)",
+        button_primary_background_fill_hover="linear-gradient(115deg, #8267ab, #9b6584)",
+        button_primary_background_fill_hover_dark="linear-gradient(115deg, #8267ab, #9b6584)")
     build_app().queue(max_size=16).launch(css=(HERE / "style.css").read_text(), theme=theme,
                                          max_file_size="50mb", show_error=True)

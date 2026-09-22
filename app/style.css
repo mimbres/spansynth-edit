@@ -1,35 +1,70 @@
-.gradio-container {width: 100% !important; min-width: 0 !important; max-width: 1120px !important; box-sizing: border-box; margin: auto; font-family: Inter, system-ui, sans-serif !important;}
-body {background: #f6f7fc;}
-.hero {padding: 48px 26px 38px; background: radial-gradient(ellipse at 85% 0%, #e5e0fa 0%, transparent 55%), linear-gradient(120deg, #eef7fb, #f7f4fb); border: 1px solid #e1e4f0; border-radius: 22px; margin-bottom: 16px; color: #28324d;}
-.eyebrow {font-size: 11px; font-weight: 700; letter-spacing: .16em; color: #68739a; margin-bottom: 18px;}
-.gradio-container .hero h1 {color: #28324d; font-size: clamp(32px, 5vw, 52px); line-height: 1.12; letter-spacing: -.045em; font-weight: 750; margin: 0 0 20px;}
-.gradio-container .hero h1 span {color: #7376a9;}
-.gradio-container .hero p {font-size: 16px; line-height: 1.6; max-width: 600px; color: #616b83;}
+.gradio-container {
+  --ss-text: #3d354b; --ss-muted: #746a80; --ss-border: #e6deea;
+  --ss-surface: #fff; --ss-soft: #f8f4f8; --ss-hover: #efe8f4;
+  --ss-accent: #875c84; --ss-key: #ede3f3; --ss-key-border: #cbb6da;
+  --ss-grid-white: #fffdfc; --ss-grid-black: #f3eff5;
+  --ss-piano-white: #faf7fb; --ss-piano-black: #e7deec;
+  --ss-grid-line: #ede6ef; --ss-octave-line: #d8ccdf;
+  --ss-wave: #ae91b3; --ss-region: #b78bc61c; --ss-region-head: #b78bc62b;
+  --ss-note-outline: #6c547d; --ss-playhead: #96658b;
+  width: 100% !important; min-width: 0 !important; max-width: 1120px !important;
+  box-sizing: border-box; margin: auto; font-family: Inter, system-ui, sans-serif !important;
+}
+.dark .gradio-container {
+  --ss-text: #eee7f3; --ss-muted: #b3a8bf; --ss-border: #423a50;
+  --ss-surface: #22212e; --ss-soft: #292534; --ss-hover: #3a3047;
+  --ss-accent: #d2a4cd; --ss-key: #443250; --ss-key-border: #795b8c;
+  --ss-grid-white: #23232f; --ss-grid-black: #1c1c28;
+  --ss-piano-white: #302b3b; --ss-piano-black: #211e2c;
+  --ss-grid-line: #343040; --ss-octave-line: #51455f;
+  --ss-wave: #ad8fbc; --ss-region: #c694df17; --ss-region-head: #c694df26;
+  --ss-note-outline: #f5e4fd; --ss-playhead: #efb8dd;
+  color-scheme: dark;
+}
+.hero {padding: 48px 26px 38px; background: radial-gradient(ellipse at 5% 5%, #ffe3d4, transparent 65%), radial-gradient(ellipse at 90% 12%, #e8dcf6, transparent 65%), linear-gradient(125deg, #fff5e8, #f7eff9 55%, #e4f0e8); border: 1px solid var(--ss-border); border-radius: 22px; margin-bottom: 16px; color: var(--ss-text);}
+.dark .hero {background: radial-gradient(ellipse at 5% 5%, #462d34, transparent 65%), radial-gradient(ellipse at 90% 12%, #3b2d50, transparent 65%), linear-gradient(125deg, #2a242b, #282331 55%, #20332e);}
+.eyebrow {font-size: 11px; font-weight: 700; letter-spacing: .16em; color: var(--ss-muted); margin-bottom: 18px;}
+.gradio-container .theme-toggle {float: right; margin: -20px -8px 12px 12px; padding: 7px 11px; border: 1px solid var(--ss-border); border-radius: 99px; background: var(--ss-surface); color: var(--ss-text); font: 500 12px/20px system-ui, sans-serif; cursor: pointer;}
+.gradio-container .theme-toggle:hover {background: var(--ss-hover);}
+.sample-note {font-size: 12px !important; color: var(--ss-muted); margin-top: 12px;}
+.gradio-container .hero h1 {color: var(--ss-text); font-size: clamp(32px, 5vw, 52px); line-height: 1.12; letter-spacing: -.045em; font-weight: 750; margin: 0 0 20px;}
+.gradio-container .hero h1 span {color: var(--ss-accent);}
+.gradio-container .hero p {font-size: 16px; line-height: 1.6; max-width: 600px; color: var(--ss-muted);}
 .hero-links {display: flex; flex-wrap: wrap; gap: 10px; margin-top: 22px;}
-.gradio-container .hero-links a {color: #515e82; text-decoration: none; font-size: 12px; padding: 8px 12px; border: 1px solid #d9def0; border-radius: 99px; background: #ffffffaa;}
-.hero-links a:hover {background: white;}
-.step-card {min-width: 0 !important; border-radius: 18px !important; padding: 20px !important; margin-bottom: 16px !important; border: 1px solid #e0e5f0 !important; background: var(--block-background-fill) !important;}
+.gradio-container .hero-links a {color: var(--ss-text); text-decoration: none; font-size: 12px; padding: 8px 12px; border: 1px solid var(--ss-border); border-radius: 99px; background: #ffffff80;}
+.dark .gradio-container .hero-links a {background: #201d2977;}
+.gradio-container .hero-links a:hover {background: var(--ss-surface);}
+.step-card {min-width: 0 !important; border-radius: 18px !important; padding: 20px !important; margin-bottom: 16px !important; border: 1px solid var(--ss-border) !important; background: var(--block-background-fill) !important;}
 .step-card .step-card {padding: 0 !important; border: 0 !important; margin: 0 !important; background: transparent !important;}
+.gradio-container .step-card > .styler {background: transparent;}
+.gradio-container .step-card button.primary, .gradio-container .step-card button.secondary {border-radius: 10px !important;}
 #note-editor {min-width: 0 !important; max-width: 100%;}
 .step-card h3 {font-size: 18px !important; margin: 0 0 12px !important; color: var(--body-text-color);}
 .footer-note {font-size: 12px !important; opacity: .75; padding: 6px 18px 24px; line-height: 1.7;}
-#run-status {padding: 12px 16px; border-radius: 12px; background: #eef3fb; color: #485576;}
-.roll-shell {color: #35415f; background: #fff; border: 1px solid #dce2ef; border-radius: 12px; overflow: hidden;}
-.roll-toolbar {display: flex; flex-wrap: wrap; align-items: center; gap: 8px; padding: 12px; background: #f8f9fd;}
-.roll-toolbar label {display: flex; align-items: center; gap: 6px; font-size: 11px; font-weight: 600;}
-.roll-toolbar select, .roll-toolbar button, .roll-toolbar input[type=number] {font: inherit; color: #435173; background: white; border: 1px solid #dbe1ef; border-radius: 7px; padding: 6px 8px; height: 30px;}
-.roll-toolbar select {max-width: 175px; font-size: 12px;}
-.roll-toolbar button {font-size: 12px; cursor: pointer; white-space: nowrap;}
-.roll-toolbar button:hover {background: #edf0fb; border-color: #9ba8d3;}
-.roll-toolbar button:disabled {opacity: .35; cursor: default;}
-.roll-toolbar input[type=number] {width: 60px;}
-.roll-toolbar input[type=range] {width: 80px; accent-color: #7c84c6;}
-.roll-secondary {padding-top: 0; border-bottom: 1px solid #e0e5f0;}
-.roll-secondary [data-role=count] {margin-left: auto; font-size: 11px; color: #7d879e;}
-.roll-scroll {overflow: auto; height: 380px; background: #fff; outline: none; overscroll-behavior: contain;}
-.roll-scroll:focus-visible {outline: 2px solid #8b97d1; outline-offset: -2px;}
+#run-status {padding: 12px 16px; border-radius: 12px; background: var(--ss-soft); color: var(--ss-text);}
+.roll-shell {color: var(--ss-text); background: var(--ss-surface); border: 1px solid var(--ss-border); border-radius: 12px; overflow: hidden;}
+.roll-toolbar {display: flex; flex-wrap: wrap; align-items: center; gap: 10px; padding: 12px; background: var(--ss-soft);}
+.roll-toolbar label {display: flex; flex-wrap: wrap; align-items: center; gap: 6px; min-width: 0; font-size: 12px; font-weight: 600;}
+.gradio-container .roll-toolbar select, .gradio-container .roll-toolbar button, .gradio-container .roll-toolbar input[type=number] {box-sizing: border-box; font-family: inherit; font-size: 13px; line-height: 20px; font-weight: 500; color: var(--ss-text); background-color: var(--ss-surface); border: 1px solid var(--ss-border); border-radius: 8px; padding: 8px 10px; height: 40px; min-height: 40px;}
+.gradio-container .roll-toolbar select {appearance: none; -webkit-appearance: none; max-width: 250px; padding: 8px 30px 8px 10px; background-image: linear-gradient(45deg, transparent 50%, var(--ss-muted) 50%), linear-gradient(135deg, var(--ss-muted) 50%, transparent 50%); background-position: right 14px top 17px, right 10px top 17px; background-size: 4px 4px; background-repeat: no-repeat;}
+.gradio-container .roll-toolbar select option {color: var(--ss-text); background: var(--ss-surface);}
+.gradio-container .roll-toolbar button {display: inline-flex; align-items: center; justify-content: center; gap: 7px; cursor: pointer; white-space: nowrap;}
+.gradio-container .roll-toolbar button:hover {background-color: var(--ss-hover); border-color: var(--ss-key-border);}
+.gradio-container .roll-toolbar button:disabled {opacity: .35; cursor: default;}
+.gradio-container .roll-toolbar .transport-icon {font-size: 12px; line-height: 1; color: var(--ss-accent);}
+.gradio-container .roll-toolbar button[aria-pressed=true] {background-color: var(--ss-key); border-color: var(--ss-key-border);}
+.gradio-container .roll-toolbar input[type=number] {width: 68px;}
+.roll-toolbar input[type=range] {width: 80px; accent-color: var(--ss-accent);}
+.roll-secondary {padding-top: 0; border-bottom: 1px solid var(--ss-border);}
+.roll-secondary [data-role=count] {margin-left: auto; font-size: 11px; color: var(--ss-muted);}
+.roll-scroll {overflow: auto; height: 380px; background: var(--ss-surface); outline: none; overscroll-behavior: contain;}
+.roll-scroll:focus-visible {outline: 2px solid var(--ss-key-border); outline-offset: -2px;}
 .roll-scroll canvas {display: block; touch-action: none;}
-.roll-help, .roll-detail {margin: 0; padding: 9px 12px; font-size: 11px; line-height: 1.6; color: #71809a;}
-.roll-help {border-top: 1px solid #e4e8f1; background: #fafbfe;}
-.roll-detail {padding-top: 0; background: #fafbfe; min-height: 24px;}
-@media (max-width: 600px) {.hero {padding: 30px 20px;}.step-card {padding: 12px !important;}.roll-scroll {height: 320px;}.roll-toolbar {gap: 6px;}}
+.roll-help, .roll-detail {margin: 0; padding: 9px 12px; font-size: 12px; line-height: 1.8; color: var(--ss-muted); background: var(--ss-soft);}
+.roll-help {border-top: 1px solid var(--ss-border);}
+.gradio-container .roll-help p {margin: 3px 0; font-size: 12px; line-height: 1.8; color: var(--ss-muted);}
+.gradio-container .roll-help kbd {display: inline-block; box-sizing: border-box; padding: 1px 6px; min-width: 25px; border: 1px solid var(--ss-key-border); border-bottom-width: 3px; border-radius: 5px; background: var(--ss-key); color: var(--ss-text); font: 600 11px/19px system-ui, sans-serif; text-align: center;}
+.roll-detail {padding-top: 0; min-height: 24px;}
+#apply-edits {margin-top: 12px; min-height: 48px;}
+.apply-note {font-size: 12px !important; color: var(--ss-muted);}
+@media (max-width: 600px) {.hero {padding: 30px 20px;}.gradio-container .theme-toggle {float: none; display: block; margin: 0 0 18px auto;}.step-card {padding: 12px !important;}.roll-scroll {height: 320px;}.roll-toolbar {gap: 8px;}.gradio-container .roll-toolbar select {max-width: 230px;}}
