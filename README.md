@@ -99,3 +99,7 @@ Each output folder contains `output.wav` (edited crop), `generated.wav` (generat
 ## License and credits
 
 Code and model assets use Apache-2.0; see [LICENSE](https://github.com/mimbres/spansynth-edit/blob/main/LICENSE) and [NOTICE](https://github.com/mimbres/spansynth-edit/blob/main/NOTICE), including YourMT3 and [HeartCodec](https://github.com/HeartMuLa/heartlib) attribution. Demo recordings retain their original rights. Spaces, automatic transcription, and an interactive MIDI editor are follow-up work.
+
+## Citation
+
+If you use SpanSynth-Edit in your research, please cite our forthcoming paper. **arXiv link and BibTeX: coming soon.**
