@@ -83,3 +83,52 @@ def test_web_app_registers_workflow_endpoints():
     demo = app.build_app()
     names = {fn.api_name for fn in demo.fns.values()}
     assert {"example", "load_clip", "load_midi", "transcribe", "export_midi", "generate"} <= names
+
+
+@pytest.mark.parametrize("source,target,expected", [
+    ([note()], [dict(note(), pitch=72)], (.24, .76)),
+    ([note()], [], (.24, .76)),
+    ([note()], [dict(note(), start=2.)], (.24, 2.52)),
+    ([dict(note(), duration=2.)], [note()], (.24, 2.28)),
+    ([], [note()], (.24, .76)),
+    ([note()], [dict(note(), velocity=64)], (.24, .76)),
+    ([note()], [note(40)], (.24, .76)),
+    ([note(), note()], [note()], (.24, .76)),
+    ([note(), dict(note(), start=12.)], [note(), dict(note(), start=13.)], (12., 13.52)),
+    ([], [dict(note(), start=20.47, duration=.01)], (20.44, 20.48)),
+    ([note(), note(40)], [dict(note(40), id=99), dict(note(), id=1)], None),
+])
+def test_changed_region_covers_only_actual_note_edits(source, target, expected):
+    assert app.changed_region(source, target, 20.48) == expected
+
+
+def test_auto_region_allows_manual_selection_and_handles_undo():
+    session = {"clip": "current", "duration": 20.48, "source_notes": [note()]}
+    changed = json.dumps({"clip": "current", "notes": [dict(note(), pitch=72)]})
+    first, last, _ = app.update_region(changed, session, True)
+    assert first["value"] == .24 and last["value"] == .76
+    assert not first["interactive"] and not last["interactive"]
+    for value, enabled in ((changed, False), (json.dumps({"clip": "current", "notes": [note()]}), True)):
+        first, last, _ = app.update_region(value, session, enabled)
+        assert first["interactive"] and last["interactive"]
+        assert "value" not in first and "value" not in last
+
+
+def test_generation_recalculates_region_before_using_stale_controls(tmp_path, monkeypatch):
+    import soundfile as sf
+    path = tmp_path / "audio.wav"
+    sf.write(path, np.zeros(app.SAMPLE_RATE * 3, dtype=np.float32), app.SAMPLE_RATE)
+    session = app.load_clip(str(path), 0, 3, None)[0]
+    session["source_notes"] = [note()]
+    value = app.editor_value(session, [dict(note(), start=2.1)])
+    calls = []
+    def generate_audio(crop, target, source, start, end, *args):
+        calls.append((start, end))
+        return crop.original.copy()
+    monkeypatch.setattr(app, "generate_audio", generate_audio)
+    try:
+        for auto, expected in ((True, (.24, 2.6)), (False, (1., 1.5))):
+            app.generate(value, session, 1., 1.5, "ordinary", 16, 2., False, False, auto)
+            assert calls[-1] == expected
+    finally:
+        app.cleanup(session)

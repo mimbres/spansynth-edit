@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import base64
+from collections import Counter
 from functools import partial
 import io
 import json
@@ -61,7 +62,7 @@ def finite_number(value, name, lower, upper):
     return value
 
 
-def validate_score(value, session):
+def validate_score(value, session, *, allow_unsupported=False):
     if not session:
         raise ValueError("Load an audio clip first.")
     if not isinstance(value, str) or len(value) > 4_000_000:
@@ -87,12 +88,44 @@ def validate_score(value, session):
             if isinstance(number, bool) or not isinstance(number, int) or not lower <= number <= upper:
                 raise ValueError(f"Invalid note {name}.")
             fields[name] = number
-        if fields["program"] not in PROGRAM_TO_CATEGORY:
+        if not allow_unsupported and fields["program"] not in PROGRAM_TO_CATEGORY:
             raise ValueError(f"Program {fields['program']} is not supported. Select that track and choose an instrument.")
         result.append({"start": float(onset), "duration": float(length), **fields})
     if len({note["program"] for note in result if note["program"] != 128}) > 15:
         raise ValueError("Use at most 15 melodic instruments plus drums for MIDI export. Merge a few tracks first.")
     return result
+
+
+def changed_region(source, target, duration):
+    """Cover added, removed, and modified notes on the 40 ms generation grid."""
+    def events(notes):
+        return Counter((round(n["start"] * SAMPLE_RATE), round((n["start"] + n["duration"]) * SAMPLE_RATE),
+                        n["pitch"], n["velocity"], n["program"]) for n in notes)
+    before, after = events(source or []), events(target)
+    changed = list(before - after) + list(after - before)
+    if not changed:
+        return None
+    hop = SAMPLE_RATE // 25
+    first = min(n[0] for n in changed) // hop
+    last = (max(n[1] for n in changed) + hop - 1) // hop
+    return first / 25, min(duration, last / 25)
+
+
+def update_region(value, session, enabled):
+    if not enabled:
+        return gr.update(interactive=True), gr.update(interactive=True), "Manual region. Choose start and end below."
+    region = None
+    if session:
+        try:
+            notes = validate_score(value, session, allow_unsupported=True)
+            region = changed_region(session.get("source_notes"), notes, session["duration"])
+        except ValueError:
+            return gr.skip(), gr.skip(), "Finish editing the score to update the region."
+    if region is None:
+        return (gr.update(interactive=True), gr.update(interactive=True),
+                "No note changes yet. Edit notes to set the region automatically, or choose it manually.")
+    return (gr.update(value=region[0], interactive=False), gr.update(value=region[1], interactive=False),
+            "Covers all changed notes, including removed notes and their original positions. Boundaries align to 40 ms.")
 
 
 def midi_notes(path, crop_start, duration):
@@ -263,9 +296,13 @@ def generate_audio(crop, target, source, start, end, method, steps, cfg, context
     return assemble_output(crop.original, decoded, crop.gain, first * 1920, min(last * 1920, len(crop.original)))
 
 
-def generate(value, session, start, end, method, steps, cfg, context_midi, drop_context_audio):
+def generate(value, session, start, end, method, steps, cfg, context_midi, drop_context_audio, auto_region=False):
     try:
         notes = validate_score(value, session)
+        if auto_region:
+            region = changed_region(session.get("source_notes"), notes, session["duration"])
+            if region is not None:
+                start, end = region
         finite_number(start, "Region start", 0, session["duration"])
         finite_number(end, "Region end", 0, session["duration"])
         if end <= start:
@@ -420,6 +457,8 @@ def build_app():
                 target_download = gr.File(label="Edited MIDI", interactive=False)
         with gr.Group(elem_classes="step-card"):
             gr.Markdown("### 3 · Generate the selected region")
+            auto_region = gr.Checkbox(value=True, label="Auto region from note edits")
+            region_hint = gr.Markdown("Edit notes to set the region automatically, or choose it manually.", elem_classes="apply-note")
             with gr.Row():
                 edit_start = gr.Number(value=6.4, minimum=0, precision=2, label="Region start · clip seconds", elem_id="edit-start")
                 edit_end = gr.Number(value=14.08, minimum=0, precision=2, label="Region end · clip seconds", elem_id="edit-end")
@@ -448,7 +487,12 @@ def build_app():
         import_button.click(load_midi, [midi_input, state], midi_outputs, api_name="load_midi", concurrency_id="editing")
         transcribe_button.click(transcribe, [state], midi_outputs, api_name="transcribe", concurrency_id="editing")
         export_button.click(export_midi, [editor, state], target_download, api_name="export_midi", concurrency_id="editing")
-        generate_button.click(generate, [editor, state, edit_start, edit_end, method, steps, cfg, context_midi, drop_context_audio],
+        gr.on([editor.change, auto_region.change], update_region, [editor, state, auto_region],
+              [edit_start, edit_end, region_hint], queue=False, trigger_mode="always_last", show_progress="hidden",
+              api_name="update_region")
+        gr.on([edit_start.change, edit_end.change], None, None, None, queue=False,
+              js="() => { window.dispatchEvent(new Event('spansynth-region')); }")
+        generate_button.click(generate, [editor, state, edit_start, edit_end, method, steps, cfg, context_midi, drop_context_audio, auto_region],
                               [output_audio, target_download, status, generation_time], api_name="generate", concurrency_id="editing")
     return demo
 

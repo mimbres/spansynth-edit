@@ -23,7 +23,7 @@ The editor supports multiple instruments, drums, note creation, deletion, moveme
 
 Transcription uses the existing [YourMT3+ Space](https://huggingface.co/spaces/mimbres/YourMT3). You can also upload an aligned MIDI file. The original MIDI is kept separately for `spansynth-edit + flowedit`.
 
-Use **Apply edits** to save an updated MIDI file, or **Apply & Generate** to generate audio from your latest edits. The **Light mode / Dark mode** button at the top switches appearance without clearing your work.
+Use **Apply edits** to save an updated MIDI file, or **Apply & Generate** to generate audio from your latest edits. The region automatically covers added, removed, and modified notes, including their original positions. Turn off **Auto region from note edits** to set the region yourself. The **Light mode / Dark mode** button at the top switches appearance without clearing your work.
 
 Three sample inputs are available: **Slakh**, **Kraisler**, and **Jazz intro** (*Piano Sway Intro B* by OurMusicBox). Slakh and Kraisler include aligned MIDI. Use YourMT3+ to transcribe the jazz sample. Downloaded audio and MIDI use the chosen clip's timeline.
 

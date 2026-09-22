@@ -232,6 +232,7 @@ scroll.addEventListener("keydown", event => {
   if (["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight"].includes(event.key) && selected !== null) {event.preventDefault(); change(() => {const n = data.notes.find(n => n.id === selected); if(!n) return; if(event.key === "ArrowUp") n.pitch = Math.min(127,n.pitch+1); if(event.key === "ArrowDown") n.pitch = Math.max(0,n.pitch-1); if(event.key === "ArrowLeft") n.start = Math.max(0,n.start-(Number(find("snap").value)||.04)); if(event.key === "ArrowRight") n.start = Math.min(data.duration-n.duration,n.start+(Number(find("snap").value)||.04));});}
 });
 document.addEventListener("input", event => {if (event.target.closest?.("#edit-start, #edit-end")) draw();});
+window.addEventListener("spansynth-region", () => requestAnimationFrame(() => draw()));
 const observer = new ResizeObserver(() => draw()); observer.observe(scroll);
 const themeObserver = new MutationObserver(updatePalette);
 for (let node = root; node; node = node.parentElement)
