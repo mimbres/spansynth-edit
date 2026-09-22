@@ -781,24 +781,27 @@ def build_app():
         for button, player in ((upload_start, audio), (source_start, original_audio), (output_start, output_audio)):
             button.click(lambda: gr.update(playback_position=0), None, player, queue=False, show_progress="hidden")
         clip_outputs = [state, original_audio, editor, edit_start, edit_end, output_audio, source_download, target_download, status, generation_time]
-        load.click(load_clip, [audio, crop_start, duration, state], clip_outputs, api_name="load_clip", concurrency_id="editing")
+        load_event = load.click(load_clip, [audio, crop_start, duration, state], clip_outputs, api_name="load_clip", concurrency_id="editing")
         sample_outputs = [*clip_outputs, audio, crop_start, duration]
-        slakh_example.click(load_example, [state], sample_outputs, api_name="example", concurrency_id="editing")
-        kraisler_example.click(partial(load_example, sample_name="Kraisler"), [state], sample_outputs,
+        slakh_event = slakh_example.click(load_example, [state], sample_outputs, api_name="example", concurrency_id="editing")
+        kraisler_event = kraisler_example.click(partial(load_example, sample_name="Kraisler"), [state], sample_outputs,
                                api_name="example_kraisler", concurrency_id="editing")
-        jazz_example.click(partial(load_example, sample_name="Jazz intro"), [state], sample_outputs,
+        jazz_event = jazz_example.click(partial(load_example, sample_name="Jazz intro"), [state], sample_outputs,
                             api_name="example_jazz", concurrency_id="editing")
         midi_outputs = [state, editor, source_download, target_download, output_audio, status, generation_time]
-        import_button.click(load_midi, [midi_input, state], midi_outputs, api_name="load_midi", concurrency_id="editing")
-        transcribe_button.click(transcribe, [state], midi_outputs, api_name="transcribe", concurrency_id="editing")
+        import_event = import_button.click(load_midi, [midi_input, state], midi_outputs, api_name="load_midi", concurrency_id="editing")
+        transcribe_event = transcribe_button.click(transcribe, [state], midi_outputs, api_name="transcribe", concurrency_id="editing")
         export_button.click(export_midi, [editor, state], target_download, api_name="export_midi", concurrency_id="editing")
         gr.on([editor.change, auto_region.change], update_region, [editor, state, auto_region],
               [edit_start, edit_end, region_hint], queue=False, trigger_mode="always_last", show_progress="hidden",
               api_name="update_region")
         gr.on([edit_start.change, edit_end.change], None, None, None, queue=False,
               js="() => { window.dispatchEvent(new Event('spansynth-region')); }")
-        generate_button.click(generate, [editor, state, edit_start, edit_end, method, steps, cfg, context_midi, drop_context_audio, auto_region],
+        generate_event = generate_button.click(generate, [editor, state, edit_start, edit_end, method, steps, cfg, context_midi, drop_context_audio, auto_region],
                               [output_audio, target_download, status, generation_time], api_name="generate", concurrency_id="editing")
+        for event in (load_event, slakh_event, kraisler_event, jazz_event, import_event, transcribe_event, generate_event):
+            event.success(lambda: ("", ""), None, [share_link, save_status], queue=False,
+                          show_progress="hidden", api_name=False)
         output_audio.change(None, None, None, queue=False,
                             js="() => { window.dispatchEvent(new Event('spansynth-generated')); }")
         save_button.click(publish_work, [work_title, work_description, listed, state], [share_link, gallery, save_status],
