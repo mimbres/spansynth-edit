@@ -35,7 +35,7 @@
 .dark .gradio-container .hero-links a {background: #201d2977;}
 .gradio-container .hero-links a:hover {background: var(--ss-surface);}
 .step-card {min-width: 0 !important; border-radius: 18px !important; padding: 20px !important; margin-bottom: 16px !important; border: 1px solid var(--ss-border) !important; background: var(--block-background-fill) !important;}
-.step-card .step-card {padding: 0 !important; border: 0 !important; margin: 0 !important; background: transparent !important;}
+.step-card .step-card {padding: 0 !important; border: 0 !important; border-radius: 0 !important; margin: 0 !important; background: transparent !important;}
 .gradio-container .step-card > .styler {background: transparent;}
 .gradio-container .step-card button.primary, .gradio-container .step-card button.secondary {border-radius: 10px !important;}
 #note-editor {min-width: 0 !important; max-width: 100%;}
