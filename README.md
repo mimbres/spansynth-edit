@@ -14,6 +14,8 @@ MIDI-guided music synthesis and editing with the V8 checkpoint at step **127,750
 
 [Project page and audio demos](https://mimbres.github.io/spansynth-edit/) · [Source code](https://github.com/mimbres/spansynth-edit) · [Model weights](https://huggingface.co/mimbres/spansynth-edit)
 
+![SpanSynth-Edit model overview](https://raw.githubusercontent.com/mimbres/spansynth-edit/main/demo/assets/FigureDraft-fig1-retro-04.svg)
+
 The CLI defaults to **16 Euler steps, CFG 2, ordinary generation, context MIDI dropout on, and context audio dropout off**. FlowEdit is opt-in. Existing website examples retain their published settings, which can differ from these CLI defaults.
 
 ## Install
