@@ -1,4 +1,4 @@
-.gradio-container {max-width: 1120px !important; margin: auto; font-family: Inter, system-ui, sans-serif !important;}
+.gradio-container {width: 100% !important; min-width: 0 !important; max-width: 1120px !important; box-sizing: border-box; margin: auto; font-family: Inter, system-ui, sans-serif !important;}
 body {background: #f6f7fc;}
 .hero {padding: 48px 26px 38px; background: radial-gradient(ellipse at 85% 0%, #e5e0fa 0%, transparent 55%), linear-gradient(120deg, #eef7fb, #f7f4fb); border: 1px solid #e1e4f0; border-radius: 22px; margin-bottom: 16px; color: #28324d;}
 .eyebrow {font-size: 11px; font-weight: 700; letter-spacing: .16em; color: #68739a; margin-bottom: 18px;}
@@ -8,7 +8,9 @@ body {background: #f6f7fc;}
 .hero-links {display: flex; flex-wrap: wrap; gap: 10px; margin-top: 22px;}
 .hero-links a {color: #515e82; text-decoration: none; font-size: 12px; padding: 8px 12px; border: 1px solid #d9def0; border-radius: 99px; background: #ffffffaa;}
 .hero-links a:hover {background: white;}
-.step-card {border-radius: 18px !important; padding: 20px !important; margin-bottom: 16px !important; border: 1px solid #e0e5f0 !important; background: var(--block-background-fill) !important;}
+.step-card {min-width: 0 !important; border-radius: 18px !important; padding: 20px !important; margin-bottom: 16px !important; border: 1px solid #e0e5f0 !important; background: var(--block-background-fill) !important;}
+.step-card .step-card {padding: 0 !important; border: 0 !important; margin: 0 !important; background: transparent !important;}
+#note-editor {min-width: 0 !important; max-width: 100%;}
 .step-card h3 {font-size: 18px !important; margin: 0 0 12px !important; color: var(--body-text-color);}
 .footer-note {font-size: 12px !important; opacity: .75; padding: 6px 18px 24px; line-height: 1.7;}
 #run-status {padding: 12px 16px; border-radius: 12px; background: #eef3fb; color: #485576;}
