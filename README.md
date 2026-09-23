@@ -67,7 +67,6 @@ from diffusers import DiffusionPipeline
 
 pipe = DiffusionPipeline.from_pretrained(
     'mimbres/spansynth-edit',
-    custom_pipeline='mimbres/spansynth-edit',
     trust_remote_code=True,
 ).to('cuda')
 result = pipe(
@@ -83,7 +82,12 @@ Use `.to('mps')` for Apple Silicon or `.to('cpu')` for CPU. For FlowEdit, add
 `method='flowedit'` and `source_midi` pointing to the original score. The pipeline
 also accepts the crop, region, MIDI offset, and context options described below.
 This custom pipeline uses the installed `spansynth` package.
-`pipe.save_pretrained(path)` saves the pipeline and both components for later loading.
+Save and reopen the pipeline locally with:
+
+```python
+pipe.save_pretrained('saved-pipeline')
+pipe = DiffusionPipeline.from_pretrained('saved-pipeline', trust_remote_code=True)
+```
 
 ## Try an example
 

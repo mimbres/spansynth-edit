@@ -15,6 +15,7 @@ import torch
 
 pytest.importorskip("diffusers")
 from diffusers import DiffusionPipeline
+from huggingface_hub import ModelCard
 
 from scripts.export_checkpoint import export_diffusers
 from spansynth.cli import build_parser, run
@@ -83,7 +84,7 @@ def test_component_conversion_and_roundtrip(reference, tmp_path):
         torch.testing.assert_close(restored.codec(waveform), codec(waveform), rtol=0, atol=1e-6)
 
     restored.save_pretrained(tmp_path / "saved-again")
-    again = SpanSynthEditPipeline.from_pretrained(tmp_path / "saved-again", trust_remote_code=True).to("cpu")
+    again = DiffusionPipeline.from_pretrained(tmp_path / "saved-again", trust_remote_code=True).to("cpu")
     with torch.inference_mode():
         torch.testing.assert_close(again.transformer(*inputs), expected, rtol=0, atol=1e-6)
     assert not again.transformer.blocks[0].self_attention.rope.frequency_indices.is_meta
@@ -101,6 +102,29 @@ def test_community_pipeline_loading(reference, tmp_path):
     assert set(restored.components) == {"transformer", "codec"}
 
 
+def test_save_to_hub_accepts_path_objects(reference, tmp_path, monkeypatch):
+    from diffusers.pipelines import pipeline_utils
+
+    _, _, model_dir, codec_dir = reference
+    destination = export_diffusers(model_dir, codec_dir, tmp_path / "converted")
+    pipeline = DiffusionPipeline.from_pretrained(destination, trust_remote_code=True)
+    monkeypatch.setattr(pipeline_utils, "create_repo", lambda *args, **kwargs: SimpleNamespace(repo_id="test/model"))
+    monkeypatch.setattr(pipeline_utils, "load_or_create_model_card", lambda *args, **kwargs: ModelCard("---\nlicense: apache-2.0\n---\n"))
+    uploaded = []
+
+    def upload(folder, repo_id, **kwargs):
+        assert repo_id == "test/model"
+        # Only the network boundary is replaced; serialization and reloading are real.
+        restored = DiffusionPipeline.from_pretrained(folder, trust_remote_code=True)
+        assert set(restored.components) == {"transformer", "codec"}
+        assert (Path(folder) / "README.md").is_file()
+        uploaded.append(Path(folder))
+
+    monkeypatch.setattr(pipeline, "_upload_folder", upload)
+    pipeline.save_pretrained(tmp_path / "publish", push_to_hub=True, repo_id="test/model")
+    assert uploaded == [tmp_path / "publish"]
+
+
 def test_hub_loading_does_not_fetch_the_legacy_weights(reference, tmp_path, monkeypatch):
     from diffusers.pipelines import pipeline_utils
 
@@ -116,7 +140,9 @@ def test_hub_loading_does_not_fetch_the_legacy_weights(reference, tmp_path, monk
         pytest.fail("All Diffusers files are cached; the legacy weights must not trigger another download")
 
     monkeypatch.setattr(pipeline_utils, "snapshot_download", unexpected_download)
-    assert Path(SpanSynthEditPipeline.download("test/model", trust_remote_code=True)) == destination
+    assert Path(DiffusionPipeline.download(
+        "test/model", custom_pipeline=str(destination / "pipeline.py"), trust_remote_code=True,
+    )) == destination
 
 
 @pytest.mark.parametrize("command,method,context_midi,drop_context_audio,average", [
