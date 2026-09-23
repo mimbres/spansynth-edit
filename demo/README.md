@@ -1,10 +1,10 @@
 # SpanSynth-Edit project page and audio demos
 
-A static project page with the paper abstract, model overview, MIDI visualizations, and audio players. There is no build step, package installation, or survey response collection. The Dataset reference and Data banners remain inactive until their public destinations are ready.
+Explore SpanSynth-Edit's MIDI-guided synthesis and editing through paired audio players and MIDI visualizations. The project page includes the abstract, model overview, and a Paper · arXiv banner linking to the [paper's abstract page](https://arxiv.org/abs/2609.25546), with access to its PDF and publication details. The Dataset reference and Data banners remain inactive until their public destinations are ready.
 
 ## Local review
 
-Serve the repository with a static HTTP server that supports HTTP byte-range requests, then open `/`. Byte-range support is needed for reliable audio seeking. GitHub Pages supports this delivery shape. The old `/demo/` URL redirects to the project page and preserves example links.
+There is no build step, package installation, or survey response collection. Serve the repository with a static HTTP server that supports HTTP byte-range requests, then open `/`. Byte-range support is needed for reliable audio seeking. GitHub Pages supports this delivery shape. The old `/demo/` URL redirects to the project page and preserves example links.
 
 The page provides example selection, one-at-a-time playback, target interval markings, linked MIDI playheads, instrument selection, and system/light/dark appearance. Task keywords appear in outlined boxes, and the teal-outlined dropdown is labelled Select example. Comparison Edit precedes Comparison Synthesis. AI-assisted edit and Bonus use small decorative icons, colored text and thin borders on transparent backgrounds. Every selected tab uses the same lilac fill and bottom accent, separating its active state from these decorative cues. For editing, original before-edit audio controls only the before-edit MIDI playhead, while edited ground truth and model outputs control the after-edit playhead. The views keep independent playback positions and horizontal scroll offsets, including when the instrument filter changes. On small screens, each view follows its own playhead and can be scrolled independently. Before-edit labels and original audio use green, while after-edit labels use coral. The default playback option keeps the current time when switching between recordings; Jump to target moves all players and MIDI views to the target start.
 
