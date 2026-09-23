@@ -1,45 +1,97 @@
 # SpanSynth-Edit for ComfyUI
 
-Transcribe an audio clip with YourMT3+, edit its notes in a piano roll, and generate the edited audio in ComfyUI. You can also import MIDI or draw a score from scratch.
+Upload audio → transcribe with YourMT3+ → edit notes → generate audio.
 
-## Install
+ComfyUI runs in your browser. Its boxes are called **nodes**; a **workflow** connects them. Generation uses your Mac's Apple GPU or a remote server's NVIDIA GPU. YourMT3+ transcription uses an online HF Space.
 
-Use **ComfyUI 0.37.0 or newer** and Python 3.11–3.13. Install with the same Python environment that runs ComfyUI:
+## 1. Install once
+
+<details>
+<summary><strong>Show installation commands</strong> (skip if already installed)</summary>
+
+Requires [Git](https://git-scm.com/downloads) and [Conda / Miniforge](https://github.com/conda-forge/miniforge#install). Open **Terminal** on Mac, or connect to your server with `ssh USER@SERVER` (replace with your SSH login). Install on the computer that will generate audio:
 
 ```bash
-cd ComfyUI/custom_nodes
-git clone --depth 1 --filter=blob:none --sparse https://github.com/mimbres/spansynth-edit.git
-cd spansynth-edit
-git sparse-checkout set spansynth app comfyui
-python -m pip install '.[comfyui]'
+conda create -n spansynth-edit-comfyui python=3.12 -y
+conda activate spansynth-edit-comfyui
+cd ~
+git clone --depth 1 --branch v0.37.0 https://github.com/Comfy-Org/ComfyUI.git
+cd ComfyUI
 ```
 
-Restart ComfyUI. The **SpanSynth-Edit** category will appear in the node menu. The model and HeartCodec weights download on first generation. CUDA with bfloat16 support, Apple Silicon (MPS), and CPU use the same inference code as the CLI. See the [system requirements](https://github.com/mimbres/spansynth-edit#system-requirements).
+**NVIDIA server only:** install CUDA PyTorch first. Skip this command on Mac.
 
-## Edit a recording
+```bash
+python -m pip install torch torchvision torchaudio --extra-index-url https://download.pytorch.org/whl/cu130
+```
 
-Drag [example.json](example.json) into ComfyUI, then:
+**Both Mac and server:** install ComfyUI and the SpanSynth nodes:
 
-1. Upload your audio in **Load Audio**. In **Prepare Audio Clip**, choose a crop of up to 20.48 seconds.
-2. Click **Prepare / Open score** in **Edit Score**. Only the input and transcription nodes run at this point. YourMT3+ receives the selected audio clip, then the piano roll opens.
-3. Select a track to edit its notes, or choose **+ Instrument** and confirm the instrument before drawing. Use the keyboard or GM preview to audition notes. Drag across the waveform to listen to a short range.
-4. Click **Apply edits**, then **Close** and **Run**. The connected region outputs cover added, removed, and moved notes. With no changes, they cover the whole clip.
-5. Reopen the score to compare **Original** and **Generated**, revise notes, and run again. Each generation uses the original recording as context.
+```bash
+python -m pip install -r requirements.txt
+git clone --depth 1 --filter=blob:none --sparse https://github.com/mimbres/spansynth-edit.git custom_nodes/spansynth-edit
+git -C custom_nodes/spansynth-edit sparse-checkout set spansynth app comfyui
+python -m pip install './custom_nodes/spansynth-edit[comfyui]'
+```
 
-**Save Audio** writes the result into ComfyUI's output folder. **Download latest WAV** on the generation node preserves the floating-point waveform. The piano roll also offers **Download MIDI** and **Download audio**. MIDI starts at the selected clip's time zero. Save the ComfyUI workflow to retain applied edits, and keep the source audio/MIDI files when moving it to another machine.
+These examples use `~/ComfyUI`. On managed servers, use your project's storage for ComfyUI, its environment, and the `HF_HOME` cache. [Other systems](https://docs.comfy.org/installation/manual_install).
 
-The defaults are **16 Euler steps**, **CFG 2.0**, context MIDI dropped, and context audio retained. Choose **spansynth-edit + flowedit** in the generation node to use FlowEdit with the connected original MIDI. To choose a region manually, disconnect the editor's region outputs and enter start/end in seconds relative to the clip. Boundaries expand to the 40 ms model grid.
+</details>
 
-## MIDI input and synthesis
+## 2. Start ComfyUI
 
-- **Bring your own MIDI:** replace **Transcribe with YourMT3+** with **Load MIDI · SpanSynth-Edit** and click **Upload MIDI**. Connect it to both the editor's `source_midi` and the generator's `source_midi`. Offset aligns MIDI time zero with the full input recording, before crop.
-- **Draw from scratch:** leave the editor's `source_midi` disconnected.
-- **MIDI-to-audio:** disconnect audio from **Prepare Audio Clip**, set crop start to zero, choose a duration, and import or draw MIDI. Generate the whole clip for full synthesis.
+### A. On your Mac
 
-Changing the crop or original MIDI requires **Reset score from inputs**. This replaces the applied score only after confirmation.
+In your Mac's **Terminal**:
 
-## Transcription and preview
+```bash
+conda activate spansynth-edit-comfyui
+cd ~/ComfyUI
+python main.py --listen 127.0.0.1 --port 8188
+```
 
-YourMT3+ runs on the existing [Hugging Face Space](https://huggingface.co/spaces/mimbres/YourMT3), so it requires internet access and is subject to that Space's availability and GPU quota. Run `hf auth login` in the ComfyUI environment, or supply `HF_TOKEN` to the ComfyUI process to use your account. Credentials are never stored in workflows. Importing MIDI avoids remote transcription.
+Keep Terminal open. Visit **[localhost:8188](http://127.0.0.1:8188)**, then follow step 3.
 
-GM preview downloads instrument samples in the browser and approximates the score; it does not predict the generated audio's timbre. See [NOTICE](../NOTICE) for soundfont and HeartCodec attribution. Code and checkpoint terms are linked in the [main README](../README.md#license).
+### B. On a remote GPU server
+
+In a **new laptop Terminal**, connect:
+
+```bash
+ssh -L 8189:127.0.0.1:8188 USER@SERVER
+```
+
+Then start ComfyUI **on the server**, in the same terminal:
+
+```bash
+conda activate spansynth-edit-comfyui
+cd ~/ComfyUI
+python main.py --listen 127.0.0.1 --port 8188 --disable-auto-launch
+```
+
+Keep SSH open. Visit **[localhost:8189](http://127.0.0.1:8189)** on your **laptop**. Port 8189 keeps this separate from local ComfyUI. Uploads go to the server; downloads return to your laptop.
+
+## 3. Edit your first clip
+
+1. **Load the workflow.** [Save this file as example.json](https://raw.githubusercontent.com/mimbres/spansynth-edit/main/comfyui/example.json) on your laptop, then drag it onto ComfyUI's canvas. Seven connected nodes appear.
+2. **Choose audio.** Upload a recording in **Load Audio**. Leave the defaults to use its first 20.48 seconds.
+3. **Edit notes.** Click **Prepare / Open score** in **Edit Score**. After transcription, select a track and move or draw notes.
+4. **Generate.** Click **Apply edits**, wait for confirmation, then **Close** → **Run**. Keep defaults: device **auto**, **16** steps, CFG **2.0**. Weights download on first generation.
+5. **Listen.** Reopen the score and choose **Generated**. Edit and run again; each generation uses the original recording.
+
+The region follows changed notes. **Download latest WAV** in **Generate** and **Download MIDI** in the editor save to your laptop. Save the workflow from ComfyUI's menu to retain edits; keep the input audio too. Automatic audio saves go to `ComfyUI/output/audio` on the computer running ComfyUI.
+
+**Stop:** press **Ctrl+C** in the ComfyUI terminal. Next time, repeat only step 2.
+
+<details>
+<summary><strong>Other inputs and common fixes</strong></summary>
+
+- **Your own MIDI:** replace **Transcribe with YourMT3+** with **Load MIDI · SpanSynth-Edit**, upload MIDI, and connect both `source_midi` inputs.
+- **Draw a score:** disconnect both `source_midi` inputs. For synthesis without a recording, also disconnect audio from **Prepare Audio Clip** and set crop start to zero.
+- **FlowEdit:** choose **spansynth-edit + flowedit** in **Generate**, with original MIDI connected.
+- **New audio or crop:** click **Reset score from inputs** before editing again.
+- **Transcription quota:** stop ComfyUI, run `hf auth login` in its environment, then restart. For remote use, log in on the server.
+- **Missing nodes:** verify installation in the ComfyUI environment, restart, and refresh the browser.
+
+GM preview is an instrument-sample preview, not the generated timbre. See [requirements](../README.md#system-requirements), [licenses](../README.md#license), and [attribution](../NOTICE).
+
+</details>
