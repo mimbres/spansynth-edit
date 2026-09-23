@@ -158,7 +158,7 @@ def parse_midi_notes(
     _validate_optional_program(program)
     _validate_pitch_shift(pitch_shift)
 
-    midi = MidiFile(path)
+    midi = MidiFile(file=path) if hasattr(path, "read") else MidiFile(path)
     if midi.type == 2:
         raise ValueError("asynchronous type-2 MIDI files have no single absolute timeline")
 

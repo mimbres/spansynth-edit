@@ -1,4 +1,5 @@
 const root = element;
+const host = root.spansynthHost;
 const find = (role) => root.querySelector(`[data-role="${role}"]`);
 const canvas = find("roll"), scroll = root.querySelector(".roll-scroll"), ctx = canvas.getContext("2d");
 const track = find("track"), instrument = find("instrument"), detail = find("detail"), trackMenu = find("track-options");
@@ -15,8 +16,8 @@ let playing = null, audioContext = null, previewStarted = 0, previewOffset = 0, 
 let viewFrame = null, auditionPitch = null, previewing = false, soundRequest = 0, voiceNumber = 0;
 let soundLibrary = null, gmNames = null;
 const soundfonts = new Map(), loadingSounds = new Map(), voiceStops = new Set();
-const gmBase = "https://gleitz.github.io/midi-js-soundfonts/FluidR3_GM/";
-const drumUrl = "https://cdn.jsdelivr.net/gh/henrikvilhelmberglund/midi-js-compat-soundfonts@gh-pages/GM-soundfonts/FluidR3_GM/drumkits/Standard-mp3.js";
+const gmBase = host?.gmBase || "https://gleitz.github.io/midi-js-soundfonts/FluidR3_GM/";
+const drumUrl = host?.drumUrl || "https://cdn.jsdelivr.net/gh/henrikvilhelmberglund/midi-js-compat-soundfonts@gh-pages/GM-soundfonts/FluidR3_GM/drumkits/Standard-mp3.js";
 const name = (p) => data.instruments.find(i => i.members.includes(p))?.name || `Program ${p}`;
 const trackColor = (p) => trackColors.get(p) || trackPalette[0];
 const snap = (time) => {const unit = Number(find("snap").value); return unit ? Math.round(time / unit) * unit : time;};
@@ -82,7 +83,7 @@ function refresh() {
   else if (notes.length) detail.textContent = `${notes.length} notes selected · drag to move together, ↑ ↓ to transpose, Del to remove.`;
   else detail.textContent = `${name(program)} · ${tool === "pencil" ? "Click or drag to draw a note." : tool === "erase" ? "Click or drag over notes to erase." : "Only this track is editable. Drag empty space to select its notes."}`;
 }
-function region() {return ["edit-start", "edit-end"].map(id => Number(document.querySelector(`#${id} input`)?.value || 0));}
+function region() {return host ? host.region() : ["edit-start", "edit-end"].map(id => Number(document.querySelector(`#${id} input`)?.value || 0));}
 function draw(playhead = cursorTime) {
   if (!scroll.clientWidth) return;
   const scale = window.devicePixelRatio || 1;
@@ -267,7 +268,7 @@ async function loadInstrument(p) {
       if(!Array.isArray(names) || !/^[a-z0-9_]+$/.test(names[key]||""))throw Error("Unknown GM program");
       url=gmBase+names[key]+"-mp3.js";
     }
-    if(!soundLibrary)soundLibrary=import("https://cdn.jsdelivr.net/npm/smplr@1.0.0/dist/index.mjs").catch(error=>{soundLibrary=null;throw error;});
+    if(!soundLibrary)soundLibrary=import(host?.soundLibrary || "https://cdn.jsdelivr.net/npm/smplr@1.0.0/dist/index.mjs").catch(error=>{soundLibrary=null;throw error;});
     const {Soundfont}=await soundLibrary;
     if(!root.isConnected)throw Error("Editor closed");
     const player=Soundfont(context,{instrumentUrl:url,volume:75,extraGain:3});
@@ -357,7 +358,7 @@ async function play(action) {
   if(action==="play") {
     const request=soundRequest;
     const id=find("audio-source").value==="generated" ? "result-audio" : "source-audio";
-    const url=document.querySelector(`#${id} a[download]`)?.href;
+    const url=host ? host.audio(id) : document.querySelector(`#${id} a[download]`)?.href;
     const audio=find("player");
     if(!url) {detail.textContent="Generate audio first, or choose Original.";return;}
     if(audio.src!==url)audio.src=url;
@@ -437,7 +438,7 @@ document.addEventListener("click",event=>{
 },{capture:true,signal:events.signal});
 document.addEventListener("play",event=>{if(event.target.tagName==="AUDIO" && !event.target.paused){if(event.target!==playing)stop();pauseOtherAudio(event.target);}},{capture:true,signal:events.signal});
 document.addEventListener("pause",event=>{if(event.target===playing && event.target.paused){stop();refresh();}},{capture:true,signal:events.signal});
-window.addEventListener("spansynth-generated",()=>{stop();find("audio-source").value=document.querySelector("#result-audio a[download]")?"generated":"original";refresh();draw();},{signal:events.signal});
+window.addEventListener("spansynth-generated",()=>{stop();find("audio-source").value=(host ? host.audio("result-audio") : document.querySelector("#result-audio a[download]"))?"generated":"original";refresh();draw();},{signal:events.signal});
 window.addEventListener("spansynth-region",()=>requestAnimationFrame(()=>draw()),{signal:events.signal});
 const observer=new ResizeObserver(()=>draw());observer.observe(scroll);
 const themeObserver=new MutationObserver(updatePalette);

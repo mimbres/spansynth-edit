@@ -54,7 +54,7 @@ def main():
     files = [(root / "app/README.md", "README.md")]
     files.extend((root / name, name) for name in ("pyproject.toml", "LICENSE", "NOTICE"))
     files.extend((path, path.relative_to(root).as_posix()) for path in sorted((root / "spansynth").rglob("*.py")))
-    files.extend((root / "app" / name, "app/" + name) for name in ("app.py", "editor.js", "style.css"))
+    files.extend((root / "app" / name, "app/" + name) for name in ("app.py", "editor.html", "editor.js", "style.css"))
     api.create_commit(repo_id=repo, repo_type="space",
                       operations=[CommitOperationAdd(path_in_repo=remote, path_or_fileobj=local)
                                   for local, remote in files] +

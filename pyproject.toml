@@ -21,6 +21,7 @@ dependencies = [
 
 [project.optional-dependencies]
 test = ["pytest>=8,<10"]
+comfyui = ["gradio-client==2.7.1"]
 diffusers = ["diffusers>=0.40,<0.41", "accelerate>=1,<2"]
 
 [project.scripts]

@@ -14,7 +14,7 @@
 
 Synthesise music from MIDI, or add, remove, and modify notes in a recording by revising its MIDI. SpanSynth-Edit generates the selected region, using surrounding audio for timbre guidance.
 
-[Try it in your browser](https://huggingface.co/spaces/mimbres/spansynth-edit): upload audio, transcribe with YourMT3+, edit the piano roll, and generate. See the [local web setup](https://github.com/mimbres/spansynth-edit/blob/main/app/README.md) to run the app yourself.
+[Try it in your browser](https://huggingface.co/spaces/mimbres/spansynth-edit): upload audio, transcribe with YourMT3+, edit the piano roll, and generate. See the [local web setup](https://github.com/mimbres/spansynth-edit/blob/main/app/README.md) to run the app yourself. You can also use the [ComfyUI workflow and piano-roll editor](https://github.com/mimbres/spansynth-edit/blob/main/comfyui/README.md).
 
 <p align="center">
   <img src="https://raw.githubusercontent.com/mimbres/spansynth-edit/main/demo/assets/FigureDraft-fig1-retro-04.svg" alt="SpanSynth-Edit model overview" width="100%">

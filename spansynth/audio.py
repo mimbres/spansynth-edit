@@ -27,6 +27,22 @@ class AudioCrop:
 
 def read_audio(path: Path, crop_start: float, duration: float) -> AudioCrop:
     values, rate = sf.read(path, dtype="float32", always_2d=True)
+    return prepare_audio(values, rate, crop_start, duration)
+
+
+def prepare_audio(values, rate: int, crop_start: float, duration: float) -> AudioCrop:
+    """Prepare a sample-by-channel array with the same context as a file input."""
+    values = np.asarray(values, dtype=np.float32)
+    if values.ndim == 1:
+        values = values[:, None]
+    if values.ndim != 2 or not values.shape[1]:
+        raise ValueError("Audio must have shape [samples, channels]")
+    if isinstance(rate, bool) or not isinstance(rate, (int, np.integer)) or rate <= 0:
+        raise ValueError("Audio sample rate must be a positive integer")
+    if not math.isfinite(crop_start) or crop_start < 0:
+        raise ValueError("Crop start must be finite and nonnegative")
+    if not math.isfinite(duration) or not 0 < duration <= FRAMES * HOP_LENGTH / SAMPLE_RATE:
+        raise ValueError("Duration must lie in (0, 20.48] seconds")
     channels = values.shape[1]
     if not values.size or not np.isfinite(values).all():
         raise ValueError("Input audio must be nonempty and finite")

@@ -1,0 +1,424 @@
+{
+  "last_node_id": 7,
+  "last_link_id": 11,
+  "nodes": [
+    {
+      "id": 1,
+      "type": "LoadAudio",
+      "pos": [
+        40,
+        90
+      ],
+      "size": [
+        320,
+        170
+      ],
+      "flags": {},
+      "order": 0,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "AUDIO",
+          "type": "AUDIO",
+          "links": [
+            1
+          ]
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "LoadAudio"
+      },
+      "widgets_values": [
+        ""
+      ]
+    },
+    {
+      "id": 2,
+      "type": "SpanSynthPrepareClip",
+      "pos": [
+        400,
+        90
+      ],
+      "size": [
+        320,
+        170
+      ],
+      "flags": {},
+      "order": 1,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "audio",
+          "type": "AUDIO",
+          "link": 1
+        }
+      ],
+      "outputs": [
+        {
+          "name": "clip",
+          "type": "SPANSYNTH_CLIP",
+          "links": [
+            2,
+            3,
+            6
+          ]
+        },
+        {
+          "name": "original_clip",
+          "type": "AUDIO",
+          "links": []
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "SpanSynthPrepareClip"
+      },
+      "widgets_values": [
+        0,
+        20.48
+      ]
+    },
+    {
+      "id": 3,
+      "type": "SpanSynthTranscribe",
+      "pos": [
+        400,
+        340
+      ],
+      "size": [
+        320,
+        170
+      ],
+      "flags": {},
+      "order": 2,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "clip",
+          "type": "SPANSYNTH_CLIP",
+          "link": 2
+        }
+      ],
+      "outputs": [
+        {
+          "name": "midi",
+          "type": "SPANSYNTH_MIDI",
+          "links": [
+            4,
+            10
+          ]
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "SpanSynthTranscribe"
+      },
+      "widgets_values": []
+    },
+    {
+      "id": 4,
+      "type": "SpanSynthEditScore",
+      "pos": [
+        790,
+        90
+      ],
+      "size": [
+        320,
+        170
+      ],
+      "flags": {},
+      "order": 3,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "clip",
+          "type": "SPANSYNTH_CLIP",
+          "link": 3
+        },
+        {
+          "name": "source_midi",
+          "type": "SPANSYNTH_MIDI",
+          "link": 4
+        }
+      ],
+      "outputs": [
+        {
+          "name": "midi",
+          "type": "SPANSYNTH_MIDI",
+          "links": [
+            7
+          ]
+        },
+        {
+          "name": "region_start",
+          "type": "FLOAT",
+          "links": [
+            8
+          ]
+        },
+        {
+          "name": "region_end",
+          "type": "FLOAT",
+          "links": [
+            9
+          ]
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "SpanSynthEditScore"
+      },
+      "widgets_values": [
+        ""
+      ]
+    },
+    {
+      "id": 5,
+      "type": "SpanSynthLoadModel",
+      "pos": [
+        790,
+        370
+      ],
+      "size": [
+        320,
+        170
+      ],
+      "flags": {},
+      "order": 4,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "model",
+          "type": "SPANSYNTH_MODELS",
+          "links": [
+            5
+          ]
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "SpanSynthLoadModel"
+      },
+      "widgets_values": [
+        "auto",
+        "",
+        ""
+      ]
+    },
+    {
+      "id": 6,
+      "type": "SpanSynthGenerate",
+      "pos": [
+        1160,
+        90
+      ],
+      "size": [
+        320,
+        250
+      ],
+      "flags": {},
+      "order": 5,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "model",
+          "type": "SPANSYNTH_MODELS",
+          "link": 5
+        },
+        {
+          "name": "clip",
+          "type": "SPANSYNTH_CLIP",
+          "link": 6
+        },
+        {
+          "name": "midi",
+          "type": "SPANSYNTH_MIDI",
+          "link": 7
+        },
+        {
+          "name": "region_start",
+          "type": "FLOAT",
+          "link": 8,
+          "widget": {
+            "name": "region_start"
+          }
+        },
+        {
+          "name": "region_end",
+          "type": "FLOAT",
+          "link": 9,
+          "widget": {
+            "name": "region_end"
+          }
+        },
+        {
+          "name": "source_midi",
+          "type": "SPANSYNTH_MIDI",
+          "link": 10
+        }
+      ],
+      "outputs": [
+        {
+          "name": "edited_clip",
+          "type": "AUDIO",
+          "links": [
+            11
+          ]
+        },
+        {
+          "name": "generated_region",
+          "type": "AUDIO",
+          "links": []
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "SpanSynthGenerate"
+      },
+      "widgets_values": [
+        "spansynth-edit",
+        6.4,
+        14.08,
+        16,
+        2,
+        false,
+        false
+      ]
+    },
+    {
+      "id": 7,
+      "type": "SaveAudioAdvanced",
+      "pos": [
+        1540,
+        90
+      ],
+      "size": [
+        320,
+        170
+      ],
+      "flags": {},
+      "order": 6,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "audio",
+          "type": "AUDIO",
+          "link": 11
+        }
+      ],
+      "outputs": [
+        {
+          "name": "audio",
+          "type": "AUDIO",
+          "links": []
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "SaveAudioAdvanced"
+      },
+      "widgets_values": [
+        "audio/SpanSynth-Edit",
+        "flac"
+      ]
+    }
+  ],
+  "links": [
+    [
+      1,
+      1,
+      0,
+      2,
+      0,
+      "AUDIO"
+    ],
+    [
+      2,
+      2,
+      0,
+      3,
+      0,
+      "SPANSYNTH_CLIP"
+    ],
+    [
+      3,
+      2,
+      0,
+      4,
+      0,
+      "SPANSYNTH_CLIP"
+    ],
+    [
+      4,
+      3,
+      0,
+      4,
+      1,
+      "SPANSYNTH_MIDI"
+    ],
+    [
+      5,
+      5,
+      0,
+      6,
+      0,
+      "SPANSYNTH_MODELS"
+    ],
+    [
+      6,
+      2,
+      0,
+      6,
+      1,
+      "SPANSYNTH_CLIP"
+    ],
+    [
+      7,
+      4,
+      0,
+      6,
+      2,
+      "SPANSYNTH_MIDI"
+    ],
+    [
+      8,
+      4,
+      1,
+      6,
+      3,
+      "FLOAT"
+    ],
+    [
+      9,
+      4,
+      2,
+      6,
+      4,
+      "FLOAT"
+    ],
+    [
+      10,
+      3,
+      0,
+      6,
+      5,
+      "SPANSYNTH_MIDI"
+    ],
+    [
+      11,
+      6,
+      0,
+      7,
+      0,
+      "AUDIO"
+    ]
+  ],
+  "groups": [],
+  "config": {},
+  "extra": {
+    "ds": {
+      "scale": 0.75,
+      "offset": [
+        20,
+        80
+      ]
+    }
+  },
+  "version": 0.4
+}
