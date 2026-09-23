@@ -69,6 +69,14 @@ def export_diffusers(checkpoint: Path | None, codec: Path | None, output: Path):
     heartcodec.eval().requires_grad_(False)
     pipeline = SpanSynthEditPipeline(transformer, heartcodec)
     pipeline.save_pretrained(output)
+    # Diffusers drops download exclusions when saving a pipeline. Add them to
+    # the Hub export so the original CLI weights are not downloaded a second time.
+    index_path = output / "model_index.json"
+    index = json.loads(index_path.read_text())
+    index["_ignore_files"] = [
+        f"{MODEL_FOLDER}/model.safetensors", f"{CODEC_FOLDER}/scalar_model.safetensors",
+    ]
+    index_path.write_text(json.dumps(index, indent=2) + "\n")
     return output
 
 

@@ -3,6 +3,7 @@
 from dataclasses import asdict
 import json
 from pathlib import Path
+from types import SimpleNamespace
 from unittest.mock import patch
 
 import mido
@@ -32,6 +33,13 @@ def cpu_threads():
     torch.set_num_threads(previous)
 
 
+@pytest.fixture(autouse=True)
+def isolated_code_cache(tmp_path, monkeypatch):
+    from diffusers.utils import dynamic_modules_utils
+
+    monkeypatch.setattr(dynamic_modules_utils, "HF_MODULES_CACHE", str(tmp_path / "modules"))
+
+
 @pytest.fixture
 def reference(tmp_path):
     dit = DiTConfig(hidden_size=32, depth=1, num_heads=4, conv_pos_groups=4)
@@ -54,7 +62,7 @@ def reference(tmp_path):
 def test_component_conversion_and_roundtrip(reference, tmp_path):
     transformer, codec, model_dir, codec_dir = reference
     destination = export_diffusers(model_dir, codec_dir, tmp_path / "converted")
-    restored = SpanSynthEditPipeline.from_pretrained(destination)
+    restored = SpanSynthEditPipeline.from_pretrained(destination, trust_remote_code=True)
     assert set(restored.transformer.state_dict()) == set(transformer.state_dict())
     for name, value in transformer.state_dict().items():
         torch.testing.assert_close(restored.transformer.state_dict()[name], value, rtol=0, atol=0)
@@ -75,7 +83,7 @@ def test_component_conversion_and_roundtrip(reference, tmp_path):
         torch.testing.assert_close(restored.codec(waveform), codec(waveform), rtol=0, atol=1e-6)
 
     restored.save_pretrained(tmp_path / "saved-again")
-    again = SpanSynthEditPipeline.from_pretrained(tmp_path / "saved-again").to("cpu")
+    again = SpanSynthEditPipeline.from_pretrained(tmp_path / "saved-again", trust_remote_code=True).to("cpu")
     with torch.inference_mode():
         torch.testing.assert_close(again.transformer(*inputs), expected, rtol=0, atol=1e-6)
     assert not again.transformer.blocks[0].self_attention.rope.frequency_indices.is_meta
@@ -83,10 +91,7 @@ def test_component_conversion_and_roundtrip(reference, tmp_path):
         export_diffusers(model_dir, codec_dir, destination)
 
 
-def test_community_pipeline_loading(reference, tmp_path, monkeypatch):
-    from diffusers.utils import dynamic_modules_utils
-
-    monkeypatch.setattr(dynamic_modules_utils, "HF_MODULES_CACHE", str(tmp_path / "modules"))
+def test_community_pipeline_loading(reference, tmp_path):
     _, _, model_dir, codec_dir = reference
     destination = export_diffusers(model_dir, codec_dir, tmp_path / "converted")
     code = Path(__file__).resolve().parents[1] / "spansynth" / "diffusers_pipeline.py"
@@ -94,6 +99,24 @@ def test_community_pipeline_loading(reference, tmp_path, monkeypatch):
     assert isinstance(restored.transformer, SpanSynthTransformerModel)
     assert isinstance(restored.codec, HeartCodecModel)
     assert set(restored.components) == {"transformer", "codec"}
+
+
+def test_hub_loading_does_not_fetch_the_legacy_weights(reference, tmp_path, monkeypatch):
+    from diffusers.pipelines import pipeline_utils
+
+    _, _, model_dir, codec_dir = reference
+    destination = export_diffusers(model_dir, codec_dir, tmp_path / "converted")
+    files = [str(path.relative_to(destination)) for path in destination.rglob("*") if path.is_file()]
+    files += ["v3-sq-v8-127750step/model.safetensors", "heartcodec-sq/scalar_model.safetensors"]
+    info = SimpleNamespace(siblings=[SimpleNamespace(rfilename=name) for name in files])
+    monkeypatch.setattr(pipeline_utils, "model_info", lambda *args, **kwargs: info)
+    monkeypatch.setattr(pipeline_utils, "hf_hub_download", lambda *args, **kwargs: str(destination / "model_index.json"))
+
+    def unexpected_download(*args, **kwargs):
+        pytest.fail("All Diffusers files are cached; the legacy weights must not trigger another download")
+
+    monkeypatch.setattr(pipeline_utils, "snapshot_download", unexpected_download)
+    assert Path(SpanSynthEditPipeline.download("test/model", trust_remote_code=True)) == destination
 
 
 @pytest.mark.parametrize("command,method,context_midi,drop_context_audio,average", [
@@ -104,7 +127,7 @@ def test_community_pipeline_loading(reference, tmp_path, monkeypatch):
 def test_pipeline_matches_cli(reference, tmp_path, command, method, context_midi, drop_context_audio, average):
     _, _, model_dir, codec_dir = reference
     destination = export_diffusers(model_dir, codec_dir, tmp_path / "converted")
-    pipeline = SpanSynthEditPipeline.from_pretrained(destination)
+    pipeline = SpanSynthEditPipeline.from_pretrained(destination, trust_remote_code=True)
     pipeline.set_progress_bar_config(disable=True)
     audio = tmp_path / "stereo.wav"
     original = np.random.default_rng().uniform(-0.2, 0.2, (33600, 2)).astype(np.float32)

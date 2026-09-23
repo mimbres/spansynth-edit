@@ -53,6 +53,25 @@ class SpanSynthEditPipeline(DiffusionPipeline):
         super().__init__()
         self.register_modules(transformer=transformer, codec=codec)
 
+    def save_pretrained(self, save_directory: str | Path, **kwargs):
+        """Save weights and the code entries required by the Hub's custom loader.
+
+        The component entries import the installed `spansynth` package. All
+        standard Diffusers saving options are forwarded, including Hub uploads.
+        """
+        destination = Path(save_directory)
+        destination.mkdir(parents=True, exist_ok=True)
+        source = Path(__file__).resolve()
+        if source != (destination / "pipeline.py").resolve():
+            (destination / "pipeline.py").write_text(source.read_text())
+        for name, class_name in (("transformer", "SpanSynthTransformerModel"), ("codec", "HeartCodecModel")):
+            component = destination / name
+            component.mkdir(exist_ok=True)
+            (component / "spansynth.diffusers_models.py").write_text(
+                f"from spansynth.diffusers_models import {class_name}\n"
+            )
+        return super().save_pretrained(save_directory, **kwargs)
+
     @torch.inference_mode()
     def __call__(
         self,

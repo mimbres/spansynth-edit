@@ -67,7 +67,9 @@ Use the same example files and timing as the CLI below:
 import soundfile as sf
 from spansynth.diffusers_pipeline import SpanSynthEditPipeline
 
-pipe = SpanSynthEditPipeline.from_pretrained('../spansynth-diffusers').to('cuda')
+pipe = SpanSynthEditPipeline.from_pretrained(
+    '../spansynth-diffusers', trust_remote_code=True,
+).to('cuda')
 result = pipe(
     audio='../spansynth-inputs/early-slakh-track00006-original.mp3',
     midi='../spansynth-inputs/early-slakh-track00006-after.mid',
