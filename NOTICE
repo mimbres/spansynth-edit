@@ -5,11 +5,16 @@ The MIDI parser and Fine40 instrument grouping adapt code and vocabulary
 from YourMT3, Copyright 2024-2026 The YourMT3 Authors, under Apache-2.0.
 https://github.com/mimbres/YourMT3
 
-The bundled scalar codec is the inference subset of HeartCodec used by the
-released SpanSynth checkpoint. HeartMuLa/HeartCodec code and weights are
-licensed under Apache-2.0. The scalar encoder and decoder are redistributed
-with their configuration, without the music language model or diffusion decoder.
-https://github.com/HeartMuLa/heartlib
+The bundled Base SQ encoder and decoder use the scalar_model tensors extracted
+from HeartMuLa/HeartCodec-oss-20260123. The source checkpoint's model card
+declares Apache-2.0 at the version used for extraction:
+https://huggingface.co/HeartMuLa/HeartCodec-oss-20260123/blob/f0fdddaf2bf36e35b75c5656c4da511c6b3a4c81/README.md
+
+The codec implementation adapts HeartMuLa/heartlib under Apache-2.0:
+https://github.com/HeartMuLa/heartlib/blob/main/LICENSE
+
+Only the scalar encoder, decoder, and their configuration are redistributed;
+the music language model and diffusion decoder are not included.
 
 Modifications in this distribution remove training and evaluation paths,
 retain the V8 inference model, and add a standalone CLI and checkpoint export.

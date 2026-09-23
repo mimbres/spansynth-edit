@@ -201,7 +201,7 @@ All audio outputs are 48 kHz mono. Outside the generated region, `output.wav` ma
 
 ## License and credits
 
-Code and model weights are released under Apache-2.0. See [LICENSE](https://github.com/mimbres/spansynth-edit/blob/main/LICENSE) and [NOTICE](https://github.com/mimbres/spansynth-edit/blob/main/NOTICE) for terms and credits, including YourMT3+ and [HeartCodec](https://github.com/HeartMuLa/heartlib). Demo recordings retain their original rights.
+Code and model weights are released under Apache-2.0. See [LICENSE](https://github.com/mimbres/spansynth-edit/blob/main/LICENSE) and [NOTICE](https://github.com/mimbres/spansynth-edit/blob/main/NOTICE) for terms and credits, including YourMT3+ and HeartCodec ([code license](https://github.com/HeartMuLa/heartlib/blob/main/LICENSE), [weight license](https://huggingface.co/HeartMuLa/HeartCodec-oss-20260123/blob/f0fdddaf2bf36e35b75c5656c4da511c6b3a4c81/README.md)). Demo recordings retain their original rights.
 
 Training data retain their own licenses, including [MAESTRO's CC BY-NC-SA 4.0 terms](https://magenta.tensorflow.org/datasets/maestro#license). The repository's Apache-2.0 license does not replace these dataset terms.
 
