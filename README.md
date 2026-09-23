@@ -7,8 +7,8 @@
 <p align="center">
   <a style="display:inline-block" href="https://arxiv.org/abs/2609.25546"><img src="https://img.shields.io/badge/arXiv-2609.25546-b31b1b.svg" alt="Paper on arXiv" height="20" style="display:inline-block;margin:0;height:20px;vertical-align:middle;"></a>&nbsp;
   <a style="display:inline-block" href="https://github.com/mimbres/spansynth-edit"><img src="https://img.shields.io/badge/GitHub-Code-181717?logo=github&amp;logoColor=white" alt="Source code on GitHub" height="20" style="display:inline-block;margin:0;height:20px;vertical-align:middle;"></a>&nbsp;
-  <a style="display:inline-block" href="https://huggingface.co/mimbres/spansynth-edit"><img src="https://huggingface.co/datasets/huggingface/badges/resolve/main/model-on-hf-sm-dark.svg" alt="Model on Hugging Face" height="20" style="display:inline-block;margin:0;height:20px;vertical-align:middle;"></a>&nbsp;
-  <a style="display:inline-block" href="https://huggingface.co/spaces/mimbres/spansynth-edit"><img src="https://huggingface.co/datasets/huggingface/badges/resolve/main/open-in-hf-spaces-sm-dark.svg" alt="Open in Spaces" height="20" style="display:inline-block;margin:0;height:20px;vertical-align:middle;"></a>&nbsp;
+  <a style="display:inline-block" href="https://huggingface.co/mimbres/spansynth-edit"><img src="https://img.shields.io/badge/Checkpoint-555555" alt="Checkpoint" height="20" style="display:inline-block;margin:0;height:20px;vertical-align:middle;"></a>&nbsp;
+  <a style="display:inline-block" href="https://huggingface.co/spaces/mimbres/spansynth-edit"><img src="https://img.shields.io/badge/Live%20Demo-555555" alt="Live Demo" height="20" style="display:inline-block;margin:0;height:20px;vertical-align:middle;"></a>&nbsp;
   <a style="display:inline-block" href="https://mimbres.github.io/spansynth-edit/"><img src="https://img.shields.io/badge/Demo-Listen-007ec6" alt="Listen to audio demos" height="20" style="display:inline-block;margin:0;height:20px;vertical-align:middle;"></a>
 </p>
 
