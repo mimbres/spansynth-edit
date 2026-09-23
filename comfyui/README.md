@@ -72,6 +72,8 @@ Keep SSH open. Visit **[localhost:8189](http://127.0.0.1:8189)** on your **lapto
 
 ## 3. Edit your first clip
 
+ComfyUI may initially show an **image-generation workflow** with “Missing Models” errors. Skip those downloads and load the SpanSynth workflow below.
+
 1. **Load the workflow.** [Save this file as example.json](https://raw.githubusercontent.com/mimbres/spansynth-edit/main/comfyui/example.json) on your laptop, then drag it onto ComfyUI's canvas. Seven connected nodes appear.
 2. **Choose audio.** Upload a recording in **Load Audio**. Leave the defaults to use its first 20.48 seconds.
 3. **Edit notes.** Click **Prepare / Open score** in **Edit Score**. After transcription, select a track and move or draw notes.
