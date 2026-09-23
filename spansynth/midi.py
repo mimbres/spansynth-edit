@@ -12,7 +12,7 @@ from collections import defaultdict, deque
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Final, Literal
+from typing import BinaryIO, Final, Literal
 import numpy as np
 import torch
 from torch import Tensor
@@ -148,7 +148,7 @@ def _validate_pitch_shift(pitch_shift: int) -> None:
 
 
 def parse_midi_notes(
-    path: os.PathLike[str] | str,
+    path: os.PathLike[str] | str | BinaryIO,
     *,
     program: int | None,
     pitch_shift: int = 0,
@@ -613,7 +613,7 @@ def encode_remaining_duration(remaining_samples, *, horizon_samples, sample_rate
 
 
 
-def read_notes(path: Path | None, *, crop_start: float, offset: float = 0.0,
+def read_notes(path: Path | BinaryIO | None, *, crop_start: float, offset: float = 0.0,
                program: int | None = None) -> np.ndarray:
     """Map MIDI time to audio time: audio_seconds = midi_seconds + offset."""
     if path is None:

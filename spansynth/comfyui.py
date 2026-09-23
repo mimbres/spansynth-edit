@@ -260,10 +260,17 @@ class SpanSynthTranscribe(io.ComfyNode):
 
         memory.throw_exception_if_processing_interrupted()
         client = Client("mimbres/YourMT3", token=get_token(), verbose=False, analytics_enabled=False)
+        job = None
         try:
             path = Path(folder_paths.get_temp_directory()) / clip["preview"]["filename"]
-            result = client.predict(handle_file(str(path)), api_name="/process_audio")
+            job = client.submit(handle_file(str(path)), api_name="/process_audio")
+            while not job.done():
+                memory.throw_exception_if_processing_interrupted()
+                time.sleep(.2)
+            result = job.result()
         finally:
+            if job is not None and not job.done():
+                job.cancel()
             client.close()
         memory.throw_exception_if_processing_interrupted()
         html = result[0] if isinstance(result, (tuple, list)) else result

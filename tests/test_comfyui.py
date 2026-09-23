@@ -128,6 +128,7 @@ def test_synthesis_without_input_audio(models):
 
 
 def test_transcription_passes_auth_and_crop_origin(monkeypatch):
+    from concurrent.futures import Future
     import gradio_client
     import huggingface_hub
     import base64
@@ -136,9 +137,11 @@ def test_transcription_passes_auth_and_crop_origin(monkeypatch):
     class Client:
         def __init__(self, target, **kwargs):
             received.update(target=target, **kwargs)
-        def predict(self, path, **kwargs):
+        def submit(self, path, **kwargs):
             received.update(kwargs)
-            return 'data:audio/midi;base64,' + base64.b64encode(payload).decode()
+            result = Future()
+            result.set_result('data:audio/midi;base64,' + base64.b64encode(payload).decode())
+            return result
         def close(self):
             received["closed"] = True
     monkeypatch.setattr(gradio_client, "Client", Client)
@@ -147,3 +150,25 @@ def test_transcription_passes_auth_and_crop_origin(monkeypatch):
     assert result == {"data": payload, "origin": .2}
     assert received["token"] == "test-login" and received["closed"]
     assert received["api_name"] == "/process_audio"
+
+
+def test_cancel_also_stops_pending_transcription(monkeypatch):
+    from concurrent.futures import Future
+    import gradio_client
+    job = Future()
+    closed = []
+    class Client:
+        def __init__(self, *args, **kwargs):
+            pass
+        def submit(self, *args, **kwargs):
+            nodes.memory.interrupt_current_processing(True)
+            return job
+        def close(self):
+            closed.append(True)
+    monkeypatch.setattr(gradio_client, "Client", Client)
+    try:
+        with pytest.raises(nodes.memory.InterruptProcessingException):
+            nodes.SpanSynthTranscribe.execute(clip())
+    finally:
+        nodes.memory.interrupt_current_processing(False)
+    assert job.cancelled() and closed
