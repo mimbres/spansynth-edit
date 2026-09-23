@@ -18,7 +18,7 @@ thumbnail: https://raw.githubusercontent.com/mimbres/spansynth-edit/main/demo/as
 
 Upload a recording, transcribe it with YourMT3+, edit the notes, and regenerate a selected region with SpanSynth-Edit.
 
-[Source code](https://github.com/mimbres/spansynth-edit) · [Model weights](https://huggingface.co/mimbres/spansynth-edit) · [Listening examples](https://mimbres.github.io/spansynth-edit/)
+[Paper](https://arxiv.org/abs/2609.25546) · [Source code](https://github.com/mimbres/spansynth-edit) · [Model weights](https://huggingface.co/mimbres/spansynth-edit) · [Listening examples](https://mimbres.github.io/spansynth-edit/)
 
 Select a track to edit its notes; other tracks remain visible but cannot be changed. Choose **+ Instrument**, select an instrument, and confirm with **Add instrument** before drawing. Use **Pencil** to draw and **Eraser** to remove notes. With **Select**, drag across empty space to select a group, then move, transpose with ↑/↓, or delete it. **Shift-click** extends the selection; undo/redo is available. Each clip is up to 20.48 seconds. Audio outside the selected region is preserved in the 48 kHz mono result. MIDI export supports 15 melodic instruments plus drums; [supported programs and merged groups](https://github.com/mimbres/spansynth-edit/blob/main/spansynth/vocabulary.py) follow the model vocabulary.
 
