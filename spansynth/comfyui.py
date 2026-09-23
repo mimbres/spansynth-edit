@@ -111,8 +111,9 @@ def validate_notes(notes, duration):
 
 
 def midi_bytes(notes):
-    midi = MidiFile(type=1, ticks_per_beat=1000)
-    midi.tracks.append(MidiTrack([MetaMessage("set_tempo", tempo=1_000_000)]))
+    # One tick per 48 kHz sample keeps imported transcription timing intact.
+    midi = MidiFile(type=1, ticks_per_beat=24000)
+    midi.tracks.append(MidiTrack([MetaMessage("set_tempo", tempo=500_000)]))
     programs = sorted({n["program"] for n in notes})
     channels = iter(c for c in range(16) if c != 9)
     for program in programs:
@@ -123,8 +124,8 @@ def midi_bytes(notes):
         events = []
         for n in notes:
             if n["program"] == program:
-                start = round(n["start"] * 1000)
-                end = max(start + 1, round((n["start"] + n["duration"]) * 1000))
+                start = round(n["start"] * SAMPLE_RATE)
+                end = max(start + 1, round((n["start"] + n["duration"]) * SAMPLE_RATE))
                 events.extend([(start, 1, n), (end, 0, n)])
         previous = 0
         for tick, on, n in sorted(events, key=lambda e: (e[0], e[1])):
@@ -440,13 +441,13 @@ def register_routes():
 <style>body{margin:0;padding:16px;background:#f8f4f8;font:14px system-ui}body.dark{background:#211e29}
 .gradio-container{max-width:none}header{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:12px;color:var(--ss-text)}
 header button,header a{padding:9px 14px;border:1px solid var(--ss-border);border-radius:8px;background:var(--ss-surface);color:var(--ss-text);cursor:pointer;text-decoration:none;font:inherit}
-header strong{margin-right:auto}#apply{background:#815c87;color:white}#status{font-size:12px;color:var(--ss-muted)}
+header strong{margin-right:auto}#apply{background:#815c87;color:white}#status,#generation-status{font-size:12px;color:var(--ss-muted)}
 .roll-scroll{height:max(260px,calc(100vh - 430px))}[hidden]{display:none!important}</style></head>
 <body><div class="gradio-container"><header><strong>SpanSynth-Edit · Piano roll</strong>
 <span id="status">Loading score…</span><a id="midi-download" download="edited.mid" hidden>Download MIDI</a>
 <a id="audio-download" download="edited.wav" hidden>Download audio</a><button id="theme">◐ Theme</button>
 <button id="apply">Apply edits</button><button id="close">Close</button></header>
-<main id="editor">''' + html + '''</main></div><script type="module" src="/spansynth/assets/host.js"></script></body></html>''')
+<p id="generation-status" role="status"></p><main id="editor">''' + html + '''</main></div><script type="module" src="/spansynth/assets/host.js"></script></body></html>''')
 
 
 class SpanSynthExtension(ComfyExtension):

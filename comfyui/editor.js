@@ -6,7 +6,7 @@ const contents = value => JSON.stringify({clip: value.clip, source: value.source
 const viewUrl = file => `/view?${new URLSearchParams(file)}`;
 
 if (document.documentElement.hasAttribute("data-spansynth-editor")) {
-  let current = {}, media = {}, bounds = [0, 0], listener, loaded = false, applied = "";
+  let current = {}, media = {}, bounds = [0, 0], listener, loaded = false, scriptReady = false, applied = "";
   const status = document.getElementById("status");
   const send = (action, value) => parent.postMessage({spansynth: action, value}, location.origin);
   window.element = document.getElementById("editor");
@@ -37,6 +37,7 @@ if (document.documentElement.hasAttribute("data-spansynth-editor")) {
         if (!loaded) {
           loaded = true;
           const script = document.createElement("script"); script.src = "/spansynth/assets/editor.js";
+          script.onload = () => {scriptReady = true; if (media["result-audio"]) window.dispatchEvent(new Event("spansynth-generated"));};
           document.body.append(script);
         } else listener?.();
       }
@@ -52,8 +53,8 @@ if (document.documentElement.hasAttribute("data-spansynth-editor")) {
       bounds = value.region[0];
       media["result-audio"] = viewUrl(value.generated_audio[0]);
       download("audio-download", media["result-audio"]);
-      status.textContent = value.text[0];
-      window.dispatchEvent(new Event("spansynth-generated"));
+      document.getElementById("generation-status").textContent = value.text[0];
+      if (scriptReady) window.dispatchEvent(new Event("spansynth-generated"));
     }
     if (spansynth === "error") {
       status.textContent = value;

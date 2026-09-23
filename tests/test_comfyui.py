@@ -1,8 +1,6 @@
 """Run against a real ComfyUI checkout supplied through PYTHONPATH."""
-from dataclasses import asdict
 import io
 import json
-from pathlib import Path
 
 import numpy as np
 import pytest
@@ -77,6 +75,13 @@ def test_deleted_and_moved_notes_expand_region():
     changed = [note(start=.4, duration=.4, pitch=64)]
     assert nodes.changed_region(source, changed, 1.2) == pytest.approx((.12, 1.04))
     assert nodes.changed_region(source, source, 1.2) == (0, 1.2)
+
+
+def test_midi_export_keeps_submillisecond_transcription_timing():
+    source = [note(start=1900 / 48000, duration=15400 / 48000)]
+    parsed = read_notes(io.BytesIO(nodes.midi_bytes(source)), crop_start=0)
+    assert parsed[0]["onset"] == 1900
+    assert parsed[0]["offset"] == 17300
 
 
 def test_invalid_midi_paths_and_scores(tmp_path):
