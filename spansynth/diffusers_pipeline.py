@@ -1,7 +1,6 @@
 """MIDI-guided music synthesis and editing through Diffusers."""
 
 from dataclasses import dataclass
-import json
 import math
 from pathlib import Path
 
@@ -53,12 +52,6 @@ class SpanSynthEditPipeline(DiffusionPipeline):
     def __init__(self, transformer: SpanSynthTransformerModel, codec: HeartCodecModel):
         super().__init__()
         self.register_modules(transformer=transformer, codec=codec)
-
-    def to_json_string(self):
-        """Identify the saved custom pipeline for Diffusers' standard loader."""
-        config = json.loads(super().to_json_string())
-        config["_class_name"] = ["pipeline", self.__class__.__name__]
-        return json.dumps(config, indent=2, sort_keys=True) + "\n"
 
     def save_pretrained(self, save_directory: str | Path, **kwargs):
         """Save weights and the code entries required by the Hub's custom loader.

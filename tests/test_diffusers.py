@@ -63,6 +63,7 @@ def reference(tmp_path):
 def test_component_conversion_and_roundtrip(reference, tmp_path):
     transformer, codec, model_dir, codec_dir = reference
     destination = export_diffusers(model_dir, codec_dir, tmp_path / "converted")
+    assert json.loads((destination / "model_index.json").read_text())["_class_name"] == "SpanSynthEditPipeline"
     restored = SpanSynthEditPipeline.from_pretrained(destination, trust_remote_code=True)
     assert set(restored.transformer.state_dict()) == set(transformer.state_dict())
     for name, value in transformer.state_dict().items():
@@ -84,7 +85,10 @@ def test_component_conversion_and_roundtrip(reference, tmp_path):
         torch.testing.assert_close(restored.codec(waveform), codec(waveform), rtol=0, atol=1e-6)
 
     restored.save_pretrained(tmp_path / "saved-again")
-    again = DiffusionPipeline.from_pretrained(tmp_path / "saved-again", trust_remote_code=True).to("cpu")
+    assert json.loads((tmp_path / "saved-again" / "model_index.json").read_text())["_class_name"] == "SpanSynthEditPipeline"
+    again = DiffusionPipeline.from_pretrained(
+        tmp_path / "saved-again", custom_pipeline="pipeline", trust_remote_code=True,
+    ).to("cpu")
     with torch.inference_mode():
         torch.testing.assert_close(again.transformer(*inputs), expected, rtol=0, atol=1e-6)
     assert not again.transformer.blocks[0].self_attention.rope.frequency_indices.is_meta
@@ -95,8 +99,7 @@ def test_component_conversion_and_roundtrip(reference, tmp_path):
 def test_community_pipeline_loading(reference, tmp_path):
     _, _, model_dir, codec_dir = reference
     destination = export_diffusers(model_dir, codec_dir, tmp_path / "converted")
-    code = Path(__file__).resolve().parents[1] / "spansynth" / "diffusers_pipeline.py"
-    restored = DiffusionPipeline.from_pretrained(destination, custom_pipeline=str(code), trust_remote_code=True)
+    restored = DiffusionPipeline.from_pretrained(destination, custom_pipeline="pipeline", trust_remote_code=True)
     assert isinstance(restored.transformer, SpanSynthTransformerModel)
     assert isinstance(restored.codec, HeartCodecModel)
     assert set(restored.components) == {"transformer", "codec"}
@@ -107,7 +110,7 @@ def test_save_to_hub_accepts_path_objects(reference, tmp_path, monkeypatch):
 
     _, _, model_dir, codec_dir = reference
     destination = export_diffusers(model_dir, codec_dir, tmp_path / "converted")
-    pipeline = DiffusionPipeline.from_pretrained(destination, trust_remote_code=True)
+    pipeline = DiffusionPipeline.from_pretrained(destination, custom_pipeline="pipeline", trust_remote_code=True)
     monkeypatch.setattr(pipeline_utils, "create_repo", lambda *args, **kwargs: SimpleNamespace(repo_id="test/model"))
     monkeypatch.setattr(pipeline_utils, "load_or_create_model_card", lambda *args, **kwargs: ModelCard("---\nlicense: apache-2.0\n---\n"))
     uploaded = []
@@ -115,7 +118,7 @@ def test_save_to_hub_accepts_path_objects(reference, tmp_path, monkeypatch):
     def upload(folder, repo_id, **kwargs):
         assert repo_id == "test/model"
         # Only the network boundary is replaced; serialization and reloading are real.
-        restored = DiffusionPipeline.from_pretrained(folder, trust_remote_code=True)
+        restored = DiffusionPipeline.from_pretrained(folder, custom_pipeline="pipeline", trust_remote_code=True)
         assert set(restored.components) == {"transformer", "codec"}
         assert (Path(folder) / "README.md").is_file()
         uploaded.append(Path(folder))
