@@ -32,6 +32,8 @@
 .paper-link:hover{border-color:var(--gold)}
 .repo-link .resource-value{background:var(--mint);color:var(--teal)}
 .repo-link:hover{border-color:var(--teal)}
+.interactive-link .resource-value{background:var(--lilac);color:var(--lilac-ink)}
+.interactive-link:hover{border-color:var(--lilac-ink)}
 .resource-link[aria-disabled=true]{cursor:default}
 .resource-status{font-size:.6875rem;font-weight:400;color:var(--muted)}
 .listen-link{margin-left:auto;font-size:.875rem;font-weight:650;white-space:nowrap}

@@ -1,6 +1,6 @@
 # SpanSynth-Edit project page and audio demos
 
-Explore SpanSynth-Edit's MIDI-guided synthesis and editing through paired audio players and MIDI visualizations. The project page includes the abstract, model overview, and a Paper · arXiv badge linking to the [paper's abstract page](https://arxiv.org/abs/2609.25546), with access to its PDF and publication details. Paper, Repo, and Data use compact two-part badges with colored destinations for live links. The Data badge remains inactive until its public destination is ready.
+Explore SpanSynth-Edit's MIDI-guided synthesis and editing through paired audio players and MIDI visualizations, or try the [interactive demo on Hugging Face Spaces](https://huggingface.co/spaces/mimbres/spansynth-edit). The project page includes the abstract, model overview, and a Paper · arXiv badge linking to the [paper's abstract page](https://arxiv.org/abs/2609.25546), with access to its PDF and publication details. Paper, Repo, Interactive demo, and Data use compact two-part badges with colored destinations for live links. The Data badge remains inactive until its public destination is ready.
 
 ## Local review
 
