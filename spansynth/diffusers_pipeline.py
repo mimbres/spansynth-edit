@@ -152,6 +152,8 @@ class SpanSynthEditPipeline(DiffusionPipeline):
         last = math.ceil(edit_end * SAMPLE_RATE / HOP_LENGTH - 1e-9)
         first_sample = first * HOP_LENGTH
         last_sample = min(last * HOP_LENGTH, len(crop.original))
+        if first_sample >= last_sample:
+            raise ValueError("The selected interval contains no output samples")
         generated = torch.zeros(FRAMES, dtype=torch.bool)
         generated[first:last] = True
         target = read_notes(Path(midi), crop_start=crop_start, offset=midi_offset)

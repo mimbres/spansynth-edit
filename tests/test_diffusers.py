@@ -167,3 +167,13 @@ def test_invalid_inputs_fail_before_model_execution(reference, options, error):
     pipeline = SpanSynthEditPipeline(model, codec)
     with pytest.raises(ValueError, match=error):
         pipeline("unused.wav", "unused.mid", **options)
+
+
+def test_subsample_crop_is_rejected(reference, tmp_path):
+    model, codec, _, _ = reference
+    pipeline = SpanSynthEditPipeline(model, codec)
+    audio, midi = tmp_path / "short.wav", tmp_path / "empty.mid"
+    sf.write(audio, np.zeros(16, dtype=np.float32), 48000)
+    mido.MidiFile().save(midi)
+    with pytest.raises(ValueError, match="no output samples"):
+        pipeline(audio, midi, duration=1e-6, edit_start=0, edit_end=1e-6)
