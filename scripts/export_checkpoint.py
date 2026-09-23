@@ -46,13 +46,43 @@ def export(checkpoint: Path, codec: Path, output: Path):
     return output
 
 
+def export_diffusers(checkpoint: Path | None, codec: Path | None, output: Path):
+    """Convert public inference weights to standard Diffusers component folders."""
+    import torch
+    from spansynth.checkpoint import load_model, resolve_assets
+    from spansynth.codec import load_scalar_model
+    from spansynth.diffusers_models import HeartCodecModel, SpanSynthTransformerModel
+    from spansynth.diffusers_pipeline import SpanSynthEditPipeline
+
+    if output.exists():
+        raise FileExistsError("Output already exists; choose a new export directory")
+    model_assets, codec_assets = resolve_assets(checkpoint, codec)
+    original, config = load_model(*model_assets)
+    with torch.device("meta"):
+        transformer = SpanSynthTransformerModel(config["dit"], config["event_set"])
+    transformer.load_state_dict(original.state_dict(), strict=True, assign=True)
+    transformer.eval().requires_grad_(False)
+    scalar = load_scalar_model(codec_assets[1], codec_assets[0], device="cpu", dtype=torch.float32)
+    with torch.device("meta"):
+        heartcodec = HeartCodecModel(scalar.config.to_dict())
+    heartcodec.model = scalar
+    heartcodec.eval().requires_grad_(False)
+    pipeline = SpanSynthEditPipeline(transformer, heartcodec)
+    pipeline.save_pretrained(output)
+    return output
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--checkpoint", required=True, type=Path)
-    parser.add_argument("--codec-dir", required=True, type=Path)
+    parser.add_argument("--checkpoint", type=Path)
+    parser.add_argument("--codec-dir", type=Path)
     parser.add_argument("--output", required=True, type=Path)
+    parser.add_argument("--diffusers", action="store_true", help="Convert public weights, downloading them if local paths are omitted")
     args = parser.parse_args()
-    print(export(args.checkpoint, args.codec_dir, args.output))
+    if not args.diffusers and (args.checkpoint is None or args.codec_dir is None):
+        parser.error("--checkpoint and --codec-dir are required for the original release export")
+    exporter = export_diffusers if args.diffusers else export
+    print(exporter(args.checkpoint, args.codec_dir, args.output))
 
 
 if __name__ == "__main__":

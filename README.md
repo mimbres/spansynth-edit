@@ -51,6 +51,37 @@ python -m pip install .
 
 Model and codec weights download automatically on first use. No token is required.
 
+### Diffusers
+
+Install the optional integration and convert the public weights once:
+
+```bash
+python -m pip install '.[diffusers]'
+git sparse-checkout add scripts
+python -m scripts.export_checkpoint --diffusers --output ../spansynth-diffusers
+```
+
+Use the same example files and timing as the CLI below:
+
+```python
+import soundfile as sf
+from spansynth.diffusers_pipeline import SpanSynthEditPipeline
+
+pipe = SpanSynthEditPipeline.from_pretrained('../spansynth-diffusers').to('cuda')
+result = pipe(
+    audio='../spansynth-inputs/early-slakh-track00006-original.mp3',
+    midi='../spansynth-inputs/early-slakh-track00006-after.mid',
+    num_inference_steps=16,
+    guidance_scale=2.0,
+)
+sf.write('edited.wav', result.audios[0, 0], result.sample_rate, subtype='FLOAT')
+```
+
+Use `.to('mps')` for Apple Silicon or `.to('cpu')` for CPU. For FlowEdit, add
+`method='flowedit'` and `source_midi` pointing to the original score. The pipeline
+also accepts the crop, region, MIDI offset, and context options described below.
+`pipe.save_pretrained(path)` saves both components for later loading.
+
 ## Try an example
 
 **Defaults:** `spansynth-edit` · 16 Euler steps · CFG 2.0<br>
