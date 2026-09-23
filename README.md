@@ -53,22 +53,22 @@ Model and codec weights download automatically on first use. No token is require
 
 ### Diffusers
 
-Install the optional integration and convert the public weights once:
+Install the optional integration:
 
 ```bash
 python -m pip install '.[diffusers]'
-git sparse-checkout add scripts
-python -m scripts.export_checkpoint --diffusers --output ../spansynth-diffusers
 ```
 
-Use the same example files and timing as the CLI below:
+[Download the example files](#example-files), then edit the selected region:
 
 ```python
 import soundfile as sf
-from spansynth.diffusers_pipeline import SpanSynthEditPipeline
+from diffusers import DiffusionPipeline
 
-pipe = SpanSynthEditPipeline.from_pretrained(
-    '../spansynth-diffusers', trust_remote_code=True,
+pipe = DiffusionPipeline.from_pretrained(
+    'mimbres/spansynth-edit',
+    custom_pipeline='mimbres/spansynth-edit',
+    trust_remote_code=True,
 ).to('cuda')
 result = pipe(
     audio='../spansynth-inputs/early-slakh-track00006-original.mp3',
@@ -82,7 +82,8 @@ sf.write('edited.wav', result.audios[0, 0], result.sample_rate, subtype='FLOAT')
 Use `.to('mps')` for Apple Silicon or `.to('cpu')` for CPU. For FlowEdit, add
 `method='flowedit'` and `source_midi` pointing to the original score. The pipeline
 also accepts the crop, region, MIDI offset, and context options described below.
-`pipe.save_pretrained(path)` saves both components for later loading.
+This custom pipeline uses the installed `spansynth` package.
+`pipe.save_pretrained(path)` saves the pipeline and both components for later loading.
 
 ## Try an example
 
@@ -201,6 +202,8 @@ All audio outputs are 48 kHz mono. Outside the generated region, `output.wav` ma
 ## License and credits
 
 Code and model weights are released under Apache-2.0. See [LICENSE](https://github.com/mimbres/spansynth-edit/blob/main/LICENSE) and [NOTICE](https://github.com/mimbres/spansynth-edit/blob/main/NOTICE) for terms and credits, including YourMT3+ and [HeartCodec](https://github.com/HeartMuLa/heartlib). Demo recordings retain their original rights.
+
+Training data retain their own licenses, including [MAESTRO's CC BY-NC-SA 4.0 terms](https://magenta.tensorflow.org/datasets/maestro#license). The repository's Apache-2.0 license does not replace these dataset terms.
 
 ## Citation
 
