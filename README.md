@@ -5,11 +5,11 @@
 </p>
 
 <p align="center">
-  <a href="https://arxiv.org/abs/2609.25546"><img src="https://img.shields.io/badge/Paper%20%C2%B7%20arXiv-F3E4E5?style=flat" alt="Paper on arXiv" height="26"></a>&nbsp;
-  <a href="https://huggingface.co/spaces/mimbres/spansynth-edit"><img src="https://img.shields.io/badge/HF%20Spaces%20%C2%B7%20Live%20Editing%20GUI-F0DDEE?style=flat" alt="HF Spaces · Live Editing GUI" height="26"></a>&nbsp;
-  <a href="https://mimbres.github.io/spansynth-edit/"><img src="https://img.shields.io/badge/Listen%20to%20demos-E2EBF7?style=flat" alt="Listen to demos" height="26"></a>&nbsp;
-  <a href="https://github.com/mimbres/spansynth-edit"><img src="https://img.shields.io/badge/GitHub%20%C2%B7%20Source-EBE5F4?style=flat" alt="Source code on GitHub" height="26"></a>&nbsp;
-  <a href="https://huggingface.co/mimbres/spansynth-edit"><img src="https://img.shields.io/badge/HF%20%C2%B7%20Model%20weights-E1EEE8?style=flat" alt="Model weights on Hugging Face" height="26"></a>
+  <a href="https://arxiv.org/abs/2609.25546"><img src="https://img.shields.io/badge/arXiv-2609.25546-b31b1b.svg" alt="Paper on arXiv" height="20"></a>&nbsp;
+  <a href="https://github.com/mimbres/spansynth-edit"><img src="https://img.shields.io/badge/GitHub-Code-181717?logo=github&amp;logoColor=white" alt="Source code on GitHub" height="20"></a>&nbsp;
+  <a href="https://huggingface.co/mimbres/spansynth-edit"><img src="https://huggingface.co/datasets/huggingface/badges/resolve/main/model-on-hf-sm-dark.svg" alt="Model on Hugging Face" height="20"></a>&nbsp;
+  <a href="https://huggingface.co/spaces/mimbres/spansynth-edit"><img src="https://huggingface.co/datasets/huggingface/badges/resolve/main/open-in-hf-spaces-sm-dark.svg" alt="Open in Spaces" height="20"></a>&nbsp;
+  <a href="https://mimbres.github.io/spansynth-edit/"><img src="https://img.shields.io/badge/Demo-Listen-007ec6" alt="Listen to audio demos" height="20"></a>
 </p>
 
 Synthesise music from MIDI, or add, remove, and modify notes in a recording by revising its MIDI. SpanSynth-Edit generates the selected region, using surrounding audio for timbre guidance.
