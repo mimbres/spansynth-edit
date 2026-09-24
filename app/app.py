@@ -626,7 +626,15 @@ def load_work(work_id, old_session):
 
 
 def open_shared_work(work_id, session):
-    return load_work(work_id, session) if work_id else tuple(gr.skip() for _ in range(22))
+    if work_id:
+        return load_work(work_id, session)
+    if session:
+        return tuple(gr.skip() for _ in range(22))
+    loaded = load_example(None, sample_name="Jazz intro")
+    return (*loaded[:9],
+            gr.skip(), gr.skip(), gr.skip(), gr.skip(), gr.skip(),
+            loaded[0]["suggested_title"], "", "", loaded[9], True,
+            *loaded[10:])
 
 
 def load_example(old_session, sample_name="Slakh"):

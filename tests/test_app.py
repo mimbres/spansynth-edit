@@ -301,6 +301,33 @@ def test_web_app_registers_workflow_endpoints():
     assert {"example", "load_clip", "load_midi", "transcribe", "export_midi", "generate"} <= names
 
 
+def test_startup_loads_jazz_without_replacing_an_open_work(monkeypatch):
+    loaded = app.open_shared_work("", None)
+    session = loaded[0]
+    try:
+        assert len(loaded) == 22
+        assert Path(loaded[1]).is_file()
+        assert Path(loaded[19]).name == "jazz-intro-ourmusicbox.mp3"
+        assert loaded[14] == "Jazz intro · edit"
+        assert loaded[20:] == (0, session["duration"])
+        score = json.loads(loaded[2])
+        assert score["clip"] == session["clip"] and score["waveform"]
+        assert score["notes"] == [] and session["source_notes"] is None
+        assert loaded[5:8] == (None, None, None)
+        assert "transcribe" in loaded[8].lower()
+
+        def unexpected_sample(*args, **kwargs):
+            pytest.fail("An open session or shared link must not load the default sample")
+        monkeypatch.setattr(app, "load_example", unexpected_sample)
+        assert app.open_shared_work("", session) == tuple(app.gr.skip() for _ in range(22))
+        assert Path(loaded[1]).is_file()
+        shared = ("saved work",)
+        monkeypatch.setattr(app, "load_work", lambda work_id, old: shared if work_id == "saved-jazz" else None)
+        assert app.open_shared_work("saved-jazz", None) is shared
+    finally:
+        app.cleanup(session)
+
+
 def profile(username):
     return app.gr.OAuthProfile(dict(name=username, preferred_username=username,
                                    profile=f"https://huggingface.co/{username}", picture=""))
