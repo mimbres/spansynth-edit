@@ -67,7 +67,9 @@ Keep SSH open and **[open the remote example](http://127.0.0.1:8189/?spansynth=e
 
 </details>
 
-![Kraisler audio and MIDI open in the ComfyUI piano-roll editor](screenshot.png)
+![Complete ComfyUI workflow with the Kraisler audio and MIDI example loaded](screenshot.png)
+
+Close the piano roll to see this workflow. **Prepare / Open score** returns to editing.
 
 ## 2. Edit → generate → listen
 
