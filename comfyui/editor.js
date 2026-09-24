@@ -11,6 +11,7 @@ if (document.documentElement.hasAttribute("data-spansynth-editor")) {
   const send = (action, value) => parent.postMessage({spansynth: action, value}, location.origin);
   window.element = document.getElementById("editor");
   element.spansynthHost = {region: () => bounds, audio: id => media[id],
+    recording: active => {for(const id of ["apply", "close"])document.getElementById(id).disabled=active; send("recording",active);},
     gmBase: "/spansynth/sounds/", drumUrl: "/spansynth/sounds/drums.js", soundLibrary: "/spansynth/sounds/smplr.mjs"};
   window.props = {};
   Object.defineProperty(props, "value", {
@@ -28,6 +29,7 @@ if (document.documentElement.hasAttribute("data-spansynth-editor")) {
   window.addEventListener("message", async event => {
     if (event.origin !== location.origin || event.source !== parent) return;
     const {spansynth, value} = event.data || {};
+    if (spansynth === "stop") window.dispatchEvent(new Event("spansynth-stop"));
     if (spansynth === "load" || spansynth === "applied") {
       media["source-audio"] = viewUrl(value.original_audio[0]);
       bounds = value.region[0];
@@ -79,6 +81,7 @@ if (document.documentElement.hasAttribute("data-spansynth-editor")) {
   const scoreWidget = node => node.widgets.find(w => w.name === "score");
   const post = (action, value) => opened?.frame.contentWindow?.postMessage({spansynth: action, value}, location.origin);
   const close = () => {
+    if (opened?.recording) {post("stop"); return;}
     if (opened?.dirty && !confirm("Close without applying your latest edits?")) return;
     opened?.dialog.remove(); opened = null;
   };
@@ -88,7 +91,7 @@ if (document.documentElement.hasAttribute("data-spansynth-editor")) {
     const dialog = document.createElement("dialog");
     dialog.style.cssText = "width:96vw;height:94vh;max-width:1500px;padding:0;border:1px solid #a99bab;border-radius:14px;background:#211e29;overflow:hidden";
     const frame = document.createElement("iframe");
-    frame.src = "/spansynth/editor"; frame.title = "SpanSynth-Edit piano roll";
+    frame.src = "/spansynth/editor"; frame.title = "SpanSynth-Edit piano roll"; frame.allow = "midi 'self'";
     frame.style.cssText = "width:100%;height:100%;border:0";
     dialog.append(frame); document.body.append(dialog);
     opened = {node, dialog, frame, dirty: false};
@@ -122,6 +125,7 @@ if (document.documentElement.hasAttribute("data-spansynth-editor")) {
       if (node.spansynthAudio) post("generated", node.spansynthAudio);
     }
     if (spansynth === "dirty") opened.dirty = value;
+    if (spansynth === "recording") opened.recording = value;
     if (spansynth === "close") close();
     if (spansynth === "apply") {
       scoreWidget(node).value = JSON.stringify(value);

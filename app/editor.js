@@ -15,6 +15,9 @@ let lastSent = null, width = 900, timeline = 846, cursorTime = 0, timeRange = nu
 let playing = null, audioContext = null, previewStarted = 0, previewOffset = 0, playbackEnd = 0, playbackFrame = null;
 let viewFrame = null, auditionPitch = null, previewing = false, soundRequest = 0, voiceNumber = 0;
 let soundLibrary = null, gmNames = null;
+let midiAccess = null, midiInput = null, midiConnecting = false, recording = null;
+const midiNotes = new Map(), midiSustain = new Set();
+let recordingButtons = [];
 const soundfonts = new Map(), loadingSounds = new Map(), voiceStops = new Set();
 const gmBase = host?.gmBase || "https://gleitz.github.io/midi-js-soundfonts/FluidR3_GM/";
 const drumUrl = host?.drumUrl || "https://cdn.jsdelivr.net/gh/henrikvilhelmberglund/midi-js-compat-soundfonts@gh-pages/GM-soundfonts/FluidR3_GM/drumkits/Standard-mp3.js";
@@ -26,14 +29,14 @@ const chosen = () => data.notes.filter(n => n.program === program && selected.ha
 const snapshot = () => ({notes: clone(data.notes), program, extraTracks: [...extraTracks], colors: [...trackColors]});
 function remember(before) {undo.push(before); if (undo.length > 50) undo.shift(); redo = [];}
 function syncValue() {
-  if (!data.clip) return;
+  if (!data.clip || recording) return;
   data.view = {program, colors: [...trackColors], extraTracks: [...extraTracks], zoom: Number(find("zoom").value),
                snap: Number(find("snap").value), scrollTop: scroll.scrollTop, scrollLeft: scroll.scrollLeft};
   const value = JSON.stringify(data);
   if (value !== lastSent) {lastSent = value; props.value = value;}
 }
 function publish() {refresh(); draw(); syncValue();}
-function change(fn) {if (!data.clip || addingTrack()) return; finishDrag(); stop(); const before=snapshot(); if(fn()!==false)remember(before); publish();}
+function change(fn) {if (!data.clip || addingTrack() || recording) return; finishDrag(); stop(); const before=snapshot(); if(fn()!==false)remember(before); publish();}
 function options(select, entries, value) {
   select.replaceChildren(...entries.map(([v, label]) => {const item = document.createElement("option"); item.value = v; item.textContent = label; return item;}));
   select.value = String(value);
@@ -66,11 +69,14 @@ function refresh() {
   if (!entry) choices.push([program, `Imported program ${program} · choose an instrument`]);
   options(instrument, choices, entry ? entry.program : program);
   find("count").textContent = `${data.notes.length} notes · ${data.duration.toFixed(2)} s`;
-  const locked = addingTrack();
-  root.dataset.adding = String(locked);
+  const locked = addingTrack() || !!recording;
+  root.dataset.adding = String(addingTrack());
+  root.dataset.recording = String(!!recording);
   scroll.setAttribute("aria-disabled", String(locked));
-  find("edit-lock").hidden = !locked;
+  find("edit-lock").hidden = !addingTrack();
   for (const control of [track, instrument, find("velocity"), ...root.querySelectorAll("[data-tool], [data-action=add-track]")]) control.disabled = locked;
+  for (const control of [find("snap"), find("audio-source"), find("listen"), ...root.querySelectorAll('[data-action=play], [data-action=preview], [data-action=restart]')]) control.disabled = !!recording;
+  midiControls();
   for (const action of ["undo", "redo"]) root.querySelector(`[data-action="${action}"]`).disabled = locked || !(action === "undo" ? undo : redo).length;
   const notes = chosen();
   root.querySelector('[data-action="delete"]').disabled = locked || !notes.length;
@@ -78,6 +84,7 @@ function refresh() {
   const range = selectionRange();
   find("listen-range").textContent = range ? `${range[0].toFixed(2)}–${range[1].toFixed(2)} s` : `Cursor · ${cursorTime.toFixed(2)} s`;
   if (!data.clip) detail.textContent = "Load a clip to begin.";
+  else if (recording) detail.textContent = `Recording into ${name(recording.program)}. Press Stop to finish.`;
   else if (locked) detail.textContent = "Choose Add instrument or Cancel to continue editing.";
   else if (notes.length === 1) {const n = notes[0]; detail.textContent = `${name(n.program)} · ${noteName(n.pitch)} · ${n.start.toFixed(2)}–${(n.start+n.duration).toFixed(2)} s · velocity ${n.velocity}`;}
   else if (notes.length) detail.textContent = `${notes.length} notes selected · drag to move together, ↑ ↓ to transpose, Del to remove.`;
@@ -87,6 +94,7 @@ function region() {return host ? host.region() : ["edit-start", "edit-end"].map(
 function draw(playhead = cursorTime) {
   if (!scroll.clientWidth) return;
   const scale = window.devicePixelRatio || 1;
+  const soundingPitches=new Set([...midiNotes.values()].map(n=>n.pitch));
   width = Math.max(620, scroll.clientWidth) * Number(find("zoom").value); timeline = width-keys;
   const height = header+row*128;
   if (canvas.width !== Math.round(width*scale) || canvas.height !== Math.round(height*scale)) {
@@ -97,7 +105,7 @@ function draw(playhead = cursorTime) {
   for (let pitch=127; pitch>=0; pitch--) {
     const y = header+(127-pitch)*row, black = [1,3,6,8,10].includes(pitch%12);
     ctx.fillStyle = black ? palette["grid-black"] : palette["grid-white"]; ctx.fillRect(keys,y,timeline,row);
-    ctx.fillStyle = pitch===auditionPitch ? trackColor(program) : black ? palette["piano-black"] : palette["piano-white"]; ctx.fillRect(0,y,keys,row);
+    ctx.fillStyle = pitch===auditionPitch || soundingPitches.has(pitch) ? trackColor(program) : black ? palette["piano-black"] : palette["piano-white"]; ctx.fillRect(0,y,keys,row);
     ctx.strokeStyle = pitch%12 === 0 ? palette["octave-line"] : palette["grid-line"]; ctx.beginPath(); ctx.moveTo(0,y+row); ctx.lineTo(width,y+row); ctx.stroke();
     if (pitch%12 === 0) {ctx.fillStyle = palette.muted; ctx.fillText(noteName(pitch),10,y+10);}
   }
@@ -166,7 +174,7 @@ function previewMovedNote(movement, finish=false) {
   }
 }
 canvas.addEventListener("pointerdown", event => {
-  if (!data.clip || addingTrack() || event.button !== 0) return;
+  if (!data.clip || addingTrack() || recording || event.button !== 0) return;
   event.preventDefault(); stop(); scroll.focus({preventScroll:true});
   const p=position(event);
   if(p.x<keys) {
@@ -197,7 +205,7 @@ canvas.addEventListener("pointerdown", event => {
   refresh(); draw();
 });
 canvas.addEventListener("pointermove", event => {
-  if (addingTrack()) {canvas.style.cursor="not-allowed"; return;}
+  if (addingTrack() || recording) {canvas.style.cursor="not-allowed"; return;}
   const p=position(event);
   if (!drag) {const n=hit(p); canvas.style.cursor=tool==="select" ? (n ? "grab" : "crosshair") : ""; return;}
   if(drag.mode==="keys") {if(p.x<keys && p.pitch!==drag.pitch && p.y>=scroll.scrollTop+header) {drag.pitch=p.pitch; audition(p.pitch);} return;}
@@ -229,7 +237,7 @@ function finishDrag(event) {
 for (const event of ["pointerup","pointercancel","lostpointercapture"]) canvas.addEventListener(event,finishDrag);
 canvas.addEventListener("dblclick", event=>{const p=position(event); if(data.clip && !addingTrack() && tool==="select" && p.x>=keys && p.y>=scroll.scrollTop+header && !hit(p)) change(()=>{const note=createNote(p);audition(note.pitch,note.velocity);});});
 function closeTrackMenu(focus=false) {trackMenu.hidden=true; track.setAttribute("aria-expanded","false"); if(focus) track.focus({preventScroll:true});}
-function openTrackMenu() {if(addingTrack())return;trackMenu.hidden=false; track.setAttribute("aria-expanded","true"); const item=trackMenu.querySelector('[aria-selected="true"]'); item?.focus({preventScroll:true}); item?.scrollIntoView({block:"nearest"});}
+function openTrackMenu() {if(addingTrack() || recording)return;trackMenu.hidden=false; track.setAttribute("aria-expanded","true"); const item=trackMenu.querySelector('[aria-selected="true"]'); item?.focus({preventScroll:true}); item?.scrollIntoView({block:"nearest"});}
 track.addEventListener("click",()=>trackMenu.hidden ? openTrackMenu() : closeTrackMenu(true));
 track.addEventListener("keydown",event=>{if(["ArrowDown","ArrowUp"].includes(event.key)) {event.preventDefault(); openTrackMenu();}});
 trackMenu.addEventListener("click",event=>{const item=event.target.closest('[role="option"]'); if(!item || addingTrack())return; finishDrag(); stop(); program=Number(item.dataset.program); selected.clear(); timeRange=null; closeTrackMenu(true); refresh(); centerTrack(); draw(); syncValue(); warmInstrument();});
@@ -245,7 +253,7 @@ find("snap").addEventListener("change",syncValue);
 find("listen").addEventListener("change",()=>{stop(); refresh(); draw();});
 find("audio-source").addEventListener("change",stop);
 find("velocity").addEventListener("change",()=>{const velocity=Math.round(clamp(Number(find("velocity").value)||90,1,127));if(selected.size)change(()=>{for(const n of chosen())n.velocity=velocity;});});
-function travel(backward=true) {if(addingTrack())return; finishDrag(); const from=backward?undo:redo, to=backward?redo:undo; if(!from.length)return; stop(); to.push(snapshot()); const previous=from.pop(); data.notes=previous.notes; program=previous.program; extraTracks=previous.extraTracks; trackColors=new Map(previous.colors); selected.clear(); timeRange=null; publish();}
+function travel(backward=true) {if(addingTrack() || recording)return; finishDrag(); const from=backward?undo:redo, to=backward?redo:undo; if(!from.length)return; stop(); to.push(snapshot()); const previous=from.pop(); data.notes=previous.notes; program=previous.program; extraTracks=previous.extraTracks; trackColors=new Map(previous.colors); selected.clear(); timeRange=null; publish();}
 function remove() {if(selected.size)change(()=>{data.notes=data.notes.filter(n=>!selected.has(n.id)); selected.clear(); timeRange=null;});}
 function soundStatus(message="GM preview") {find("sound-status").textContent=message;}
 function previewProgram(p) {return p===100 ? 52 : p===101 ? 53 : p;}
@@ -297,7 +305,8 @@ function startNote(player,p,pitch,velocity,time,duration,onEnded) {
     onEnded:()=>{clearTimeout(releaseTimer);voiceStops.delete(cancel);onEnded?.();}});
   cancel=()=>{clearTimeout(releaseTimer);voiceStops.delete(cancel);stopVoice();};
   voiceStops.add(cancel);
-  if(p!==128)releaseTimer=setTimeout(cancel,Math.max(0,(time+duration-audioContext.currentTime)*1000));
+  if(p!==128 && duration!==null)releaseTimer=setTimeout(cancel,Math.max(0,(time+duration-audioContext.currentTime)*1000));
+  return cancel;
 }
 async function audition(pitch, velocity=Number(find("velocity").value)||90) {
   stop();
@@ -314,8 +323,193 @@ async function audition(pitch, velocity=Number(find("velocity").value)||90) {
     });
   } catch {if(request===soundRequest)soundStatus("GM sound unavailable. Click a key to retry.");}
 }
+function midiStatus(message) {find("midi-status").textContent=message;}
+function midiControls() {
+  const connected=midiInput?.state==="connected" && midiInput.onmidimessage===midiMessage;
+  const connect=root.querySelector('[data-action="connect-midi"]'), record=root.querySelector('[data-action="record"]');
+  connect.textContent=midiAccess ? "Disconnect MIDI" : "Connect MIDI";
+  connect.disabled=midiConnecting || !!recording;
+  find("midi-input").disabled=!midiAccess || !!recording;
+  find("record-snap").disabled=!!recording;
+  record.disabled=!connected || !data.clip || addingTrack() || !!recording;
+  record.setAttribute("aria-pressed",String(!!recording));
+}
+function releaseMidiNote(key, time=recordingTime()) {
+  const held=midiNotes.get(key);if(!held)return;
+  midiNotes.delete(key);if(held.program!==128)held.stop?.();
+  if(held.note && recording) {
+    const end=recording.unit ? Math.round(time/recording.unit)*recording.unit : time;
+    held.note.duration=clamp(end-held.note.start,.01,recording.end-held.note.start);
+  }
+}
+function recordingTime(eventTime) {
+  if(!recording?.ready)return recording?.start || 0;
+  const time=playing ? playing.currentTime : audioContext.currentTime-recording.clock+recording.start;
+  const delay=Number.isFinite(eventTime) ? Math.min(0,(eventTime-performance.now())/1000) : 0;
+  return clamp(time+delay,recording.start,recording.end);
+}
+function midiMessage(event) {
+  const [status,pitch,velocity]=event.data, kind=status&0xf0, channel=status&0x0f, key=channel*128+pitch;
+  const time=recordingTime(event.timeStamp);
+  if(kind===0xb0) {
+    if(pitch===64 && velocity>=64)midiSustain.add(channel);
+    if((pitch===64 && velocity<64) || pitch===121) {
+      midiSustain.delete(channel);
+      for(const [id,held] of midiNotes)if(held.channel===channel && !held.down)releaseMidiNote(id,time);
+    }
+    if(pitch===120 || pitch===123) {
+      midiSustain.delete(channel);
+      for(const [id,held] of midiNotes)if(held.channel===channel)releaseMidiNote(id,time);
+    }
+    draw();return;
+  }
+  if(kind===0x80 || (kind===0x90 && velocity===0)) {
+    const held=midiNotes.get(key);
+    if(held && midiSustain.has(channel) && held.program!==128)held.down=false;
+    else releaseMidiNote(key,time);
+    refresh();draw();return;
+  }
+  if(kind!==0x90 || !data.clip || addingTrack() || (recording && !recording.ready))return;
+  if(recording && time>=recording.end-.01)return;
+  releaseMidiNote(key,time);
+  const held={pitch,velocity,channel,program,down:true};midiNotes.set(key,held);
+  if(recording) {
+    const start=clamp(recording.unit ? Math.round(time/recording.unit)*recording.unit : time,recording.start,recording.end-.01);
+    held.note={id:recording.nextId++,start,duration:.01,pitch,velocity,program:recording.program};
+    data.notes.push(held.note);recording.ids.push(held.note.id);selected.add(held.note.id);
+  }
+  const request=soundRequest, context=soundContext();
+  context.resume().then(()=>loadInstrument(held.program)).then(player=>{
+    if(request!==soundRequest || midiNotes.get(key)!==held || !root.isConnected)return;
+    held.stop=startNote(player,held.program,pitch,velocity,context.currentTime,null);
+  }).catch(()=>{if(request===soundRequest)soundStatus("GM sound unavailable; MIDI notes are still recorded.");});
+  refresh();draw();
+}
+async function selectMidiInput(id) {
+  stop();
+  if(midiInput) {midiInput.onmidimessage=null;midiInput.close().catch(()=>{});}
+  const input=midiAccess?.inputs.get(id);midiInput=input || null;
+  midiControls();
+  if(!input)return;
+  try {
+    await input.open();
+    if(midiInput!==input || !root.isConnected){input.close().catch(()=>{});return;}
+    input.onmidimessage=midiMessage;
+    midiStatus(`${input.name || "MIDI input"} ready. Play to preview; Record adds notes.`);
+  } catch {if(midiInput===input){midiInput=null;midiStatus("Could not open this MIDI input. Reconnect and try again.");}}
+  midiControls();
+}
+function midiInputsChanged() {
+  if(!midiAccess)return;
+  const inputs=[...midiAccess.inputs.values()].filter(input=>input.state==="connected");
+  const lost=midiInput && !inputs.includes(midiInput), current=inputs.includes(midiInput) ? midiInput : inputs[0];
+  if(lost) {stop();midiInput.onmidimessage=null;midiInput.close().catch(()=>{});midiInput=null;}
+  options(find("midi-input"),inputs.length ? inputs.map(input=>[input.id,input.name || "MIDI input"]) : [["","No input connected"]],current?.id || "");
+  if(current && current!==midiInput)selectMidiInput(current.id);
+  if(!inputs.length)midiStatus(lost ? "Keyboard disconnected. Recording kept; reconnect to continue." : "No MIDI input found. Connect a keyboard.");
+  midiControls();
+}
+function disconnectMidi() {
+  stop();
+  if(midiAccess)midiAccess.onstatechange=null;
+  if(midiInput){midiInput.onmidimessage=null;midiInput.close().catch(()=>{});}
+  midiInput=null;midiAccess=null;
+  options(find("midi-input"),[["","No input connected"]],"");
+  midiStatus("MIDI disconnected. Your recorded notes are kept.");midiControls();
+}
+async function connectMidi() {
+  if(midiAccess){disconnectMidi();return;}
+  if(midiConnecting)return;
+  const policy=document.permissionsPolicy || document.featurePolicy;
+  if(!window.isSecureContext){midiStatus("MIDI needs HTTPS or localhost. For a remote server, use an SSH tunnel.");return;}
+  if(!navigator.requestMIDIAccess){midiStatus("Web MIDI is unavailable in this browser. Try Chrome or Edge.");return;}
+  if(policy?.allowsFeature && !policy.allowsFeature("midi")) {
+    midiStatus("MIDI is blocked in this embedded page. Open the demo directly.");
+    const link=find("midi-standalone");link.href=location.href;link.hidden=false;return;
+  }
+  midiConnecting=true;midiControls();midiStatus("Allow MIDI access in your browser to connect.");
+  try {
+    await soundContext().resume();
+    const access=await navigator.requestMIDIAccess({sysex:false});
+    if(!root.isConnected || events.signal.aborted)return;
+    midiAccess=access;access.onstatechange=midiInputsChanged;midiInputsChanged();
+  } catch {midiStatus("MIDI access was not granted. Allow it in the browser's site settings, then retry.");}
+  finally {midiConnecting=false;midiControls();}
+}
+function recordingControls(active) {
+  host?.recording?.(active);
+  if(active) {
+    recordingButtons=[...document.querySelectorAll('#apply-edits button, button#apply-edits, #generate-audio button, button#generate-audio')].map(button=>[button,button.disabled]);
+    for(const [button] of recordingButtons)button.disabled=true;
+  } else {
+    for(const [button,disabled] of recordingButtons)button.disabled=disabled;
+    recordingButtons=[];
+  }
+  refresh();
+}
+async function recordMidi() {
+  if(recording || !data.clip || addingTrack() || midiInput?.state!=="connected" || midiInput.onmidimessage!==midiMessage)return;
+  finishDrag();stop();closeTrackMenu();
+  const [start,end]=timeRange || [cursorTime>=data.duration ? 0 : cursorTime,data.duration];
+  if(end-start<.01){midiStatus("Choose a longer range on the waveform.");return;}
+  const take={before:snapshot(),start,end,program,unit:find("record-snap").checked ? Number(find("snap").value) : 0,
+    ids:[],nextId:Math.max(-1,...data.notes.map(n=>n.id))+1,ready:false};
+  recording=take;selected.clear();timeRange=null;cursorTime=start;
+  recordingControls(true);midiStatus("Preparing recording…");
+  try {
+    const context=soundContext();await context.resume();
+    // Load the monitor before the take, so first notes are not delayed by a download.
+    await loadInstrument(program).catch(()=>soundStatus("GM sound unavailable; recording without monitoring."));
+    if(recording!==take || !root.isConnected)return;
+    pauseOtherAudio();
+    const id=find("audio-source").value==="generated" ? "result-audio" : "source-audio";
+    const url=host ? host.audio(id) : document.querySelector(`#${id} a[download]`)?.href;
+    if(url) {
+      const audio=find("player");if(audio.src!==url)audio.src=url;
+      audio.currentTime=start;playing=audio;await audio.play();
+      if(recording!==take || !root.isConnected)return;
+    } else if(find("audio-source").value==="generated")throw Error("Generate audio first, or choose Original.");
+    take.clock=context.currentTime;take.ready=true;
+    midiStatus(`Recording into ${name(program)} · press Stop to finish.`);animate();
+  } catch(error) {if(recording===take){stop();midiStatus(`Recording could not start. ${error.message || "Try again."}`);}}
+}
+function finishRecording() {
+  if(!recording)return;
+  const take=recording, time=recordingTime();
+  for(const key of [...midiNotes.keys()])releaseMidiNote(key,time);
+  recording=null;cursorTime=time;
+  if(take.ids.length) {
+    // MIDI note-offs cannot identify overlapping voices at the same pitch/channel.
+    // Keep the new performance and the non-overlapping portions of earlier notes.
+    const ids=new Set(take.ids), added=data.notes.filter(n=>ids.has(n.id));
+    let notes=data.notes.filter(n=>!ids.has(n.id));
+    for(const fresh of added) {
+      const end=fresh.start+fresh.duration;
+      notes=notes.flatMap(n=>{
+        const oldEnd=n.start+n.duration;
+        if(n.program!==fresh.program || n.pitch!==fresh.pitch || n.start>=end || oldEnd<=fresh.start)return [n];
+        const parts=[];
+        if(fresh.start-n.start>=.01)parts.push({...n,duration:fresh.start-n.start});
+        if(oldEnd-end>=.01) {
+          const tail={...n,id:take.nextId++,start:end,duration:oldEnd-end};
+          delete tail.source_onset;parts.push(tail);
+        }
+        return parts;
+      });
+      notes.push(fresh);
+    }
+    data.notes=notes;selected=new Set(notes.filter(n=>ids.has(n.id)).map(n=>n.id));
+    remember(take.before);
+  }
+  recordingControls(false);publish();
+  midiStatus(take.ids.length ? `${take.ids.length} notes recorded. Undo restores the previous score; Apply edits saves it.` : "No notes recorded. Click Record to try again.");
+}
+find("midi-input").addEventListener("change",()=>selectMidiInput(find("midi-input").value));
 function transportState(action) {for(const name of ["play","preview"])root.querySelector(`[data-action="${name}"]`).setAttribute("aria-pressed",String(name===action));}
 function stop() {
+  finishRecording();
+  for(const key of [...midiNotes.keys()])releaseMidiNote(key);
+  midiSustain.clear();
   soundRequest++;
   if (playing) cursorTime=clamp(playing.currentTime,0,data.duration);
   if (previewing) cursorTime=clamp(audioContext.currentTime-previewStarted+previewOffset,0,data.duration);
@@ -327,6 +521,13 @@ function stop() {
 }
 function animate() {
   if(!root.isConnected){stop();return;}
+  if(recording?.ready) {
+    const time=recordingTime();
+    if(time>=recording.end || playing?.ended) {stop();refresh();return;}
+    for(const held of midiNotes.values())if(held.note)held.note.duration=Math.max(.01,time-held.note.start);
+    find("listen-range").textContent=`Recording · ${time.toFixed(2)} s`;
+    draw(time);playbackFrame=requestAnimationFrame(animate);return;
+  }
   const time=previewing ? audioContext.currentTime-previewStarted+previewOffset : playing?.currentTime;
   if(time===undefined)return;
   if(time>=playbackEnd || playing?.ended) {
@@ -387,8 +588,11 @@ async function play(action) {
 }
 root.addEventListener("click",event=>{
   const button=event.target.closest("button"); if(!button)return;
+  if(button.disabled)return;
   if(button.dataset.tool) {setTool(button.dataset.tool); canvas.style.cursor=""; return;}
   const action=button.dataset.action;
+  if(action==="connect-midi")connectMidi();
+  if(action==="record")recordMidi();
   if(action==="undo")travel();
   if(action==="redo")travel(false);
   if(action==="delete")remove();
@@ -410,6 +614,7 @@ root.addEventListener("click",event=>{
   if(action==="play" || action==="preview")play(action).catch(()=>{stop();detail.textContent="Playback could not start. Please try again.";});
 });
 scroll.addEventListener("keydown",event=>{
+  if(recording) {if([" ","Escape"].includes(event.key)){event.preventDefault();stop();refresh();}return;}
   if(addingTrack()) {if(event.key!=="Tab")event.preventDefault(); return;}
   const key=event.key.toLowerCase(), modifier=event.metaKey||event.ctrlKey;
   if(modifier && key==="z") {event.preventDefault();event.shiftKey?travel(false):travel();return;}
@@ -429,6 +634,9 @@ scroll.addEventListener("keydown",event=>{
   }
 });
 const events=new AbortController();
+window.addEventListener("spansynth-stop",()=>{stop();refresh();},{signal:events.signal});
+window.addEventListener("pagehide",disconnectMidi,{signal:events.signal});
+document.addEventListener("visibilitychange",()=>{if(document.hidden){stop();refresh();}},{signal:events.signal});
 document.addEventListener("pointerdown",event=>{if(!track.parentElement.contains(event.target))closeTrackMenu();},{signal:events.signal});
 document.addEventListener("input",event=>{if(event.target.closest?.("#edit-start, #edit-end"))draw();},{signal:events.signal});
 document.addEventListener("click",event=>{
@@ -444,7 +652,7 @@ const observer=new ResizeObserver(()=>draw());observer.observe(scroll);
 const themeObserver=new MutationObserver(updatePalette);
 for(let node=root;node;node=node.parentElement)themeObserver.observe(node,{attributes:true,attributeFilter:["class"]});
 scroll.addEventListener("scroll",()=>{draw();cancelAnimationFrame(viewFrame);viewFrame=requestAnimationFrame(syncValue);});
-const lifetime=new MutationObserver(()=>{if(!root.isConnected){stop();events.abort();observer.disconnect();themeObserver.disconnect();lifetime.disconnect();cancelAnimationFrame(viewFrame);for(const player of soundfonts.values())player.dispose();soundfonts.clear();if(audioContext)audioContext.close().catch(()=>{});}});
+const lifetime=new MutationObserver(()=>{if(!root.isConnected){disconnectMidi();events.abort();observer.disconnect();themeObserver.disconnect();lifetime.disconnect();cancelAnimationFrame(viewFrame);for(const player of soundfonts.values())player.dispose();soundfonts.clear();if(audioContext)audioContext.close().catch(()=>{});}});
 lifetime.observe(root.parentElement,{childList:true});
 function receive() {
   if(props.value===lastSent)return;

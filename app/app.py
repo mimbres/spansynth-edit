@@ -777,7 +777,7 @@ def build_app():
                         with gr.Row():
                             context_midi = gr.Checkbox(value=False, label="Use original MIDI outside the region")
                             drop_context_audio = gr.Checkbox(value=False, label="Drop audio context")
-                    generate_button = gr.Button("Apply & Generate", variant="primary", size="lg")
+                    generate_button = gr.Button("Apply & Generate", variant="primary", size="lg", elem_id="generate-audio")
                     status = gr.Markdown("Choose a recording or try a sample.", elem_id="run-status")
                     output_start = gr.Button("Go to start", visible="hidden", elem_id="result-audio-start")
                     output_audio = gr.Audio(label="Edited clip · 48 kHz mono", interactive=False, type="filepath", buttons=["download"], elem_id="result-audio")

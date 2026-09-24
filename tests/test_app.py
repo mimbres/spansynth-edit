@@ -13,6 +13,118 @@ from app import app
 from spansynth.midi import parse_midi_notes, read_notes
 
 
+def test_shared_editor_midi_recording():
+    """Run the shipped editor with MIDI ports and clocks supplied by the test."""
+    import shutil
+    import subprocess
+
+    node = shutil.which("node")
+    if not node:
+        pytest.skip("Node.js is needed for the shared editor test")
+    script = r'''
+const fs = require("node:fs"), vm = require("node:vm"), assert = require("node:assert/strict");
+const elements = new Map();
+const context2d = new Proxy({}, {get: (target, name) => target[name] || (() => {})});
+class Element {
+  constructor() {this.value="";this.hidden=true;this.disabled=false;this.checked=false;this.dataset={};
+    this.style={setProperty(){}};this.clientWidth=900;this.clientHeight=380;this.scrollTop=0;this.scrollLeft=0;this.isConnected=true;}
+  querySelector(key) {if(!elements.has(key))elements.set(key,new Element());return elements.get(key);}
+  querySelectorAll() {return [];}
+  addEventListener() {} setAttribute() {} replaceChildren() {} focus() {} append() {}
+  getContext() {return context2d;}
+}
+const element=new Element();element.parentElement=new Element();element.spansynthHost={region:()=>[0,4],audio:()=>null};
+element.querySelector('[data-role="zoom"]').value="1";
+element.querySelector('[data-role="snap"]').value="0.04";
+element.querySelector('[data-role="audio-source"]').value="original";
+class Observer {observe() {} disconnect() {}}
+let milliseconds=0;
+const browser={element,props:{value:"{}"},watch(){},document:{hidden:false,createElement:()=>new Element(),
+  querySelectorAll:()=>[],querySelector:()=>null,getElementById:()=>null,addEventListener(){}},
+  window:{devicePixelRatio:1,isSecureContext:true,addEventListener(){}},navigator:{},
+  ResizeObserver:Observer,MutationObserver:Observer,AbortController,
+  getComputedStyle:()=>({getPropertyValue:()=>"#000"}),requestAnimationFrame:()=>1,cancelAnimationFrame(){},
+  setTimeout,clearTimeout,performance:{now:()=>milliseconds},console,assert,
+  location:{href:"https://example.test/"}};
+vm.createContext(browser);
+vm.runInContext(fs.readFileSync(process.argv[1],"utf8"),browser);
+vm.runInContext(`(async()=>{
+  const approx=(a,b)=>assert.ok(Math.abs(a-b)<1e-8, a+" != "+b);
+  const original={id:0,start:.2,duration:.3,pitch:48,velocity:75,program:0};
+  data={clip:"test",duration:4,notes:[{...original}],instruments:[{program:0,name:"Piano",members:[0]},{program:16,name:"Organ",members:[16]}]};
+  program=16;extraTracks=[16];cursorTime=1;timeRange=[1,2.2];
+  let released=0;
+  soundfonts.set(16,{start:()=>()=>{released++;}});
+  audioContext={currentTime:0,resume:async()=>{}};
+  const input={id:"keyboard",name:"Test keyboard",state:"connected",open:async()=>{},close:async()=>{}};
+  midiAccess={inputs:new Map([[input.id,input]])};
+  await selectMidiInput(input.id);
+  const send=(bytes,time)=>{audioContext.currentTime=time;input.onmidimessage({data:bytes,timeStamp:performance.now()});};
+  await recordMidi();assert.ok(recording.ready);assert.equal(track.disabled,true);
+  send([0x90,60,103],.1);send([0x91,64,87],.1);
+  send([0xb0,64,127],.2);send([0x80,60,0],.3);send([0x91,64,0],.4);
+  assert.equal(midiNotes.size,1);
+  send([0xb0,64,0],.6);
+  send([0x90,67,100],.7);await Promise.resolve();await Promise.resolve();
+  audioContext.currentTime=.9;stop();
+  assert.equal(recording,null);assert.equal(midiNotes.size,0);assert.equal(midiSustain.size,0);
+  assert.equal(track.disabled,false);assert.equal(data.notes.length,4);assert.deepEqual(data.notes[0],original);
+  const [a,b,c]=data.notes.slice(1);approx(a.start,1.1);approx(a.duration,.5);approx(b.duration,.3);approx(c.duration,.2);
+  assert.deepEqual([a.velocity,b.velocity,c.velocity],[103,87,100]);assert.ok(data.notes.slice(1).every(n=>n.program===16));
+  assert.equal(undo.length,1);assert.equal(JSON.parse(props.value).notes.length,4);
+  travel();assert.deepEqual(data.notes,[original]);travel(false);assert.equal(data.notes.length,4);
+  // No performance should create an undo entry.
+  const history=undo.length;timeRange=null;await recordMidi();stop();assert.equal(undo.length,history);
+  // Snap is optional and uses the current grid. Repeated pitches finish the prior note.
+  cursorTime=0;audioContext.currentTime=0;find("snap").value="0.1";find("record-snap").checked=true;
+  await recordMidi();send([0x90,72,99],.14);send([0x90,72,91],.26);send([0x80,72,0],.39);stop();
+  const last=data.notes.slice(-2);approx(last[0].start,.1);approx(last[0].duration,.2);approx(last[1].start,.3);approx(last[1].duration,.1);
+  // A take ends at the waveform range, including keys still held.
+  find("record-snap").checked=false;timeRange=[3.5,4];audioContext.currentTime=0;
+  await recordMidi();send([0x90,76,88],.2);audioContext.currentTime=.7;animate();
+  assert.equal(recording,null);approx(data.notes.at(-1).start,3.7);approx(data.notes.at(-1).duration,.3);
+  // A new performance replaces only same-pitch overlaps; one Undo restores both parts.
+  const long={id:0,start:0,duration:2,pitch:60,velocity:70,program:16,source_onset:-.2};
+  data.notes=[{...long},{...original,id:1}];cursorTime=0;timeRange=null;audioContext.currentTime=0;undo=[];redo=[];
+  await recordMidi();send([0x90,60,110],.5);send([0x80,60,0],1);stop();
+  const fragments=data.notes.filter(n=>n.program===16).sort((a,b)=>a.start-b.start);
+  assert.deepEqual(fragments.map(n=>[n.start,n.duration,n.velocity]),[[0,.5,70],[.5,.5,110],[1,1,70]]);
+  assert.equal(fragments[0].source_onset,-.2);assert.equal(fragments[2].source_onset,undefined);
+  assert.ok(data.notes.some(n=>n.program===0 && n.pitch===48));
+  travel();assert.deepEqual(data.notes,[long,{...original,id:1}]);
+  // Input loss closes active notes and preserves the take.
+  cursorTime=0;timeRange=null;audioContext.currentTime=0;await recordMidi();send([0x90,65,80],.1);
+  audioContext.currentTime=.3;input.state="disconnected";midiInputsChanged();
+  assert.equal(recording,null);assert.equal(midiInput,null);approx(data.notes.at(-1).duration,.2);
+  assert.match(find("midi-status").textContent,/disconnected/);
+  // Browser denial and lack of support leave the editor usable.
+  disconnectMidi();navigator.requestMIDIAccess=async()=>{throw Error("denied");};await connectMidi();
+  assert.match(find("midi-status").textContent,/not granted/);assert.equal(midiConnecting,false);
+  delete navigator.requestMIDIAccess;await connectMidi();assert.match(find("midi-status").textContent,/unavailable/);
+  assert.equal(track.disabled,false);
+  // Backing-audio position, not elapsed JS time, defines the recorded timeline.
+  input.state="connected";midiAccess={inputs:new Map([[input.id,input]])};await selectMidiInput(input.id);
+  const audio=find("player");audio.play=async()=>{};audio.pause=()=>{};host.audio=()=>"/clip.wav";
+  data.notes=[];cursorTime=.8;timeRange=[.8,1.5];await recordMidi();
+  audio.currentTime=1.1;send([0x90,70,100],900);audio.currentTime=1.3;send([0x80,70,0],901);stop();
+  approx(data.notes[0].start,1.1);approx(data.notes[0].duration,.2);host.audio=()=>null;
+  // Stop during sound loading must not start a late recording.
+  const loader=loadInstrument;let finishLoading;
+  loadInstrument=()=>new Promise(resolve=>{finishLoading=resolve;});
+  const pending=recordMidi();await Promise.resolve();stop();finishLoading();await pending;
+  assert.equal(recording,null);assert.equal(track.disabled,false);loadInstrument=loader;
+  // Monitoring failure does not discard an otherwise usable MIDI take.
+  loadInstrument=async()=>{throw Error("offline");};cursorTime=0;await recordMidi();
+  assert.ok(recording.ready);stop();loadInstrument=loader;
+})()`,browser).catch(error=>{console.error(error);process.exitCode=1;});
+'''
+    result = subprocess.run(
+        [node, "-e", script, str(Path(app.__file__).with_name("editor.js"))],
+        capture_output=True, text=True, timeout=20,
+    )
+    assert result.returncode == 0, result.stdout + result.stderr
+
+
 def note(program=0, **changes):
     return dict(start=0.25, duration=0.5, pitch=60, velocity=90, program=program, **changes)
 

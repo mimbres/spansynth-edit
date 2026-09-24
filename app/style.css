@@ -76,6 +76,14 @@
 .roll-toolbar input[type=range] {width: 80px; accent-color: var(--ss-accent);}
 .roll-secondary {padding-top: 0; border-bottom: 1px solid var(--ss-border);}
 .roll-secondary [data-role=count] {margin-left: auto; font-size: 11px; color: var(--ss-muted);}
+.roll-midi {background: var(--ss-soft); border-bottom: 1px solid var(--ss-border); font-size: 12px;}
+.roll-midi summary {cursor: pointer; padding: 10px 12px; color: var(--ss-text);}
+.roll-midi p, .roll-midi > a {display: block; margin: 0; padding: 0 12px 10px; color: var(--ss-muted); line-height: 1.6;}
+.roll-midi > a[hidden] {display: none;}
+.roll-midi [data-role=midi-status] {flex: 1 1 200px; color: var(--ss-muted);}
+.roll-midi input[type=checkbox] {accent-color: var(--ss-accent);}
+.record-icon {color: #e47786;}
+.gradio-container .roll-toolbar [data-action=record][aria-pressed=true] {border-color: #e47786; background: #e4778622;}
 .roll-scroll {overflow: auto; height: 380px; background: var(--ss-surface); outline: none; overscroll-behavior: contain;}
 .roll-scroll:focus-visible {outline: 2px solid var(--ss-key-border); outline-offset: -2px;}
 .roll-scroll canvas {display: block; touch-action: none;}

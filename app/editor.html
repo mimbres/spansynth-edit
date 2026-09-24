@@ -39,6 +39,18 @@
     <span data-role="sound-status" aria-live="polite">GM preview</span>
     <span data-role="count"></span>
   </div>
+  <details class="roll-midi">
+    <summary>MIDI keyboard · record into the selected track</summary>
+    <div class="roll-toolbar">
+      <button data-action="connect-midi">Connect MIDI</button>
+      <label>Input <select data-role="midi-input" aria-label="MIDI input" disabled><option value="">No input connected</option></select></label>
+      <button data-action="record" aria-pressed="false" disabled><span class="record-icon" aria-hidden="true">●</span> Record</button>
+      <label><input data-role="record-snap" type="checkbox"> Snap recording</label>
+      <span data-role="midi-status" role="status">Connect your keyboard, then click Connect MIDI.</span>
+    </div>
+    <p>Click the waveform to choose a start, or drag a range. New notes replace same-pitch overlaps in this track. Stop finishes the take; Undo restores the score before recording.</p>
+    <a data-role="midi-standalone" target="_blank" rel="noopener" hidden>Open the demo directly to connect MIDI ↗</a>
+  </details>
   <p data-role="edit-lock" class="roll-lock" role="status" hidden>Editing paused — choose <b>Add instrument</b> or <b>Cancel</b> above.</p>
   <div class="roll-scroll" tabindex="0" aria-label="Piano roll. Only the selected track can be edited. Select notes, draw with the pencil, or erase. Drag the waveform to select a playback range.">
     <canvas data-role="roll" aria-label="Editable piano roll"></canvas>
