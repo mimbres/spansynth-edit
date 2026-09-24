@@ -59,8 +59,11 @@ vm.runInContext(`(async()=>{
   const input={id:"keyboard",name:"Test keyboard",state:"connected",open:async()=>{},close:async()=>{}};
   midiAccess={inputs:new Map([[input.id,input]])};
   await selectMidiInput(input.id);
+  const stopRecording=root.querySelector('[data-action="stop-recording"]');
+  assert.equal(stopRecording.disabled,true);
   const send=(bytes,time)=>{audioContext.currentTime=time;input.onmidimessage({data:bytes,timeStamp:performance.now()});};
   await recordMidi();assert.ok(recording.ready);assert.equal(track.disabled,true);
+  assert.equal(stopRecording.disabled,false);
   send([0x90,60,103],.1);send([0x91,64,87],.1);
   send([0xb0,64,127],.2);send([0x80,60,0],.3);send([0x91,64,0],.4);
   assert.equal(midiNotes.size,1);
@@ -68,6 +71,7 @@ vm.runInContext(`(async()=>{
   send([0x90,67,100],.7);await Promise.resolve();await Promise.resolve();
   audioContext.currentTime=.9;stop();
   assert.equal(recording,null);assert.equal(midiNotes.size,0);assert.equal(midiSustain.size,0);
+  assert.equal(stopRecording.disabled,true);
   assert.equal(track.disabled,false);assert.equal(data.notes.length,4);assert.deepEqual(data.notes[0],original);
   const [a,b,c]=data.notes.slice(1);approx(a.start,1.1);approx(a.duration,.5);approx(b.duration,.3);approx(c.duration,.2);
   assert.deepEqual([a.velocity,b.velocity,c.velocity],[103,87,100]);assert.ok(data.notes.slice(1).every(n=>n.program===16));

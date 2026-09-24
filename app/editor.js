@@ -333,6 +333,7 @@ function midiControls() {
   find("record-snap").disabled=!!recording;
   record.disabled=!connected || !data.clip || addingTrack() || !!recording;
   record.setAttribute("aria-pressed",String(!!recording));
+  root.querySelector('[data-action="stop-recording"]').disabled=!recording;
 }
 function releaseMidiNote(key, time=recordingTime()) {
   const held=midiNotes.get(key);if(!held)return;
@@ -609,7 +610,7 @@ root.addEventListener("click",event=>{
     find("add-panel").hidden=true;
     change(()=>{program=Number(find("new-instrument").value); extraTracks.push(program); selected.clear(); timeRange=null; setTool("pencil"); canvas.style.cursor=""; centerTrack();});warmInstrument();
   }
-  if(action==="stop") {stop();refresh();}
+  if(action==="stop" || action==="stop-recording") {stop();refresh();}
   if(action==="restart") {stop();cursorTime=0;timeRange=null;selected.clear();for(const id of ["source-audio","result-audio"]){const a=document.querySelector(`#${id} audio`);if(a)a.currentTime=0;}refresh();draw();}
   if(action==="play" || action==="preview")play(action).catch(()=>{stop();detail.textContent="Playback could not start. Please try again.";});
 });
