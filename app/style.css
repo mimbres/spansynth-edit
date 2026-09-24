@@ -76,11 +76,12 @@
 .roll-toolbar input[type=range] {width: 80px; accent-color: var(--ss-accent);}
 .roll-secondary {padding-top: 0; border-bottom: 1px solid var(--ss-border);}
 .roll-secondary [data-role=count] {margin-left: auto; font-size: 11px; color: var(--ss-muted);}
-.roll-midi {background: var(--ss-soft); border-bottom: 1px solid var(--ss-border); font-size: 12px;}
+.roll-midi {--midi-accent: #0875b5; --midi-edge: #62c5f4; background: linear-gradient(115deg, #edf8ff, #f4f3fc); border-left: 3px solid var(--midi-edge); border-bottom: 1px solid var(--ss-border); font-size: 12px;}
+.dark .roll-midi {--midi-accent: #7dd3fc; --midi-edge: #62c5f4; background: linear-gradient(115deg, #203747, #2b293d);}
 .roll-midi-heading {display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px 12px; padding: 12px 12px 6px; color: var(--ss-text);}
-.roll-midi-heading strong {font-size: 14px;}
+.roll-midi-heading strong {font-size: 14px; color: var(--midi-accent);}
 .roll-midi-heading span {color: var(--ss-muted);}
-.roll-midi .roll-toolbar {padding-top: 0;}
+.roll-midi .roll-toolbar {padding-top: 0; background: transparent;}
 .roll-midi p, .roll-midi > a {display: block; margin: 0; padding: 0 12px 10px; color: var(--ss-muted); line-height: 1.6;}
 .roll-midi > a[hidden] {display: none;}
 .roll-midi [data-role=midi-status] {color: var(--ss-text);}
