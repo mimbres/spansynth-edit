@@ -1,6 +1,7 @@
 """Run against a real ComfyUI checkout supplied through PYTHONPATH."""
 import io
 import json
+from pathlib import Path
 
 import numpy as np
 import pytest
@@ -37,6 +38,48 @@ def note(**changes):
 def clip():
     values = torch.rand(1, 2, 24000) * .1
     return nodes.SpanSynthPrepareClip.execute({"waveform": values, "sample_rate": 24000}, .2, .8)[0]
+
+
+def test_example_loads_aligned_audio_and_midi_without_transcription(tmp_path):
+    workflow = nodes.prepare_example()
+    by_type = {n["type"]: n for n in workflow["nodes"]}
+    assert "SpanSynthTranscribe" not in by_type
+    audio_name = by_type["LoadAudio"]["widgets_values"][0]
+    midi_name, offset = by_type["SpanSynthLoadMidi"]["widgets_values"]
+    samples, rate = sf.read(tmp_path / audio_name, dtype="float32", always_2d=True)
+    prepared = nodes.SpanSynthPrepareClip.execute(
+        {"waveform": torch.from_numpy(samples.T.copy())[None], "sample_rate": rate})[0]
+    midi = nodes.SpanSynthLoadMidi.execute(midi_name, offset)[0]
+    result = nodes.SpanSynthEditScore.execute(prepared, midi)
+    score = result.ui["score"][0]
+    assert score["notes"] and score["notes"] == score["source"]
+    assert all(0 <= n["start"] < n["start"] + n["duration"] <= score["duration"] + 1e-6
+               for n in score["notes"])
+    assert result[1:3] == (0, score["duration"])
+    assert all(link[1] in {n["id"] for n in workflow["nodes"]} and
+               link[3] in {n["id"] for n in workflow["nodes"]} for link in workflow["links"])
+    before = {p.name: p.stat().st_mtime_ns for p in tmp_path.glob("early-kraisler-*")}
+    nodes.prepare_example()
+    assert before == {p.name: p.stat().st_mtime_ns for p in tmp_path.glob("early-kraisler-*")}
+
+
+def test_example_downloads_only_missing_inputs_in_sparse_install(tmp_path, monkeypatch):
+    from urllib import request
+    original_is_file = Path.is_file
+    monkeypatch.setattr(Path, "is_file", lambda p: False if "demo/assets" in str(p) else original_is_file(p))
+    source = Path(nodes.__file__).resolve().parents[1] / "demo/assets"
+    requested = []
+    def download(url, timeout):
+        name = url.rsplit("/", 1)[-1]
+        requested.append(name)
+        return io.BytesIO((source / name).read_bytes())
+    monkeypatch.setattr(request, "urlopen", download)
+    nodes.prepare_example()
+    assert len(requested) == 2
+    (tmp_path / "early-kraisler-track01-before.mid").write_bytes(b"User-owned replacement")
+    nodes.prepare_example()
+    assert len(requested) == 2
+    assert (tmp_path / "early-kraisler-track01-before.mid").read_bytes() == b"User-owned replacement"
 
 
 def test_audio_matches_file_crop_and_preserves_history(tmp_path):

@@ -1,5 +1,6 @@
 """ComfyUI nodes for MIDI-guided synthesis and editing."""
 
+import asyncio
 import base64
 from collections import Counter
 import io as binary_io
@@ -33,6 +34,35 @@ from .vocabulary import PROGRAM_GROUPS, PROGRAM_TO_CATEGORY
 Models = io.Custom("SPANSYNTH_MODELS")
 Clip = io.Custom("SPANSYNTH_CLIP")
 Midi = io.Custom("SPANSYNTH_MIDI")
+
+
+def prepare_example():
+    """Make the paired demo inputs available to ComfyUI's standard loaders."""
+    from urllib.request import urlopen
+
+    root = Path(__file__).resolve().parents[1]
+    inputs = Path(folder_paths.get_input_directory())
+    for name in ("early-kraisler-track01-original.mp3", "early-kraisler-track01-before.mid"):
+        destination = inputs / name
+        if destination.exists():
+            continue
+        source = root / "demo/assets" / name
+        if source.is_file():
+            data = source.read_bytes()
+        else:
+            url = "https://raw.githubusercontent.com/mimbres/spansynth-edit/main/demo/assets/" + name
+            with urlopen(url, timeout=30) as response:
+                data = response.read()
+        if name.endswith(".mid"):
+            MidiFile(file=binary_io.BytesIO(data))
+        else:
+            sf.info(binary_io.BytesIO(data))
+        try:
+            with destination.open("xb") as file:
+                file.write(data)
+        except FileExistsError:
+            pass
+    return json.loads((root / "comfyui/example.json").read_text())
 
 
 def midi_path(name):
@@ -410,6 +440,14 @@ def register_routes():
     root = Path(__file__).resolve().parents[1]
     assets = {"editor.js": root / "app/editor.js", "style.css": root / "app/style.css",
               "host.js": root / "comfyui/editor.js"}
+
+    @PromptServer.instance.routes.post("/spansynth/example")
+    async def example(request):
+        try:
+            workflow = await asyncio.to_thread(prepare_example)
+        except (OSError, ValueError, EOFError) as error:
+            raise web.HTTPBadGateway(text="Could not prepare the Kraisler example. Check the server's internet connection and input folder.") from error
+        return web.json_response(workflow)
 
     @PromptServer.instance.routes.get("/spansynth/assets/{name}")
     async def asset(request):

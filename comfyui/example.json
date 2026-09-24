@@ -30,7 +30,7 @@
         "Node name for S&R": "LoadAudio"
       },
       "widgets_values": [
-        ""
+        "early-kraisler-track01-original.mp3"
       ]
     },
     {
@@ -59,7 +59,6 @@
           "name": "clip",
           "type": "SPANSYNTH_CLIP",
           "links": [
-            2,
             3,
             6
           ]
@@ -80,7 +79,7 @@
     },
     {
       "id": 3,
-      "type": "SpanSynthTranscribe",
+      "type": "SpanSynthLoadMidi",
       "pos": [
         400,
         340
@@ -92,13 +91,7 @@
       "flags": {},
       "order": 2,
       "mode": 0,
-      "inputs": [
-        {
-          "name": "clip",
-          "type": "SPANSYNTH_CLIP",
-          "link": 2
-        }
-      ],
+      "inputs": [],
       "outputs": [
         {
           "name": "midi",
@@ -110,9 +103,13 @@
         }
       ],
       "properties": {
-        "Node name for S&R": "SpanSynthTranscribe"
+        "Node name for S&R": "SpanSynthLoadMidi"
       },
-      "widgets_values": []
+      "widgets_values": [
+        "early-kraisler-track01-before.mid",
+        0
+      ],
+      "title": "Original MIDI"
     },
     {
       "id": 4,
@@ -327,14 +324,6 @@
       2,
       0,
       "AUDIO"
-    ],
-    [
-      2,
-      2,
-      0,
-      3,
-      0,
-      "SPANSYNTH_CLIP"
     ],
     [
       3,

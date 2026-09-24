@@ -75,6 +75,7 @@ if (document.documentElement.hasAttribute("data-spansynth-editor")) {
   const {app} = await import("../../scripts/app.js");
   const {api} = await import("../../scripts/api.js");
   let opened = null;
+  let startExample = new URLSearchParams(location.search).get("spansynth") === "example";
   const scoreWidget = node => node.widgets.find(w => w.name === "score");
   const post = (action, value) => opened?.frame.contentWindow?.postMessage({spansynth: action, value}, location.origin);
   const close = () => {
@@ -100,6 +101,19 @@ if (document.documentElement.hasAttribute("data-spansynth-editor")) {
     node.spansynthPreparing = true;
     await app.queuePrompt(-1, 1, [String(node.id)]);
   }
+  async function openExample() {
+    if (opened) {close(); if (opened) return;}
+    try {
+      const response = await api.fetchApi("/spansynth/example", {method: "POST"});
+      if (!response.ok) throw new Error(await response.text());
+      const workflow = await response.json();
+      await app.refreshComboInNodes();
+      await app.loadGraphData(workflow, true, true, "SpanSynth-Edit · Kraisler");
+      await prepare(app.graph._nodes.find(node => node.type === "SpanSynthEditScore"));
+    } catch (error) {
+      alert(`Could not open the SpanSynth example: ${error.message}`);
+    }
+  }
   window.addEventListener("message", async event => {
     if (!opened || event.origin !== location.origin || event.source !== opened.frame.contentWindow) return;
     const {spansynth, value} = event.data || {}, node = opened.node;
@@ -122,6 +136,24 @@ if (document.documentElement.hasAttribute("data-spansynth-editor")) {
   });
   app.registerExtension({
     name: "SpanSynth.Edit",
+    commands: [{id: "SpanSynth.OpenExample", label: "Open Kraisler example", function: openExample}],
+    menuCommands: [{path: ["SpanSynth-Edit"], commands: ["SpanSynth.OpenExample"]}],
+    afterConfigureGraph() {
+      if (!startExample) return;
+      startExample = false;
+      // Wait until ComfyUI has restored its tabs before opening another one.
+      setTimeout(async () => {
+        while (app.configuringGraph) await new Promise(resolve => requestAnimationFrame(resolve));
+        const nodes = app.graph._nodes;
+        const editor = nodes.find(node => node.type === "SpanSynthEditScore");
+        const audio = nodes.find(node => node.type === "LoadAudio");
+        const midi = nodes.find(node => node.type === "SpanSynthLoadMidi");
+        const sameExample = audio?.widgets.find(w => w.name === "audio")?.value === "early-kraisler-track01-original.mp3"
+          && midi?.widgets.find(w => w.name === "midi")?.value === "early-kraisler-track01-before.mid";
+        if (editor && sameExample) await prepare(editor);
+        else await openExample();
+      }, 0);
+    },
     async beforeRegisterNodeDef(nodeType, nodeData) {
       if (!["SpanSynthEditScore", "SpanSynthGenerate", "SpanSynthLoadMidi"].includes(nodeData.name)) return;
       const created = nodeType.prototype.onNodeCreated;
