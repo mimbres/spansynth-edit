@@ -694,33 +694,55 @@ def load_violin_edit(old_session):
 
 
 def instant_demo_html():
-    # The first six violin events in the published before/after MIDI, in clip seconds.
+    # Notes overlapping 6.40–14.08 s in early-kraisler-track01-before/after.mid.
     notes = [(6.69, .97, 68, 68), (7.66, .63, 77, 67), (8.29, .30, 75, 66),
              (8.59, 1.07, 72, 65), (9.66, 1.35, 70, 64), (10.91, 1.60, 68, 63)]
+    piano = [(5.88, 1.47, 53), (6.29, .42, 58), (6.29, .44, 63), (6.30, .42, 61),
+             (6.71, .64, 58), (6.72, .63, 61), (6.73, .62, 63), (7.14, 1.73, 54),
+             (7.57, .47, 63), (7.58, .46, 61), (7.58, .47, 58), (8.04, .83, 61),
+             (8.04, .83, 63), (8.05, .82, 58), (8.59, 2.14, 55), (9.11, .63, 63),
+             (9.12, .63, 58), (9.12, .63, 61), (9.74, 1.63, 63), (9.75, 1.11, 58),
+             (9.75, 1.62, 61), (10.48, 3.21, 48), (10.73, 2.96, 55),
+             (10.86, 2.83, 58), (10.98, 2.71, 60), (11.12, 2.57, 64), (13.50, 2.13, 41)]
+    other_violin = [(5.86, .83, 70), (12.61, .80, 67), (13.41, .61, 65), (14.02, .25, 68)]
+
+    def bar(start, duration, pitch, kind):
+        end = min(start + duration, 14.08)
+        start = max(start, 6.4)
+        x, width = 28 + (start - 6.4) / 7.68 * 330, (end - start) / 7.68 * 330
+        y = 10 + (80 - pitch) * 2.8
+        return (f'<rect class="{kind}" data-note="{start:.2f},{end:.2f},{pitch}" '
+                f'x="{x:.1f}" y="{y:.1f}" width="{width:.1f}" height="2.8" rx="1"/>')
+
     cards = []
     for index, (label, filename, caption) in enumerate([
-        ("Original", "early-kraisler-track01-original.mp3", "The recorded violin melody"),
-        ("Edited", "early-kraisler-track01-base-sq-steps16.mp3", "The same six notes, descending by semitones"),
+        ("Original", "early-kraisler-track01-original.mp3", "Recorded violin + piano"),
+        ("Edited", "early-kraisler-track01-base-sq-steps16.mp3", "New violin melody + piano"),
     ]):
-        bars = []
-        for start, duration, before, after in notes:
-            pitch = after if index else before
-            x, width = 28 + (start - 6.4) / 7.68 * 330, duration / 7.68 * 330
-            y = 12 + (80 - pitch) * 3.7
-            bars.append(f'<rect x="{x:.1f}" y="{y:.1f}" width="{width:.1f}" height="5" rx="2"/>')
-        svg = (f'<svg viewBox="0 0 380 92" role="img" aria-label="{caption}">'
-               '<path d="M28 41.6H358M28 86H358" class="instant-grid"/>'
-               '<text x="2" y="45">C5</text><text x="2" y="89">C4</text>' + ''.join(bars) + '</svg>')
+        bars = [bar(*note, "instant-piano") for note in piano]
+        bars += [bar(*note, "instant-other-violin") for note in other_violin]
+        bars += [bar(start, duration, after if index else before, "instant-phrase")
+                 for start, duration, before, after in notes]
+        svg = (f'<svg viewBox="0 0 380 144" role="img" aria-label="{caption}: violin phrase in colour, piano accompaniment in grey">'
+               '<path d="M28 32.4H358M28 66H358M28 99.6H358" class="instant-grid"/>'
+               '<text x="2" y="36">C5</text><text x="2" y="70">C4</text><text x="2" y="103">C3</text>'
+               '<text x="28" y="140">6.40 s</text><text x="358" y="140" text-anchor="end">14.08 s</text>'
+               + ''.join(bars) + '<path class="instant-playhead" d="M28 6V126"/></svg>')
         cards.append(f'<article class="instant-track {"after" if index else "before"}">'
                      f'<div class="instant-track-label"><strong>{label}</strong><span>{caption}</span></div>{svg}'
-                     f'<div class="instant-player"><button type="button" data-audio-start aria-label="{label}: go to start" title="Go to start">⏮</button>'
+                     f'<div class="instant-player"><button type="button" data-audio-start data-example-label="{label}" aria-label="{label}: restart passage" title="Restart passage">⏮</button>'
                      f'<audio controls preload="metadata" data-instant-audio aria-label="{label} example audio" src="{EXAMPLE_ROOT}{filename}"></audio></div></article>')
     return ('<div class="instant-heading"><span class="eyebrow">LISTEN FIRST · NO GENERATION NEEDED</span>'
-            '<h2>A new melody. The same recording.</h2>'
-            '<p>We rewrote a violin phrase as a descending line. Compare the recording with a prepared SpanSynth-Edit result.</p></div>'
+            '<h2>Rewrite a melody within a full recording.</h2>'
+            '<p>A violin–piano duet: six highlighted violin notes become a descending line. '
+            'Both players include the piano accompaniment.</p></div>'
+            '<div class="instant-options" role="group" aria-label="Example playback range">'
+            '<button type="button" data-instant-mode="region" aria-pressed="true">Edited passage · 7.7 s</button>'
+            '<button type="button" data-instant-mode="full" aria-pressed="false">Full clip · 20.5 s</button>'
+            '<span>Colour: violin · Grey: piano</span></div>'
             '<div class="instant-pair">' + ''.join(cards) + '</div>'
-            '<p class="instant-caption">Playback starts at the edited passage, 6.40–14.08 s. Kraisler · 16 steps · CFG 2. '
-            'A new generation will vary.</p>')
+            '<p class="instant-caption"><span data-instant-range>Plays only 6.40–14.08 s, then stops.</span> '
+            'Kraisler · 16 steps · CFG 2. A new generation will vary.</p>')
 
 
 EDITOR_HTML = (HERE / "editor.html").read_text()
@@ -743,18 +765,71 @@ button.addEventListener('click', () => {
 document.addEventListener('click', event => {
   const button = event.target.closest('[data-audio-start]');
   const audio = button?.parentElement.querySelector('audio');
-  if (audio) { audio.pause(); audio.currentTime = 0; }
+  if (audio) { audio.pause(); audio.currentTime = audio.matches('[data-instant-audio]') && !fullExample ? 6.4 : 0; }
 });
+let fullExample = false;
+const exampleTimers = new WeakMap();
+function updateExamplePlayhead(audio) {
+  const line = audio.closest('.instant-track')?.querySelector('.instant-playhead');
+  if (!line) return;
+  line.style.visibility = audio.currentTime >= 6.4 && audio.currentTime <= 14.08 ? 'visible' : 'hidden';
+  line.setAttribute('transform', `translate(${(audio.currentTime - 6.4) / 7.68 * 330} 0)`);
+}
+function stopExampleAtEnd(audio) {
+  clearTimeout(exampleTimers.get(audio));
+  if (fullExample || audio.paused) return;
+  if (audio.currentTime >= 14.08) {
+    audio.pause();
+    audio.currentTime = 14.08;
+  } else {
+    exampleTimers.set(audio, setTimeout(() => stopExampleAtEnd(audio),
+      Math.max(16, (14.08 - audio.currentTime) / audio.playbackRate * 1000)));
+  }
+}
 function positionExample(audio) {
   if (audio.matches?.('[data-instant-audio]') && !audio.dataset.positioned) {
-    audio.currentTime = 6.4;
+    audio.currentTime = fullExample ? 0 : 6.4;
     audio.dataset.positioned = 'true';
+    updateExamplePlayhead(audio);
   }
 }
 document.addEventListener('loadedmetadata', event => positionExample(event.target), true);
 document.querySelectorAll('[data-instant-audio]').forEach(audio => {
   if (audio.readyState) positionExample(audio);
 });
+document.addEventListener('click', event => {
+  const choice = event.target.closest('[data-instant-mode]');
+  if (!choice) return;
+  fullExample = choice.dataset.instantMode === 'full';
+  document.querySelectorAll('[data-instant-mode]').forEach(button => {
+    button.setAttribute('aria-pressed', String(button === choice));
+  });
+  document.querySelectorAll('[data-instant-audio]').forEach(audio => {
+    audio.pause();
+    if (audio.readyState) audio.currentTime = fullExample ? 0 : 6.4;
+    updateExamplePlayhead(audio);
+  });
+  document.querySelectorAll('[data-example-label]').forEach(button => {
+    button.title = fullExample ? 'Go to start' : 'Restart passage';
+    button.setAttribute('aria-label', `${button.dataset.exampleLabel}: ${button.title.toLowerCase()}`);
+  });
+  document.querySelector('[data-instant-range]').textContent = fullExample
+    ? 'Plays the full clip. The score above shows 6.40–14.08 s.'
+    : 'Plays only 6.40–14.08 s, then stops.';
+});
+for (const name of ['play', 'pause', 'seeking', 'timeupdate', 'ratechange']) {
+  document.addEventListener(name, event => {
+    const audio = event.target;
+    if (!audio.matches?.('[data-instant-audio]')) return;
+    if (!fullExample) {
+      if (name === 'play' && (audio.currentTime < 6.4 || audio.currentTime >= 14.07)) audio.currentTime = 6.4;
+      else if (name === 'seeking' && audio.currentTime < 6.4) audio.currentTime = 6.4;
+      else if (name === 'seeking' && audio.currentTime > 14.08) audio.currentTime = 14.08;
+    }
+    stopExampleAtEnd(audio);
+    updateExamplePlayhead(audio);
+  }, true);
+}
 function addAudioStartButtons() {
   for (const id of ['upload-audio', 'source-audio', 'result-audio']) {
     const player = document.getElementById(id);

@@ -40,6 +40,10 @@
 .instant-heading .eyebrow {display: block; font-size: 10px; margin: 0 0 6px;}
 .gradio-container .instant-heading h2 {font-size: 23px; line-height: 1.25; letter-spacing: -.025em; color: var(--ss-text); margin: 0 0 6px;}
 .gradio-container .instant-heading p {font-size: 13px; line-height: 1.6; color: var(--ss-muted); margin: 0 0 14px;}
+.instant-options {display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin: 0 0 12px;}
+.gradio-container .instant-options button {border: 1px solid var(--ss-border); border-radius: 7px; padding: 6px 10px; font: 500 12px/18px system-ui; background: var(--ss-surface); color: var(--ss-muted); cursor: pointer;}
+.gradio-container .instant-options button[aria-pressed=true] {background: var(--ss-key); border-color: var(--ss-key-border); color: var(--ss-text);}
+.instant-options span {margin-left: auto; font-size: 11px; color: var(--ss-muted);}
 .instant-pair {display: grid; grid-template-columns: 1fr 1fr; gap: 16px;}
 .instant-track {min-width: 0; padding: 12px; border: 1px solid var(--ss-border); border-radius: 12px; background: var(--ss-soft);}
 .instant-track.before {color: #16745c;}
@@ -48,10 +52,13 @@
 .dark .instant-track.after {color: #d2a9ec;}
 .instant-track-label {display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 10px; font-size: 14px;}
 .instant-track-label span {font-size: 11px; color: var(--ss-muted);}
-.instant-track svg {display: block; width: 100%; height: 92px; margin: 4px 0;}
+.instant-track svg {display: block; width: 100%; height: 144px; margin: 4px 0;}
 .instant-track svg rect {fill: currentColor;}
+.instant-track svg .instant-piano {fill: var(--ss-muted); opacity: .5;}
+.instant-track svg .instant-other-violin {opacity: .45;}
 .instant-track svg text {fill: var(--ss-muted); font: 10px system-ui;}
 .instant-grid {stroke: var(--ss-border); stroke-width: 1; fill: none;}
+.instant-playhead {stroke: var(--ss-text); stroke-width: 1; opacity: .55; fill: none;}
 .instant-player {display: flex; align-items: center; gap: 6px;}
 .instant-player audio {width: 100%; min-width: 0; height: 36px;}
 .gradio-container .instant-player button {flex: 0 0 32px; height: 32px; padding: 0; color: var(--ss-text); background: var(--ss-surface); border: 1px solid var(--ss-border); border-radius: 7px; cursor: pointer;}
@@ -139,7 +146,8 @@
 @media (max-width: 600px) {
   .hero {padding: 20px;}
   .instant-pair {grid-template-columns: 1fr; gap: 10px;}
-  .instant-track svg {height: 76px;}
+  .instant-track svg {height: 120px;}
+  .instant-options span {flex-basis: 100%; margin: 3px 0 0;}
   .gradio-container .theme-toggle {float: none; display: block; margin: 0 0 18px auto;}
   .step-card {padding: 12px !important;}
   .roll-scroll {height: 320px;}

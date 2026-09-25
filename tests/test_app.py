@@ -317,6 +317,25 @@ def test_startup_listening_does_not_download_or_replace_an_open_work(monkeypatch
     assert app.open_shared_work("saved-jazz", None) is shared
 
 
+def test_listening_score_shows_both_instruments_from_the_published_midi():
+    import re
+    from collections import Counter
+    from xml.etree import ElementTree
+
+    charts = re.findall(r'<svg\b.*?</svg>', app.instant_demo_html())
+    assert len(charts) == 2
+    for chart, version in zip(charts, ("before", "after")):
+        bars = ElementTree.fromstring(chart).findall("rect")
+        drawn = Counter((*map(float, bar.attrib["data-note"].split(",")),
+                         0 if bar.attrib["class"] == "instant-piano" else 40) for bar in bars)
+        notes = app.midi_notes(app.HERE.parent / "demo" / "assets" / f"early-kraisler-track01-{version}.mid", 0, 20.48)
+        expected = Counter((round(max(6.4, n["start"]), 2),
+                            round(min(14.08, n["start"] + n["duration"]), 2), n["pitch"], n["program"])
+                           for n in notes if n["start"] < 14.08 and n["start"] + n["duration"] > 6.4)
+        assert drawn == expected
+        assert sum(bar.attrib["class"] == "instant-phrase" for bar in bars) == 6
+
+
 def test_prepared_violin_edit_keeps_original_midi_and_matches_the_listening_region():
     loaded = app.load_violin_edit(None)
     session = loaded[0]
