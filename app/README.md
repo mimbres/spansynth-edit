@@ -1,5 +1,5 @@
 ---
-title: SpanSynth-Edit
+title: SpanSynth-Edit · Edit music with MIDI
 emoji: 🎹
 colorFrom: blue
 colorTo: purple
@@ -16,7 +16,7 @@ thumbnail: https://raw.githubusercontent.com/mimbres/spansynth-edit/main/demo/as
 
 # SpanSynth-Edit
 
-Upload a recording, transcribe it with YourMT3+, edit the notes, and regenerate a selected region with SpanSynth-Edit.
+Hear a prepared violin edit, then try it yourself. Edit notes and instruments in a recording and regenerate a selected region with SpanSynth-Edit.
 
 [Paper](https://arxiv.org/abs/2609.25546) · [Source code](https://github.com/mimbres/spansynth-edit) · [Model weights](https://huggingface.co/mimbres/spansynth-edit) · [Listening examples](https://mimbres.github.io/spansynth-edit/)
 
@@ -32,7 +32,9 @@ Use **Apply edits** to save an updated MIDI file, or **Apply & Generate** to gen
 
 **MIDI keyboard:** in the **MIDI keyboard** panel above the piano roll, choose **Connect MIDI**, allow browser access, and select an input. Choose a track and click the waveform for the start, or drag a range, then **Start recording → Stop recording**. Record while the selected audio plays, with GM monitoring, velocity, and sustain pedal. New notes replace same-pitch overlaps in that track, keeping the earlier notes' remaining portions. **Undo** restores the entire score before the take; **Snap recording** optionally uses the Snap grid. Finish with **Apply edits** or **Apply & Generate**. Use Chrome or Edge. If MIDI is blocked in the embedded Space, [open the app directly](https://mimbres-spansynth-edit.hf.space/). The keyboard connects to your browser's computer, not the GPU server. Pitch bend and modulation are not recorded.
 
-**Jazz intro** (*Piano Sway Intro B* by OurMusicBox) loads automatically when you open the demo. Click **Transcribe with YourMT3+** to get its notes, or choose **Slakh** or **Kraisler**, which include aligned MIDI. Shared links open the saved work instead. Downloaded audio and MIDI use the chosen clip's timeline.
+The first screen pairs a Kraisler recording with a prepared **16-step, CFG 2** result and the six violin notes before and after editing. These players stream the existing listening examples directly, without transcription or GPU generation. **Try this violin edit** loads the original and edited MIDI, selects the violin phrase, and sets the example's 6.40–14.08 s region. Generate it again or change the notes. Enable **Auto region from note edits** to follow further changes. A new generation will vary from the prepared result.
+
+**Use my own audio** jumps to the upload controls. **Slakh** and **Kraisler** include aligned MIDI; **Jazz intro** (*Piano Sway Intro B* by OurMusicBox) is also available. Click **Transcribe with YourMT3+** for audio without MIDI. **Crop settings** and **Advanced settings** keep crop, method, Euler steps, CFG, and context options available. Shared links open the saved work. Downloaded audio and MIDI use the chosen clip's timeline.
 
 **Save & Share** preserves the last generated audio, its MIDI, and its editing settings. A title is filled in automatically; change it if you like, then save to get a shareable link. Publishing is currently limited to the `mimbres` HF account; sign in to the Space in the new tab and return to your editing tab. The app shows your sign-in status. Viewing and editing need no login. A shared link opens an editable copy without changing the published work. The **Gallery** lets visitors compare original and edited clips, then open a work in the editor.
 

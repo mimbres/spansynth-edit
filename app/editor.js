@@ -666,7 +666,8 @@ function receive() {
     const view=data.view||{};if(view.colors)trackColors=new Map(view.colors);
     program=view.program??data.notes[0]?.program??0;extraTracks=view.extraTracks||[];
     find("zoom").value=view.zoom??1;find("snap").value=view.snap??.04;
-    selected.clear();undo=[];redo=[];setTool("select");refresh();draw();centerTrack();
+    selected=new Set(Array.isArray(view.selected) ? view.selected.filter(id=>data.notes.some(n=>n.id===id && n.program===program)) : []);
+    undo=[];redo=[];setTool("select");refresh();draw();centerTrack();
     if(view.scrollTop!==undefined)scroll.scrollTop=view.scrollTop;scroll.scrollLeft=view.scrollLeft??0;
     syncValue();warmInstrument();
   } catch {detail.textContent="Unable to read MIDI. Please load the clip again.";}

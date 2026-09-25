@@ -301,29 +301,43 @@ def test_web_app_registers_workflow_endpoints():
     assert {"example", "load_clip", "load_midi", "transcribe", "export_midi", "generate"} <= names
 
 
-def test_startup_loads_jazz_without_replacing_an_open_work(monkeypatch):
-    loaded = app.open_shared_work("", None)
+def test_startup_listening_does_not_download_or_replace_an_open_work(monkeypatch):
+    def unexpected_sample(*args, **kwargs):
+        pytest.fail("The listening screen must not prepare an editing session")
+    monkeypatch.setattr(app, "load_example", unexpected_sample)
+    monkeypatch.setattr(app, "urlopen", unexpected_sample)
+    for session in (None, {"clip": "current"}):
+        assert app.open_shared_work("", session) == tuple(app.gr.skip() for _ in range(22))
+    preview = app.instant_demo_html()
+    assert "early-kraisler-track01-original.mp3" in preview
+    assert "early-kraisler-track01-base-sq-steps16.mp3" in preview
+    assert preview.count("<audio ") == 2
+    shared = ("saved work",)
+    monkeypatch.setattr(app, "load_work", lambda work_id, old: shared if work_id == "saved-jazz" else None)
+    assert app.open_shared_work("saved-jazz", None) is shared
+
+
+def test_prepared_violin_edit_keeps_original_midi_and_matches_the_listening_region():
+    loaded = app.load_violin_edit(None)
     session = loaded[0]
     try:
-        assert len(loaded) == 22
-        assert Path(loaded[1]).is_file()
-        assert Path(loaded[19]).name == "jazz-intro-ourmusicbox.mp3"
-        assert loaded[14] == "Jazz intro · edit"
-        assert loaded[20:] == (0, session["duration"])
+        assert len(loaded) == 19
+        assert loaded[3:5] == (6.4, 14.08)
+        assert loaded[13:] == (False, "ordinary", 16, 2., False, False)
+        assert loaded[5] is None and "take" not in session
         score = json.loads(loaded[2])
-        assert score["clip"] == session["clip"] and score["waveform"]
-        assert score["notes"] == [] and session["source_notes"] is None
-        assert loaded[5:8] == (None, None, None)
-        assert "transcribe" in loaded[8].lower()
-
-        def unexpected_sample(*args, **kwargs):
-            pytest.fail("An open session or shared link must not load the default sample")
-        monkeypatch.setattr(app, "load_example", unexpected_sample)
-        assert app.open_shared_work("", session) == tuple(app.gr.skip() for _ in range(22))
-        assert Path(loaded[1]).is_file()
-        shared = ("saved work",)
-        monkeypatch.setattr(app, "load_work", lambda work_id, old: shared if work_id == "saved-jazz" else None)
-        assert app.open_shared_work("saved-jazz", None) is shared
+        selected = [score["notes"][i] for i in score["view"]["selected"]]
+        assert score["view"]["program"] == 40
+        assert [n["pitch"] for n in selected] == [68, 67, 66, 65, 64, 63]
+        source = app.midi_notes(loaded[6], 0, session["duration"])
+        np.testing.assert_array_equal(app.note_array(source), app.note_array(session["source_notes"]))
+        assert [session["source_notes"][n["id"]]["pitch"] for n in selected] == [68, 77, 75, 72, 70, 68]
+        assert app.midi_notes(loaded[7], 0, session["duration"]) == score["notes"]
+        for before, after in zip(session["source_notes"], score["notes"]):
+            if before != after:
+                assert before["program"] == after["program"] == 40
+                assert {k: v for k, v in before.items() if k != "pitch"} == {k: v for k, v in after.items() if k != "pitch"}
+        assert "Descending violin" in session["suggested_title"]
     finally:
         app.cleanup(session)
 

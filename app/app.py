@@ -626,15 +626,7 @@ def load_work(work_id, old_session):
 
 
 def open_shared_work(work_id, session):
-    if work_id:
-        return load_work(work_id, session)
-    if session:
-        return tuple(gr.skip() for _ in range(22))
-    loaded = load_example(None, sample_name="Jazz intro")
-    return (*loaded[:9],
-            gr.skip(), gr.skip(), gr.skip(), gr.skip(), gr.skip(),
-            loaded[0]["suggested_title"], "", "", loaded[9], True,
-            *loaded[10:])
+    return load_work(work_id, session) if work_id else tuple(gr.skip() for _ in range(22))
 
 
 def load_example(old_session, sample_name="Slakh"):
@@ -672,6 +664,65 @@ def load_example(old_session, sample_name="Slakh"):
         return outputs
 
 
+def load_violin_edit(old_session):
+    """Open the published Kraisler edit with its original score kept for FlowEdit."""
+    loaded = list(load_example(None, sample_name="Kraisler"))
+    session = loaded[0]
+    try:
+        filename = "early-kraisler-track01-after.mid"
+        local = HERE.parent / "demo" / "assets" / filename
+        target = Path(session["directory"]) / "edited.mid"
+        if local.is_file():
+            shutil.copyfile(local, target)
+        else:
+            with urlopen(EXAMPLE_ROOT + filename, timeout=30) as response:
+                target.write_bytes(response.read())
+        notes = midi_notes(target, 0, session["duration"])
+        value = json.loads(editor_value(session, notes))
+        selected = [n["id"] for n in notes if n["program"] == 40 and 6.4 <= n["start"] < 14.08][:6]
+        value["view"] = {"program": 40, "selected": selected}
+        loaded[2] = json.dumps(value)
+        loaded[7] = str(target)
+        loaded[8] = ("Violin edit ready. Six notes are selected. Generate or adjust them first. "
+                     "The 6.40–14.08 s region matches the listening example; enable Auto region to follow further edits.")
+        session["suggested_title"] = "Descending violin · edit"
+    except Exception:
+        cleanup(session)
+        raise
+    cleanup(old_session)
+    return (*loaded, False, "ordinary", 16, 2., False, False)
+
+
+def instant_demo_html():
+    # The first six violin events in the published before/after MIDI, in clip seconds.
+    notes = [(6.69, .97, 68, 68), (7.66, .63, 77, 67), (8.29, .30, 75, 66),
+             (8.59, 1.07, 72, 65), (9.66, 1.35, 70, 64), (10.91, 1.60, 68, 63)]
+    cards = []
+    for index, (label, filename, caption) in enumerate([
+        ("Original", "early-kraisler-track01-original.mp3", "The recorded violin melody"),
+        ("Edited", "early-kraisler-track01-base-sq-steps16.mp3", "The same six notes, descending by semitones"),
+    ]):
+        bars = []
+        for start, duration, before, after in notes:
+            pitch = after if index else before
+            x, width = 28 + (start - 6.4) / 7.68 * 330, duration / 7.68 * 330
+            y = 12 + (80 - pitch) * 3.7
+            bars.append(f'<rect x="{x:.1f}" y="{y:.1f}" width="{width:.1f}" height="5" rx="2"/>')
+        svg = (f'<svg viewBox="0 0 380 92" role="img" aria-label="{caption}">'
+               '<path d="M28 41.6H358M28 86H358" class="instant-grid"/>'
+               '<text x="2" y="45">C5</text><text x="2" y="89">C4</text>' + ''.join(bars) + '</svg>')
+        cards.append(f'<article class="instant-track {"after" if index else "before"}">'
+                     f'<div class="instant-track-label"><strong>{label}</strong><span>{caption}</span></div>{svg}'
+                     f'<div class="instant-player"><button type="button" data-audio-start aria-label="{label}: go to start" title="Go to start">⏮</button>'
+                     f'<audio controls preload="metadata" data-instant-audio aria-label="{label} example audio" src="{EXAMPLE_ROOT}{filename}"></audio></div></article>')
+    return ('<div class="instant-heading"><span class="eyebrow">LISTEN FIRST · NO GENERATION NEEDED</span>'
+            '<h2>A new melody. The same recording.</h2>'
+            '<p>We rewrote a violin phrase as a descending line. Compare the recording with a prepared SpanSynth-Edit result.</p></div>'
+            '<div class="instant-pair">' + ''.join(cards) + '</div>'
+            '<p class="instant-caption">Playback starts at the edited passage, 6.40–14.08 s. Kraisler · 16 steps · CFG 2. '
+            'A new generation will vary.</p>')
+
+
 EDITOR_HTML = (HERE / "editor.html").read_text()
 
 THEME_JS = """
@@ -693,6 +744,16 @@ document.addEventListener('click', event => {
   const button = event.target.closest('[data-audio-start]');
   const audio = button?.parentElement.querySelector('audio');
   if (audio) { audio.pause(); audio.currentTime = 0; }
+});
+function positionExample(audio) {
+  if (audio.matches?.('[data-instant-audio]') && !audio.dataset.positioned) {
+    audio.currentTime = 6.4;
+    audio.dataset.positioned = 'true';
+  }
+}
+document.addEventListener('loadedmetadata', event => positionExample(event.target), true);
+document.querySelectorAll('[data-instant-audio]').forEach(audio => {
+  if (audio.readyState) positionExample(audio);
 });
 function addAudioStartButtons() {
   for (const id of ['upload-audio', 'source-audio', 'result-audio']) {
@@ -729,13 +790,18 @@ updateThemeButton();
 
 
 def build_app():
-    with gr.Blocks(title="SpanSynth-Edit", delete_cache=(3600, 3600)) as demo:
-        gr.HTML('<header class="hero"><button class="theme-toggle" type="button" aria-label="Switch to dark mode">☾ Dark mode</button><div class="eyebrow">SPANSYNTH-EDIT · MIDI-GUIDED MUSIC EDITING</div><h1>Change the notes.<br><span>Keep the musical context.</span></h1><p>Upload a recording, edit its score, and hear a new version of the selected region.</p><div class="hero-links"><a href="https://mimbres.github.io/spansynth-edit/" target="_blank">Listen to demos ↗</a><a href="https://github.com/mimbres/spansynth-edit" target="_blank">Source code ↗</a><a href="https://huggingface.co/mimbres/spansynth-edit" target="_blank">Model weights ↗</a></div></header>', apply_default_css=False, js_on_load=THEME_JS)
+    with gr.Blocks(title="SpanSynth-Edit · Edit music with MIDI", delete_cache=(3600, 3600)) as demo:
+        gr.HTML('<header class="hero"><button class="theme-toggle" type="button" aria-label="Switch to dark mode">☾ Dark mode</button><h1>SpanSynth-Edit <span>🎹</span></h1><p>Edit notes and instruments in real music with MIDI.</p><div class="hero-links"><a href="https://arxiv.org/abs/2609.25546" target="_blank">Paper ↗</a><a href="https://github.com/mimbres/spansynth-edit" target="_blank">GitHub ↗</a><a href="https://huggingface.co/mimbres/spansynth-edit" target="_blank">Checkpoints ↗</a><a href="https://mimbres.github.io/spansynth-edit/" target="_blank">More examples ↗</a></div></header>', apply_default_css=False, js_on_load=THEME_JS)
         state = gr.State(None, delete_callback=cleanup)
         shared_id = gr.Textbox(visible=False)
         with gr.Tabs():
             with gr.Tab("Editor", id="editor"):
-                with gr.Group(elem_classes="step-card"):
+                with gr.Group(elem_classes=["step-card", "instant-demo"]):
+                    gr.HTML(instant_demo_html(), apply_default_css=False)
+                    with gr.Row():
+                        try_edit = gr.Button("Try this violin edit", variant="primary")
+                        own_audio = gr.Button("Use my own audio")
+                with gr.Group(elem_classes="step-card", elem_id="choose-audio"):
                     gr.Markdown("### 1 · Choose your audio")
                     with gr.Row():
                         upload_start = gr.Button("Go to start", visible="hidden", elem_id="upload-audio-start")
@@ -743,9 +809,10 @@ def build_app():
                                          buttons=["download"], elem_id="upload-audio")
                         with gr.Column():
                             gr.Markdown("Work on one clip of up to **20.48 seconds**. Choose a sample below or upload your own recording.")
-                            with gr.Row():
-                                crop_start = gr.Number(value=0, minimum=0, precision=2, label="Crop start · seconds")
-                                duration = gr.Number(value=20.48, minimum=0.2, maximum=20.48, precision=2, label="Clip length · seconds")
+                            with gr.Accordion("Crop settings", open=False):
+                                with gr.Row():
+                                    crop_start = gr.Number(value=0, minimum=0, precision=2, label="Crop start · seconds")
+                                    duration = gr.Number(value=20.48, minimum=0.2, maximum=20.48, precision=2, label="Clip length · seconds")
                             with gr.Row():
                                 load = gr.Button("Load clip", variant="primary")
                     gr.Markdown("**Try a sample** — Slakh and Kraisler include MIDI. Transcribe the jazz clip with YourMT3+.", elem_classes="sample-note")
@@ -755,7 +822,7 @@ def build_app():
                         jazz_example = gr.Button("Jazz intro · 11 s", elem_classes="sample-button")
                     source_start = gr.Button("Go to start", visible="hidden", elem_id="source-audio-start")
                     original_audio = gr.Audio(label="Original clip", interactive=False, type="filepath", buttons=["download"], elem_id="source-audio")
-                with gr.Group(elem_classes="step-card"):
+                with gr.Group(elem_classes="step-card", elem_id="edit-score"):
                     gr.Markdown("### 2 · Edit the score")
                     with gr.Row():
                         transcribe_button = gr.Button("Transcribe with YourMT3+", variant="primary")
@@ -777,9 +844,10 @@ def build_app():
                     with gr.Row():
                         edit_start = gr.Number(value=6.4, minimum=0, precision=2, label="Region start · clip seconds", elem_id="edit-start")
                         edit_end = gr.Number(value=14.08, minimum=0, precision=2, label="Region end · clip seconds", elem_id="edit-end")
-                        method = gr.Dropdown(choices=[("spansynth-edit", "ordinary"), ("spansynth-edit + flowedit", "flowedit")], value="ordinary", label="Method")
-                        steps = gr.Dropdown(choices=EULER_STEPS, value=16, label="Euler steps")
-                    with gr.Accordion("Generation settings", open=False):
+                    with gr.Accordion("Advanced settings", open=False):
+                        with gr.Row():
+                            method = gr.Dropdown(choices=[("spansynth-edit", "ordinary"), ("spansynth-edit + flowedit", "flowedit")], value="ordinary", label="Method")
+                            steps = gr.Dropdown(choices=EULER_STEPS, value=16, label="Euler steps")
                         with gr.Row():
                             cfg = gr.Slider(0, 8, value=2, step=0.1, label="MIDI guidance (CFG)")
                         with gr.Row():
@@ -819,6 +887,13 @@ def build_app():
         clip_outputs = [state, original_audio, editor, edit_start, edit_end, output_audio, source_download, target_download, status, generation_time]
         load_event = load.click(load_clip, [audio, crop_start, duration, state], clip_outputs, api_name="load_clip", concurrency_id="editing")
         sample_outputs = [*clip_outputs, audio, crop_start, duration]
+        prepared_event = try_edit.click(load_violin_edit, [state],
+                                        [*sample_outputs, auto_region, method, steps, cfg, context_midi, drop_context_audio],
+                                        api_name="example_violin_edit", concurrency_id="editing")
+        prepared_event.success(None, None, None, queue=False, show_progress="hidden",
+                               js="() => document.getElementById('edit-score')?.scrollIntoView({behavior: 'smooth', block: 'start'})")
+        own_audio.click(None, None, None, queue=False,
+                        js="() => document.getElementById('choose-audio')?.scrollIntoView({behavior: 'smooth', block: 'start'})")
         slakh_event = slakh_example.click(load_example, [state], sample_outputs, api_name="example", concurrency_id="editing")
         kraisler_event = kraisler_example.click(partial(load_example, sample_name="Kraisler"), [state], sample_outputs,
                                api_name="example_kraisler", concurrency_id="editing")
@@ -835,10 +910,10 @@ def build_app():
               js="() => { window.dispatchEvent(new Event('spansynth-region')); }")
         generate_event = generate_button.click(generate, [editor, state, edit_start, edit_end, method, steps, cfg, context_midi, drop_context_audio, auto_region],
                               [output_audio, target_download, status, generation_time], api_name="generate", concurrency_id="editing")
-        for event in (load_event, slakh_event, kraisler_event, jazz_event, import_event, transcribe_event, generate_event):
+        for event in (load_event, slakh_event, kraisler_event, jazz_event, prepared_event, import_event, transcribe_event, generate_event):
             event.success(lambda: ("", ""), None, [share_link, save_status], queue=False,
                           show_progress="hidden", api_name=False)
-        for event in (load_event, slakh_event, kraisler_event, jazz_event):
+        for event in (load_event, slakh_event, kraisler_event, jazz_event, prepared_event):
             event.success(suggest_work_title, [work_title, state, automatic_title], [work_title, automatic_title], queue=False,
                           show_progress="hidden", api_name=False)
         output_audio.change(None, None, None, queue=False,
@@ -855,7 +930,7 @@ def build_app():
                           audio, crop_start, duration]
         demo.load(initial_work_title, None, [work_title, automatic_title], queue=False,
                   show_progress="hidden", api_name=False).then(
-            open_shared_work, [shared_id, state], shared_outputs, api_name="open_shared_work", concurrency_id="editing",
+            open_shared_work, [shared_id, state], shared_outputs, api_name="open_shared_work", queue=False, show_progress="hidden",
             js="(id, state) => [new URLSearchParams(location.search).get('work') || '', state]").success(
             lambda title: title, work_title, automatic_title, queue=False, show_progress="hidden", api_name=False)
         gallery_tab.select(gallery_html, None, gallery, api_name="gallery")
