@@ -732,7 +732,7 @@ def instant_demo_html():
                      f'<div class="instant-track-label"><strong>{label}</strong><span>{caption}</span></div>{svg}'
                      f'<div class="instant-player"><button type="button" data-audio-start data-example-label="{label}" aria-label="{label}: restart passage" title="Restart passage">⏮</button>'
                      f'<audio controls preload="metadata" data-instant-audio aria-label="{label} example audio" src="{EXAMPLE_ROOT}{filename}"></audio></div></article>')
-    return ('<div class="instant-heading"><span class="eyebrow">LISTEN FIRST · NO GENERATION NEEDED</span>'
+    return ('<div class="instant-heading"><span class="eyebrow">What can SpanSynth-Edit do?</span>'
             '<h2>Rewrite a melody within a full recording.</h2>'
             '<p>A violin–piano duet: six highlighted violin notes become a descending line. '
             'Both players include the piano accompaniment.</p></div>'
