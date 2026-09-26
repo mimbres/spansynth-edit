@@ -30,6 +30,8 @@
 .resource-value{display:flex;align-items:center;gap:5px;align-self:stretch;padding:5px 6px;border-left:1px solid var(--line);background:var(--bg)}
 .paper-link .resource-value{background:var(--cream);color:var(--gold)}
 .paper-link:hover{border-color:var(--gold)}
+.slides-link .resource-value{background:var(--sky);color:var(--text)}
+.slides-link:hover{border-color:var(--teal)}
 .repo-link .resource-value{background:var(--mint);color:var(--teal)}
 .repo-link:hover{border-color:var(--teal)}
 .interactive-link .resource-value{background:var(--lilac);color:var(--lilac-ink)}
